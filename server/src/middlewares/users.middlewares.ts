@@ -141,18 +141,15 @@ const DateOfBirthSchema: ParamSchema = {
 export const loginValidator = validate(
   checkSchema(
     {
-      email: {
+      username: {
         notEmpty: {
           errorMessage: USERS_MESSAGES.EMAIL_IS_REQUIRED
-        },
-        isEmail: {
-          errorMessage: USERS_MESSAGES.EMAIL_IS_VALID
         },
         trim: true,
         custom: {
           options: async (value, { req }) => {
             const user = await databaseService.users.findOne({
-              email: value,
+              username: value,
               password: hashPassword(req.body.password)
             })
 
@@ -176,9 +173,6 @@ export const registerValidator = validate(
       email: {
         notEmpty: {
           errorMessage: USERS_MESSAGES.EMAIL_IS_REQUIRED
-        },
-        isEmail: {
-          errorMessage: USERS_MESSAGES.EMAIL_IS_VALID
         },
         trim: true,
         custom: {
@@ -601,29 +595,7 @@ export const deleteS3Validator = validate(
 export const premiumUserValidator = validate(
   checkSchema(
     {
-      user_id: {
-        custom: {
-          options: async (value, { req }) => {
-            const user_id = req.decode_authorization.user_id
-            const user = await databaseService.users.findOne({
-              _id: new ObjectId(user_id as string)
-            })
-
-            if (user?.typeAccount === AccountStatus.FREE && user.count_type_account > 5) {
-              throw new ErrorWithStatus({
-                message: TWEET_MESSAGE.PREMIUM_USER_REQUIRED,
-                status: HTTP_STATUS.FORBIDDEN
-              })
-            }
-            if (user?.typeAccount === AccountStatus.PREMIUM && user.count_type_account > 40) {
-              throw new ErrorWithStatus({
-                message: TWEET_MESSAGE.PLATINUM_USER_REQUIRED,
-                status: HTTP_STATUS.FORBIDDEN
-              })
-            }
-          }
-        }
-      }
+      user_id: {}
     },
     ['headers']
   )

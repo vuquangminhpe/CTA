@@ -61,7 +61,8 @@ export const loginController = async (req: Request<ParamsDictionary, any, LoginR
   res.status(200).json({
     message: USERS_MESSAGES.LOGIN_SUCCESS,
     result: {
-      access_token: result
+      access_token: result,
+      user
     }
   })
 }
@@ -213,7 +214,7 @@ export const forgotPasswordController = async (
 
   const result = await usersService.forgotPassword({
     user_id: new ObjectId(_id).toString(),
-    verify: verify
+    verify: verify as UserVerifyStatus
   })
   res.json(result)
 }

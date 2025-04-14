@@ -201,6 +201,7 @@
     "proxy-addr": "^2.0.7",
     "pstree.remy": "^1.1.8",
     "punycode": "^2.3.1",
+    "qrcode": "^1.5.4",
     "qs": "^6.13.0",
     "queue-lit": "^1.5.2",
     "queue-microtask": "^1.2.3",
@@ -277,6 +278,7 @@
     "@types/mime": "^4.0.0",
     "@types/minimist": "^1.2.5",
     "@types/node-fetch": "^2.6.12",
+    "@types/qrcode": "^1.5.5",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.19.1"
   },

@@ -43,7 +43,7 @@ const usersRouter = Router()
 usersRouter.post('/login', loginValidator, wrapAsync(loginController))
 usersRouter.get('/oauth/google', wrapAsync(oauthController))
 
-usersRouter.post('/register', registerValidator, wrapAsync(registerController))
+usersRouter.post('/register', wrapAsync(registerController))
 usersRouter.post('/logout', AccessTokenValidator, RefreshTokenValidator, wrapAsync(logoutController))
 
 /**

@@ -4,6 +4,9 @@ import RefreshToken from '../models/schemas/RefreshToken.schema'
 import VideoStatus from '../models/schemas/VideoStatus.schema'
 
 import { envConfig } from '../constants/config'
+import Question from '../models/schemas/Question.schema'
+import Exam from '../models/schemas/Exam.schema'
+import ExamSession from '../models/schemas/ExamSession.schema'
 
 const uri = envConfig.mongodb_url
 const dbName = envConfig.db_name
@@ -36,11 +39,20 @@ class DatabaseService {
     }
   }
 
-  async indexUsers() {
-    const exits = await this.users.indexExists(['email_1_password_1', 'email_1'])
-    if (!exits) {
-      this.users.createIndex({ email: 1, password: 1 }, { unique: true })
-      this.users.createIndex({ email: 1 }, { unique: true })
+  async indexExams() {
+    const exists = await this.exams.indexExists(['exam_code_1', 'teacher_id_1'])
+    if (!exists) {
+      this.exams.createIndex({ exam_code: 1 }, { unique: true })
+      this.exams.createIndex({ teacher_id: 1 })
+    }
+  }
+
+  async indexExamSessions() {
+    const exists = await this.examSessions.indexExists(['exam_id_1_student_id_1', 'student_id_1', 'exam_id_1'])
+    if (!exists) {
+      this.examSessions.createIndex({ exam_id: 1, student_id: 1 }, { unique: true })
+      this.examSessions.createIndex({ student_id: 1 })
+      this.examSessions.createIndex({ exam_id: 1 })
     }
   }
   async indexVideoStatus() {
@@ -60,6 +72,17 @@ class DatabaseService {
 
   get videoStatus(): Collection<VideoStatus> {
     return this.db.collection(envConfig.VideoStatusCollection)
+  }
+  get questions(): Collection<Question> {
+    return this.db.collection('questions')
+  }
+
+  get exams(): Collection<Exam> {
+    return this.db.collection('exams')
+  }
+
+  get examSessions(): Collection<ExamSession> {
+    return this.db.collection('exam_sessions')
   }
 }
 

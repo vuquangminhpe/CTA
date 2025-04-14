@@ -7,10 +7,10 @@ import { config } from 'dotenv'
 import staticRouter from './routes/static.routes'
 import { initFolderImage, initFolderVideo, initFolderVideoHls } from './utils/file'
 import cors, { CorsOptions } from 'cors'
-
+import { createServer } from 'http'
+import { initSocketServer } from './socket'
 // import '../utils/fake'
 import './utils/s3'
-import { createServer } from 'http'
 import helmet from 'helmet'
 import { envConfig, isProduction } from './constants/config'
 
@@ -19,7 +19,6 @@ config()
 databaseService
   .connect()
   .then(() => {
-    databaseService.indexUsers()
     databaseService.indexVideoStatus()
   })
   .catch()
@@ -57,11 +56,11 @@ app.use('/medias', mediasRouter)
 app.use('/static', staticRouter)
 app.use('/admin', adminRouter)
 // app.use('/static/video-hls', express.static(UPLOAD_VIDEO_HLS_DIR))
-
+const io = initSocketServer(httpServer)
 app.use(defaultErrorHandler)
 
 httpServer.listen(port, () => {
   console.log(`Server listening on port ${port}`)
 })
 
-export default app
+export default { app, io }

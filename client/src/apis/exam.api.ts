@@ -1,0 +1,90 @@
+import { SuccessResponse } from '../types/Utils.type'
+import http from '../utils/http'
+
+interface Exam {
+  _id: string
+  title: string
+  exam_code: string
+  teacher_id: string
+  question_ids: string[]
+  duration: number
+  created_at: string
+  active: boolean
+}
+
+interface Question {
+  _id: string
+  content: string
+  answers: string[]
+}
+
+interface ExamWithQuestions extends Omit<Exam, 'question_ids'> {
+  questions: Question[]
+}
+
+interface ExamSession {
+  _id: string
+  exam_id: string
+  student_id: string
+  start_time: string
+  end_time: string | null
+  answers: Array<{
+    question_id: string
+    selected_index: number
+  }>
+  score: number
+  violations: number
+  completed: boolean
+  created_at: string
+  updated_at: string
+}
+
+interface ExamHistoryItem extends ExamSession {
+  exam_title: string
+  duration: number
+}
+
+interface GenerateExamRequest {
+  title: string
+  quantity: number
+  question_count: number
+  duration: number
+}
+
+interface QRCodeResponse {
+  exam_code: string
+  qrCode: string
+}
+
+interface StartExamRequest {
+  exam_code: string
+}
+
+interface StartExamResponse {
+  session: ExamSession
+  exam: ExamWithQuestions
+  remaining_time: number
+}
+
+interface SubmitExamRequest {
+  session_id: string
+  answers: Array<{
+    question_id: string
+    selected_index: number
+  }>
+}
+
+const examApi = {
+  generateExam: (body: GenerateExamRequest) =>
+    http.post<SuccessResponse<QRCodeResponse[]>>('/api/exams/generate', body),
+
+  getExams: () => http.get<SuccessResponse<Exam[]>>('/api/exams'),
+
+  startExam: (body: StartExamRequest) => http.post<SuccessResponse<StartExamResponse>>('/api/exams/start', body),
+
+  submitExam: (body: SubmitExamRequest) => http.post<SuccessResponse<ExamSession>>('/api/exams/submit', body),
+
+  getExamHistory: () => http.get<SuccessResponse<ExamHistoryItem[]>>('/api/exams/history')
+}
+
+export default examApi

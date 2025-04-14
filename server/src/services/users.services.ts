@@ -1,7 +1,7 @@
 import RefreshToken from '../models/schemas/RefreshToken.schema'
 import { AccountStatus, TokenType, UserVerifyStatus } from '../constants/enums'
 import { RegisterReqBody, UpdateMeReqBody } from '../models/request/User.request'
-import User from '../models/schemas/User.schema'
+import User, { UserRole } from '../models/schemas/User.schema'
 import { hashPassword } from '../utils/crypto'
 import { signToken } from '../utils/jwt'
 import databaseService from './database.services'
@@ -86,12 +86,9 @@ class UserService {
       new User({
         ...payload,
         _id: user_id,
-        typeAccount: AccountStatus.FREE,
-        role: 'user',
-        count_type_account: 0,
+        role: UserRole.Student,
         email_verify_token: email_verify_token,
-        password: hashPassword(payload.password),
-        date_of_birth: new Date(payload.date_of_birth)
+        password: hashPassword(payload.password)
       })
     )
 
@@ -102,8 +99,6 @@ class UserService {
 
     const expiryInSeconds = envConfig.token_expiry_seconds || 604800
     await valkeyService.storeRefreshToken(user_id.toString(), refresh_token, expiryInSeconds)
-
-    verifyForgotPassword(false, payload.email, email_verify_token)
 
     return {
       access_token
@@ -184,7 +179,7 @@ class UserService {
     if (user) {
       const [access_token, refresh_token] = await this.signAccessAndRefreshToken({
         user_id: user._id.toString(),
-        verify: user.verify
+        verify: user.verify as UserVerifyStatus
       })
 
       const expiryInSeconds = envConfig.token_expiry_seconds || 604800
@@ -291,7 +286,7 @@ class UserService {
         }
       }
     )
-    verifyForgotPassword(true, user?.email as string, forgot_password_token)
+    verifyForgotPassword(true, user?.username as string, forgot_password_token)
     return {
       message: USERS_MESSAGES.CHECK_EMAIL_TO_RESET_PASSWORD
     }
