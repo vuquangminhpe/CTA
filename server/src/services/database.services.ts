@@ -50,23 +50,6 @@ class DatabaseService {
     }
   }
 
-  async indexReports() {
-    const existsContentIndex = await this.reports.indexExists('content_id_1_content_type_1')
-    if (!existsContentIndex) {
-      this.reports.createIndex({ content_id: 1, content_type: 1 })
-    }
-
-    const existsStatusIndex = await this.reports.indexExists('status_1')
-    if (!existsStatusIndex) {
-      this.reports.createIndex({ status: 1 })
-    }
-
-    const existsDateIndex = await this.reports.indexExists('created_at_1')
-    if (!existsDateIndex) {
-      this.reports.createIndex({ created_at: 1 })
-    }
-  }
-
   get users(): Collection<User> {
     return this.db.collection(envConfig.usersCollection)
   }
@@ -77,18 +60,6 @@ class DatabaseService {
 
   get videoStatus(): Collection<VideoStatus> {
     return this.db.collection(envConfig.VideoStatusCollection)
-  }
-
-  get comments(): Collection<Comment> {
-    return this.db.collection(envConfig.commentCollection)
-  }
-
-  get notification(): Collection<Notification> {
-    return this.db.collection(envConfig.notificationCollection)
-  }
-
-  get reports(): Collection<Report> {
-    return this.db.collection(envConfig.reportsCollection)
   }
 }
 
