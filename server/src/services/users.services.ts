@@ -92,17 +92,7 @@ class UserService {
       })
     )
 
-    const [access_token, refresh_token] = await this.signAccessAndRefreshToken({
-      user_id: user_id.toString(),
-      verify: UserVerifyStatus.Unverified
-    })
-
-    const expiryInSeconds = envConfig.token_expiry_seconds || 604800
-    await valkeyService.storeRefreshToken(user_id.toString(), refresh_token, expiryInSeconds)
-
-    return {
-      access_token
-    }
+    return {}
   }
   async refreshToken(user_id: string, verify: UserVerifyStatus, refresh_token: string) {
     const [new_access_token, new_refresh_token] = await Promise.all([
@@ -213,8 +203,12 @@ class UserService {
       verify: verify
     })
 
-    const expiryInSeconds = envConfig.token_expiry_seconds || 604800
-    await valkeyService.storeRefreshToken(user_id, refresh_token, expiryInSeconds)
+    await databaseService.refreshToken.insertOne({
+      _id: new ObjectId(),
+      user_id: new ObjectId(user_id),
+      token: refresh_token,
+      created_at: new Date()
+    })
     // https://tweeterclone-six.vercel.app
     return access_token
   }
