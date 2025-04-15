@@ -84,10 +84,7 @@ Cấu trúc JSON phải như sau:
       "question_text": "Câu 2: {Nội dung câu hỏi 2}\nA. {Nội dung đáp án A2}\nB. {Nội dung đáp án B2}\nC. {Nội dung đáp án C2}\nD. {Nội dung đáp án D2}"
     },
     // ... tiếp tục cho đến hết ${count} câu hỏi
-    {
-      "id": ${count},
-      "question_text": "Câu ${count}: {Nội dung câu hỏi cuối}\nA. {Nội dung đáp án A cuối}\nB. {Nội dung đáp án B cuối}\nC. {Nội dung đáp án C cuối}\nD. {Nội dung đáp án D cuối}"
-    }
+    
   ],
   "answers": [
     // Danh sách các đáp án đúng theo thứ tự câu hỏi, chỉ gồm ký tự 'A', 'B', 'C', hoặc 'D'

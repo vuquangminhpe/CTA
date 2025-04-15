@@ -9,7 +9,7 @@ class Http {
     this.accessToken = `Bearer ${getAccessTokenFromLS()}`
     this.instance = axios.create({
       baseURL: configBase.baseURL,
-      timeout: 10000,
+      timeout: 1000000,
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json'
