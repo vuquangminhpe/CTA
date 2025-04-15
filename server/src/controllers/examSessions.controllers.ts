@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import HTTP_STATUS from '../constants/httpStatus'
 import { TokenPayload } from '../models/request/User.request'
-import examSessionService from '~/services/examSessions.services'
+import examSessionService from '../services/examSessions.services'
 
 export const startExamController = async (req: Request, res: Response) => {
   const { exam_code } = req.body
