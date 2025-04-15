@@ -11,6 +11,7 @@ import ExamSecurity from './ExamSecurity'
 import { AuthContext } from '../../Contexts/auth.context'
 import { Save, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import MobileTabDetector from './MobileTabDetector'
 
 interface ExamSessionProps {
   session: { _id: string }
@@ -265,7 +266,21 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
         socket={socket}
         requireWebcam={securityLevel === 'high'}
       />
-
+      <MobileTabDetector
+        sessionId={session._id}
+        socket={socket}
+        onViolation={() => {
+          setHasViolation(true)
+          setViolations((prev) => [
+            ...prev,
+            {
+              type: 'tab_switch',
+              timestamp: new Date().toISOString()
+            }
+          ])
+        }}
+        enabled={true}
+      />
       {/* Timer */}
       <ExamTimer remainingTime={timeLeft} onTimeUp={handleTimeUp} enabled={true} />
 

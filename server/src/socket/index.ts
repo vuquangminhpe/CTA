@@ -4,6 +4,8 @@ import { verifyToken } from '../utils/jwt'
 import { envConfig } from '../constants/config'
 import examSessionService from '../services/examSessions.services'
 import examSecurityService from '../services/examSecurity.services'
+import { ObjectId } from 'mongodb'
+import databaseService from '~/services/database.services'
 
 export const initSocketServer = (httpServer: http.Server) => {
   const io = new Server(httpServer, {
@@ -351,6 +353,75 @@ export const initSocketServer = (httpServer: http.Server) => {
         }
       } catch (error) {
         console.error('Error processing mobile screenshot detection:', error)
+      }
+    })
+    socket.on('activity_ping', async (data) => {
+      const { session_id, state, timestamp } = data
+
+      // Lưu trạng thái hoạt động vào cơ sở dữ liệu nếu cần
+      try {
+        await databaseService.db.collection('exam_activity_logs').insertOne({
+          session_id: new ObjectId(session_id as string),
+          student_id: new ObjectId(socket.data.user_id as string),
+          state,
+          timestamp: new Date(timestamp),
+          socket_id: socket.id,
+          ip_address: socket.data.ip_address
+        })
+      } catch (error) {
+        console.error('Error logging activity ping:', error)
+      }
+    })
+
+    // Cải tiến hàm xử lý tab_switch
+    socket.on('tab_switch', async (data) => {
+      const { session_id } = data
+      const user_id = socket.data.user_id
+
+      try {
+        // Thêm thông tin chi tiết hơn về thiết bị và trình duyệt
+        const deviceInfo = {
+          userAgent: socket.handshake.headers['user-agent'],
+          ip: socket.data.ip_address,
+          timestamp: new Date(),
+          isProbablyMobile: /mobile|android|iphone|ipad|ipod/i.test(socket.handshake.headers['user-agent'] || '')
+        }
+
+        // Record as violation with enhanced info
+        const violation = await examSecurityService.recordViolation(
+          session_id,
+          user_id,
+          'tab_switch',
+          {
+            timestamp: new Date(),
+            device_info: deviceInfo,
+            socket_id: socket.id
+          },
+          'medium'
+        )
+
+        // Cập nhật session
+        const updatedSession = await examSessionService.recordViolation(session_id)
+
+        if (updatedSession) {
+          // Broadcast violation to the exam room
+          io.to(`exam_${session_id}`).emit('violation_recorded', {
+            session_id,
+            violations: updatedSession.violations,
+            score: updatedSession.score,
+            type: 'tab_switch',
+            severity: 'medium',
+            // Thêm thông tin Chi tiết hơn
+            details: {
+              device_type: deviceInfo.isProbablyMobile ? 'mobile' : 'desktop',
+              timestamp: new Date()
+            }
+          })
+        } else {
+          console.error('Error: updatedSession is null')
+        }
+      } catch (error) {
+        console.error('Error recording tab switch violation:', error)
       }
     })
     // Periodic time updates (every 5 seconds)

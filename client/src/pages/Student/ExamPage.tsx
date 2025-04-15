@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight, Save, AlertTriangle, CheckCircle } from 'luc
 import { AuthContext } from '../../Contexts/auth.context'
 import './AntiScreenshot.css'
 import useExamProtection from '../../components/helper/ExamProtection'
+import MobileTabDetector from '../../components/Student/MobileTabDetector'
 
 const ExamPage = () => {
   const { examCode } = useParams()
@@ -265,6 +266,15 @@ const ExamPage = () => {
         enabled={!completed}
         sessionId={session?._id}
         socket={socket}
+      />
+      <MobileTabDetector
+        sessionId={session?._id}
+        socket={socket}
+        onViolation={() => {
+          setShowViolationWarning(true)
+          setViolations((prev) => prev + 1)
+        }}
+        enabled={!completed}
       />
       {/* Timer */}
       <ExamTimer remainingTime={remainingTime} onTimeUp={handleTimeUp} enabled={!completed} />
