@@ -43,23 +43,23 @@ interface ExamStatistics {
 }
 
 const adminApi = {
-  getDashboardStats: () => http.get<SuccessResponse<DashboardStats>>('/api/admin/dashboard'),
+  getDashboardStats: () => http.get<SuccessResponse<DashboardStats>>('/admin/dashboard'),
 
   getUsers: () =>
     http.get<SuccessResponse<{ users: User[]; total: number; page: number; limit: number; totalPages: number }>>(
-      '/api/admin/users'
+      '/admin/users'
     ),
 
   createUser: (body: { username: string; password: string; name?: string; role: UserRole }) =>
-    http.post<SuccessResponse<User>>('/api/admin/users', body),
+    http.post<SuccessResponse<User>>('/admin/users', body),
 
   updateUser: (id: string, body: { name?: string; role?: UserRole }) =>
-    http.put<SuccessResponse<User>>(`/api/admin/users/${id}`, body),
+    http.put<SuccessResponse<User>>(`/admin/users/${id}`, body),
 
-  deleteUser: (id: string) => http.delete<SuccessResponse<{ message: string }>>(`/api/admin/users/${id}`),
+  deleteUser: (id: string) => http.delete<SuccessResponse<{ message: string }>>(`/admin/users/${id}`),
 
   getExamStatistics: (params?: ExamStatisticsParams) =>
-    http.get<SuccessResponse<ExamStatistics>>('/api/admin/statistics/exams', { params })
+    http.get<SuccessResponse<ExamStatistics>>('/admin/statistics/exams', { params })
 }
 
 export default adminApi
