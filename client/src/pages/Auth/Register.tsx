@@ -128,7 +128,7 @@ const Register = () => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className='appearance-none block w-full px-3 py-3 pl-10 pr-10 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 text-sm'
+                    className='appearance-none block w-full px-3 py-3 pl-10 pr-10 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 text-sm'
                     placeholder='Tạo mật khẩu'
                   />
                   <button
@@ -162,7 +162,7 @@ const Register = () => {
                     required
                     value={formData.confirm_password}
                     onChange={handleChange}
-                    className='appearance-none block w-full px-3 py-3 pl-10 pr-10 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 text-sm'
+                    className='appearance-none block w-full rounded-xl px-3 py-3 pl-10 pr-10 border border-gray-300  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 text-sm'
                     placeholder='Xác nhận mật khẩu của bạn'
                   />
                   <button
@@ -225,7 +225,7 @@ const Register = () => {
                     <UserPlus className='h-5 w-5 text-white' aria-hidden='true' />
                   )}
                 </span>
-                {isLoading ? 'Creating Account...' : 'Sign Up'}
+                {isLoading ? 'Đang trong quá trình tạo tài khoản...' : 'Đăng ký'}
               </button>
             </div>
           </form>
