@@ -263,25 +263,60 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
 
     // DETECTION METHOD 5: Direct keyboard monitoring for advanced screenshot tools
     const monitorKeyboard = () => {
+      console.log('Screenshot keyboard monitoring activated')
+
+      // Các phím tắt chụp màn hình thường dùng
+      const screenshotShortcuts = [
+        { ctrl: true, shift: true, key: 's' }, // Ctrl+Shift+S (Windows Snipping Tool)
+        { key: 'PrintScreen' }, // Print Screen
+        { ctrl: true, key: 'PrintScreen' }, // Ctrl+Print Screen
+        { meta: true, shift: true, key: '3' }, // Cmd+Shift+3 (macOS)
+        { meta: true, shift: true, key: '4' }, // Cmd+Shift+4 (macOS)
+        { meta: true, shift: true, key: '5' } // Cmd+Shift+5 (macOS)
+      ]
+
+      const debugMode = true // Enable for troubleshooting
+
       const handleKeyDown = (e: KeyboardEvent) => {
-        // Windows Snipping Tool shortcuts
-        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 's' || e.key === 'S')) {
-          e.preventDefault()
-          e.stopPropagation()
-          triggerDetection('keyboard_shortcut')
-          return false
+        if (debugMode) {
+          console.log('Key detected:', {
+            key: e.key,
+            keyCode: e.keyCode,
+            code: e.code,
+            ctrl: e.ctrlKey,
+            shift: e.shiftKey,
+            meta: e.metaKey,
+            alt: e.altKey
+          })
         }
 
-        // PrintScreen key
-        if (e.key === 'PrintScreen') {
-          e.preventDefault()
-          e.stopPropagation()
-          triggerDetection('keyboard_shortcut')
-          return false
+        // Kiểm tra từng phím tắt chụp màn hình
+        for (const shortcut of screenshotShortcuts) {
+          if (
+            (!shortcut.ctrl || e.ctrlKey) &&
+            (!shortcut.shift || e.shiftKey) &&
+            (!shortcut.meta || e.metaKey) &&
+            ((shortcut as any).alt === undefined || (shortcut as any).alt === e.altKey) &&
+            e.key.toLowerCase() === shortcut.key.toLowerCase()
+          ) {
+            console.log('Screenshot shortcut detected:', shortcut)
+            e.preventDefault()
+            e.stopPropagation()
+            triggerDetection('keyboard_shortcut')
+            return false
+          }
         }
 
-        // macOS screenshot shortcuts
-        if (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
+        // Phát hiện những phím tắt bổ sung (có thể được dùng để chụp màn hình)
+        if (
+          // Windows Game Bar
+          (e.ctrlKey && e.altKey && (e.key === 'g' || e.key === 'G')) ||
+          // Browser Developer Tools
+          (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I')) ||
+          // Firefox Screenshots
+          (e.ctrlKey && e.shiftKey && (e.key === 'y' || e.key === 'Y'))
+        ) {
+          console.log('Alternative screen capture shortcut detected')
           e.preventDefault()
           e.stopPropagation()
           triggerDetection('keyboard_shortcut')
@@ -289,13 +324,40 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         }
       }
 
-      // Use multiple layers of event handlers to improve chances of capturing the event
+      // Đăng ký sự kiện ở level cao hơn để đảm bảo chúng ta bắt được tất cả
       window.addEventListener('keydown', handleKeyDown, { capture: true })
       document.addEventListener('keydown', handleKeyDown, { capture: true })
+
+      // Ghi đè phương thức onkeydown để đảm bảo bắt được tất cả
+      const originalDocumentKeyDown = document.onkeydown
+      document.onkeydown = function (e) {
+        const result = handleKeyDown(e)
+        if (result === false) return false
+
+        // Nếu không phải phím tắt chụp màn hình, gọi hàm xử lý gốc
+        if (originalDocumentKeyDown) {
+          return originalDocumentKeyDown.call(this, e)
+        }
+        return true
+      }
+
+      // Ghi đè phương thức onkeydown của window
+      const originalWindowKeyDown = window.onkeydown
+      window.onkeydown = function (e) {
+        const result = handleKeyDown(e)
+        if (result === false) return false
+
+        if (originalWindowKeyDown) {
+          return originalWindowKeyDown.call(this as Window, e)
+        }
+        return true
+      }
 
       return () => {
         window.removeEventListener('keydown', handleKeyDown, { capture: true })
         document.removeEventListener('keydown', handleKeyDown, { capture: true })
+        document.onkeydown = originalDocumentKeyDown
+        window.onkeydown = originalWindowKeyDown
       }
     }
 
