@@ -5,7 +5,7 @@ import { envConfig } from '../constants/config'
 import examSessionService from '../services/examSessions.services'
 import examSecurityService from '../services/examSecurity.services'
 import { ObjectId } from 'mongodb'
-import databaseService from '~/services/database.services'
+import databaseService from './services/database.services'
 
 export const initSocketServer = (httpServer: http.Server) => {
   const io = new Server(httpServer, {
