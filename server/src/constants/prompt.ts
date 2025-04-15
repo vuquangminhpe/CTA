@@ -67,34 +67,34 @@ Nếu vi phạm BẤT KỲ tiêu chí nào trên, DỪNG XỬ LÝ NGAY và trả
     4. Phân tích cảm xúc của nội dung phải được thực hiện và trả về kết quả chính xác.
 `
 
-export const PROMPT_CHAT = `
-// Step 1: Content Validation (MUST BE PERFORMED FIRST)
-Đầu tiên, hãy kiểm tra nghiêm ngặt nội dung đầu vào theo các tiêu chí sau:
-- Có chứa từ ngữ không phù hợp, tục tĩu
-- Có nội dung phản động, kích động
-- Có nội dung bạo lực, quấy rối
-- Có nội dung 18+, không phù hợp
+export const PROMPT_CHAT = (count: number, message: string) => `
+Tạo ${count} câu hỏi trắc nghiệm môn ${message}, chương trình Trung học phổ thông Việt Nam. Các câu hỏi cần bao gồm cả lý thuyết và bài tập cơ bản đến vận dụng đến vận dụng cao.
 
-Nếu vi phạm BẤT KỲ tiêu chí nào trên, DỪNG XỬ LÝ NGAY và trả về:
-{
-    "status": "VIOLATION",
-    "message": "Hãy sửa lại ngôn từ, nếu có lần thứ 2 tài khoản sẽ bị xóa vĩnh viễn và không thể khôi phục"
-}
+Yêu cầu trả về kết quả DƯỚI DẠNG MỘT ĐỐI TƯỢNG JSON DUY NHẤT, không kèm theo bất kỳ văn bản giải thích nào khác.
 
-// Step 2: Tweet Generation (CHỈ thực hiện nếu nội dung hợp lệ)
-Nếu nội dung hợp lệ, tạo tweet với format:
+Cấu trúc JSON phải như sau:
 {
-    "status": "SUCCESS",
-    "data": {
-        "content": "Nội dung chatbot trả lời dựa trên text của người dùng"
+  "questions": [
+    {
+      "id": 1,
+      "question_text": "Câu 1: {Nội dung câu hỏi 1}\nA. {Nội dung đáp án A1}\nB. {Nội dung đáp án B1}\nC. {Nội dung đáp án C1}\nD. {Nội dung đáp án D1}"
+    },
+    {
+      "id": 2,
+      "question_text": "Câu 2: {Nội dung câu hỏi 2}\nA. {Nội dung đáp án A2}\nB. {Nội dung đáp án B2}\nC. {Nội dung đáp án C2}\nD. {Nội dung đáp án D2}"
+    },
+    // ... tiếp tục cho đến hết ${count} câu hỏi
+    {
+      "id": ${count},
+      "question_text": "Câu ${count}: {Nội dung câu hỏi cuối}\nA. {Nội dung đáp án A cuối}\nB. {Nội dung đáp án B cuối}\nC. {Nội dung đáp án C cuối}\nD. {Nội dung đáp án D cuối}"
     }
-} 
-Lưu ý:
-
-1.Trả về định dạng JSON trên và không có thêm văn bản nào khác.
-2.Trả lời các câu hỏi về nhiều lĩnh vực khác nhau
-3.Hỗ trợ giải quyết vấn đề
-4.Đưa ra gợi ý và lời khuyên
-5.Hỗ trợ học tập và nghiên cứu
-6.Giúp đỡ với công việc và các tác vụ hàng ngày
-7.Cung cấp thông tin về sức khỏe và tư vấn y tế`
+  ],
+  "answers": [
+    // Danh sách các đáp án đúng theo thứ tự câu hỏi, chỉ gồm ký tự 'A', 'B', 'C', hoặc 'D'
+    "{Đáp án câu 1}", // Ví dụ: "A"
+    "{Đáp án câu 2}", // Ví dụ: "C"
+    // ... tiếp tục cho đến hết ${count} đáp án
+    "{Đáp án câu cuối}" // Ví dụ: "B"
+  ]
+}
+`

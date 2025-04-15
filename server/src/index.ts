@@ -16,6 +16,7 @@ import { envConfig, isProduction } from './constants/config'
 
 import adminRouter from './routes/admin.routes'
 import apiRouter from './routes'
+import geminiRoutes from './routes/gemini.routes'
 config()
 databaseService
   .connect()
@@ -57,6 +58,7 @@ app.use('/medias', mediasRouter)
 app.use('/static', staticRouter)
 app.use('/admin', adminRouter)
 app.use('/api', apiRouter)
+app.use('/gemini', geminiRoutes)
 // app.use('/static/video-hls', express.static(UPLOAD_VIDEO_HLS_DIR))
 const io = initSocketServer(httpServer)
 app.use(defaultErrorHandler)

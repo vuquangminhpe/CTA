@@ -117,10 +117,6 @@ export async function extractContentAndInsertToDB(user_id: string, aiResponseTex
   try {
     let content = extractContentFromResponse(aiResponseText)
 
-    const _id = new ObjectId()
-    const _id2 = new ObjectId()
-    const sender_id_gemini = new ObjectId('60f3b3b3b3b3b3b3b3b3b3b3')
-
     return {
       result: content
     }
@@ -130,28 +126,30 @@ export async function extractContentAndInsertToDB(user_id: string, aiResponseTex
   }
 }
 
-function extractContentFromResponse(response: string): string {
+function extractContentFromResponse(response: string): any {
   try {
+    // Try to extract JSON from code blocks
     const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/)
 
     if (jsonMatch && jsonMatch[1]) {
-      const parsedJson = JSON.parse(jsonMatch[1])
-
-      if (parsedJson.data && parsedJson.data.content) {
-        return parsedJson.data.content
+      try {
+        return JSON.parse(jsonMatch[1])
+      } catch (e) {
+        console.error('Error parsing JSON from code block:', e)
       }
     }
 
+    // Try parsing the entire response as JSON
     try {
-      const directParse = JSON.parse(response)
-      if (directParse.data && directParse.data.content) {
-        return directParse.data.content
-      }
-    } catch (e) {}
+      return JSON.parse(response)
+    } catch (e) {
+      console.error('Error parsing entire response as JSON:', e)
+    }
 
+    // If all parsing attempts fail, return the original response
     return response
   } catch (error) {
-    console.error('Error parsing response:', error)
+    console.error('Error in extractContentFromResponse:', error)
     return response
   }
 }

@@ -318,3 +318,14 @@ export const changePasswordController = async (
   const result = await usersService.changePassword(user_id, new_password)
   res.json(result)
 }
+
+export const generateTextGeminiController = async (req: Request<ParamsDictionary, any, any>, res: Response) => {
+  const { user_id } = req.decode_authorization as TokenPayload
+  const { message, count } = req.body
+
+  const result = await usersService.chatWithGemini(user_id, message, count)
+
+  res.json({
+    data: result
+  })
+}

@@ -1,5 +1,4 @@
-import RefreshToken from '../models/schemas/RefreshToken.schema'
-import { AccountStatus, TokenType, UserVerifyStatus } from '../constants/enums'
+import { TokenType, UserVerifyStatus } from '../constants/enums'
 import { RegisterReqBody, UpdateMeReqBody } from '../models/request/User.request'
 import User, { UserRole } from '../models/schemas/User.schema'
 import { hashPassword } from '../utils/crypto'
@@ -14,6 +13,9 @@ import { config } from 'dotenv'
 import { verifyEmail as sendVerifyEmail, verifyEmail, verifyForgotPassword } from '../utils/sendmail'
 import { envConfig } from '../constants/config'
 import valkeyService from './valkey.services'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+import { PROMPT_CHAT } from '../constants/prompt'
+import { extractContentAndInsertToDB } from '../utils/utils'
 
 config()
 class UserService {
@@ -428,6 +430,17 @@ class UserService {
       }
     )
     return changePassword
+  }
+  async chatWithGemini(user_id: string, message: string, count: number) {
+    const apiKey = process.env.GERMINI_API_KEY
+    const genAI = new GoogleGenerativeAI(apiKey as string)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    const result = await model.generateContent([PROMPT_CHAT(count, message), message])
+
+    const response = await result.response
+    const aiResponseText = response.text()
+
+    return await extractContentAndInsertToDB(user_id, aiResponseText, message)
   }
 }
 
