@@ -62,7 +62,7 @@ const ExamPage = () => {
 
       // If violations are severe (3 or more), auto-submit
       if (violations >= 3) {
-        toast.error('Multiple violations detected! Your exam is being submitted automatically.')
+        toast.error('Đã phát hiện nhiều vi phạm! Bài kiểm tra của bạn đang được gửi tự động.')
         handleSubmit()
       }
     }
@@ -94,7 +94,7 @@ const ExamPage = () => {
       }
     } catch (error: any) {
       console.error('Failed to load exam:', error)
-      toast.error(error.response?.data?.message || 'Failed to load exam')
+      toast.error(error.response?.data?.message || 'Không tải được bài kiểm tra, hãy liên hệ với giá giáo viên!')
       navigate('/student', { replace: true })
     } finally {
       setIsLoading(false)
@@ -129,7 +129,7 @@ const ExamPage = () => {
   }
 
   const handleTimeUp = () => {
-    toast.warning('Time is up! Submitting your exam...')
+    toast.warning('Đã hết giờ! Nộp bài thi của bạn...')
     handleSubmit()
   }
 
@@ -139,7 +139,7 @@ const ExamPage = () => {
       socket.emit('screen_capture', { session_id: session._id })
       setShowViolationWarning(true)
 
-      toast.error('Screen capture detected! This is a severe violation and your exam will be terminated.')
+      toast.error('Phát hiện ảnh chụp màn hình! Đây là hành vi vi phạm nghiêm trọng và bài thi của bạn sẽ bị chấm dứt.')
       handleSubmit()
     }
   }
@@ -161,7 +161,7 @@ const ExamPage = () => {
         answers: formattedAnswers as any
       })
       .then(() => {
-        toast.success('Exam submitted successfully')
+        toast.success('Đã gửi bài kiểm tra thành công')
         setCompleted(true)
 
         // Redirect after a short delay
@@ -171,7 +171,9 @@ const ExamPage = () => {
       })
       .catch((error: any) => {
         console.error('Failed to submit exam:', error)
-        toast.error(error.response?.data?.message || 'Failed to submit exam')
+        toast.error(
+          error.response?.data?.message || 'Không nộp được bài thi, hãy liên hệ với giáo viên để làm lại bài thi!'
+        )
       })
       .finally(() => {
         setIsSubmitting(false)
@@ -185,12 +187,14 @@ const ExamPage = () => {
 
     if (answeredCount < totalQuestions) {
       const confirmSubmit = window.confirm(
-        `You've only answered ${answeredCount} out of ${totalQuestions} questions. Are you sure you want to submit?`
+        `Bạn chỉ trả lời ${answeredCount} trong tổng số ${totalQuestions} câu hỏi. Bạn có chắc chắn muốn gửi không?`
       )
 
       if (!confirmSubmit) return
     } else {
-      const confirmSubmit = window.confirm('Are you sure you want to submit your exam? This action cannot be undone.')
+      const confirmSubmit = window.confirm(
+        'Bạn có chắc chắn muốn nộp bài thi của mình không? Hành động này không thể hoàn tác.'
+      )
 
       if (!confirmSubmit) return
     }
@@ -263,8 +267,8 @@ const ExamPage = () => {
             <div className='mt-4 p-3 bg-yellow-50 border border-yellow-100 rounded-md flex items-start'>
               <AlertTriangle className='h-5 w-5 text-yellow-400 flex-shrink-0 mr-2' />
               <p className='text-sm text-yellow-700'>
-                You have {violations} violation{violations !== 1 ? 's' : ''}. Screen capturing and tab switching during
-                the exam are not allowed and will result in penalties.
+                bạn có {violations} lỗi vi phạm {violations !== 1 ? '' : ''}. Việc chụp màn hình và chuyển đổi tab trong
+                khi làm bài kiểm tra là không được phép và sẽ bị phạt.
               </p>
             </div>
           )}
@@ -297,7 +301,7 @@ const ExamPage = () => {
             className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
           >
             <ChevronLeft className='-ml-1 mr-2 h-5 w-5' />
-            Previous
+            Trước
           </button>
 
           <div className='flex items-center'>
@@ -321,7 +325,7 @@ const ExamPage = () => {
             disabled={currentQuestionIndex === exam.questions.length - 1}
             className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            Next
+            Kế tiếp
             <ChevronRight className='-mr-1 ml-2 h-5 w-5' />
           </button>
         </div>

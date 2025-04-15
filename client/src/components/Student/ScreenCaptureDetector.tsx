@@ -57,7 +57,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         screenshotAttemptCount.current += 1
 
         if (screenshotAttemptCount.current >= 1) {
-          toast.error('Screenshot detected!')
+          toast.error('Đã phát hiện thấy ảnh chụp màn hình!')
           onScreenCaptureDetected()
 
           // Add immediate visual feedback
@@ -168,7 +168,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
           if (identical) {
             screenshotAttemptCount.current += 1
             if (screenshotAttemptCount.current >= 2) {
-              toast.error('Possible screen recording detected!')
+              toast.error('Có thể đã phát hiện có ghi lại màn hình!')
               onScreenCaptureDetected()
             }
           }
@@ -250,7 +250,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
 
             if (focusChangeCount >= 3) {
               // Rapid focus changes can indicate screenshot tools
-              toast.warning('Suspicious tab activity detected')
+              toast.warning('Đã phát hiện hoạt động tab đáng ngờ')
               onScreenCaptureDetected()
               focusChangeCount = 0
             }
@@ -276,7 +276,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 's' || e.key === 'S')) {
           e.preventDefault()
           e.stopPropagation()
-          toast.error('Screenshot shortcut detected!')
+          toast.error('Đã phát hiện thấy lối tắt ảnh chụp màn hình!')
           onScreenCaptureDetected()
           return false
         }
@@ -285,7 +285,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         if (e.key === 'PrintScreen') {
           e.preventDefault()
           e.stopPropagation()
-          toast.error('PrintScreen detected!')
+          toast.error('Đã phát hiện thấy lối tắt ảnh chụp màn hình!')
           onScreenCaptureDetected()
           return false
         }
@@ -294,7 +294,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         if (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
           e.preventDefault()
           e.stopPropagation()
-          toast.error('Screenshot shortcut detected!')
+          toast.error('Đã phát hiện thấy lối tắt ảnh chụp màn hình!')
           onScreenCaptureDetected()
           return false
         }
@@ -317,7 +317,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
             ) {
               event.preventDefault()
               event.stopPropagation()
-              toast.error('Screenshot shortcut detected!')
+              toast.error('Đã phát hiện thấy lối tắt ảnh chụp màn hình!')
               onScreenCaptureDetected()
               return false
             }

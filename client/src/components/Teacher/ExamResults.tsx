@@ -332,7 +332,7 @@ const ExamResults = ({ selectedExamId }: ExamResultsProps) => {
                                 className={`text-sm ${result.violations > 0 ? 'text-red-600' : 'text-gray-500'} font-medium`}
                               >
                                 {result.violations > 0
-                                  ? `${result.violations} violation${result.violations !== 1 ? 's' : ''}`
+                                  ? `${result.violations} lỗi vi phạm ${result.violations !== 1 ? '' : ''}`
                                   : 'None'}
                               </div>
                             </td>

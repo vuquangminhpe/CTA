@@ -235,7 +235,7 @@ const TeacherDashboard = () => {
                 {!isFormOpen && questions.length > 0 && (
                   <div className='pt-4 flex justify-between items-center border-t border-gray-200'>
                     <p className='text-sm text-gray-500'>
-                      tổng số: {questions.length} câu hỏi{questions.length !== 1 ? 's' : ''}
+                      tổng số: {questions.length} câu hỏi{questions.length !== 1 ? '' : ''}
                     </p>
                   </div>
                 )}
