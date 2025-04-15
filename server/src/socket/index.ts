@@ -175,7 +175,184 @@ export const initSocketServer = (httpServer: http.Server) => {
         console.error('Error recording violation:', error)
       }
     })
+    socket.on('register_device_extended', async (data) => {
+      const { session_id, device_info } = data
+      const user_id = socket.data.user_id
+      const ip_address = socket.data.ip_address
 
+      try {
+        // Store the extended device info
+        await examSecurityService.registerExtendedDevice(session_id, user_id, {
+          ...device_info,
+          ip_address,
+          connection_id: socket.id,
+          timestamp: new Date()
+        })
+
+        // Check for suspicious activity based on the device info
+        const deviceScore = await examSecurityService.evaluateDeviceRisk(session_id, user_id, device_info)
+
+        // If risk score is high, notify the client
+        if (deviceScore > 70) {
+          socket.emit('security_warning', {
+            session_id,
+            message: 'High risk device detected. Extra monitoring enabled.',
+            level: 'high'
+          })
+
+          // Also record a medium severity violation
+          await examSecurityService.recordViolation(
+            session_id,
+            user_id,
+            'high_risk_device',
+            { risk_score: deviceScore, device_info },
+            'medium'
+          )
+        }
+      } catch (error) {
+        console.error('Error processing extended device info:', error)
+      }
+    })
+
+    // Enhanced violation recording with better metadata
+    socket.on('exam_violation', async (data) => {
+      const { session_id, type, details } = data
+      const user_id = socket.data.user_id
+
+      try {
+        // Determine severity based on violation type
+        let severity: 'low' | 'medium' | 'high' = 'medium'
+
+        // Enhanced severity classification
+        if (
+          type === 'screen_capture' ||
+          type === 'screen_capture_attempt' ||
+          type === 'keyboard_shortcut' ||
+          type === 'multiple_ips' ||
+          type === 'webcam_manipulation'
+        ) {
+          // Get more details about the detection
+          const detectionMethod = details?.detection_method || 'unknown'
+
+          // Different methods have different confidence levels
+          if (
+            detectionMethod === 'ios_frame_drop' ||
+            detectionMethod === 'memory_spike' ||
+            detectionMethod === 'canvas_freeze'
+          ) {
+            severity = 'high' // High confidence methods
+          } else if (detectionMethod === 'android_dimension_change' || detectionMethod === 'focus_change') {
+            severity = 'medium' // Medium confidence
+          } else {
+            severity = 'low' // Lower confidence methods
+          }
+        } else if (type === 'inactivity' || type === 'unusual_activity') {
+          severity = 'low'
+        }
+
+        // Add additional metadata to help with analysis
+        const enhancedDetails = {
+          ...details,
+          client_info: {
+            user_agent: socket.handshake.headers['user-agent'],
+            ip: socket.data.ip_address,
+            socket_id: socket.id
+          },
+          server_timestamp: new Date()
+        }
+
+        // Record the enhanced violation
+        const violation = await examSecurityService.recordViolation(
+          session_id,
+          user_id,
+          type,
+          enhancedDetails,
+          severity
+        )
+
+        // Get updated session
+        const updatedSession = await examSessionService.recordViolation(session_id)
+
+        if (updatedSession) {
+          // Broadcast violation to the exam room with enhanced details
+          io.to(`exam_${session_id}`).emit('violation_recorded', {
+            session_id,
+            violations: updatedSession.violations,
+            score: updatedSession.score,
+            type,
+            severity,
+            timestamp: new Date(),
+            details: { detection_method: details?.detection_method || 'unknown' }
+          })
+
+          // If high severity, also notify teacher/admin monitors
+          if (severity === 'high') {
+            io.to('admin_monitors').emit('high_severity_violation', {
+              session_id,
+              student_id: user_id,
+              type,
+              details: enhancedDetails,
+              timestamp: new Date()
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error recording enhanced violation:', error)
+      }
+    })
+
+    // Add a new handler for mobile screenshot detection
+    socket.on('mobile_screenshot_detected', async (data) => {
+      const { session_id, detection_method, confidence, evidence } = data
+      const user_id = socket.data.user_id
+
+      try {
+        // Determine severity based on confidence
+        let severity: 'low' | 'medium' | 'high'
+
+        if (confidence >= 0.8) {
+          severity = 'high'
+        } else if (confidence >= 0.5) {
+          severity = 'medium'
+        } else {
+          severity = 'low'
+        }
+
+        // Record the mobile-specific violation
+        await examSecurityService.recordViolation(
+          session_id,
+          user_id,
+          'mobile_screenshot',
+          {
+            detection_method,
+            confidence,
+            evidence,
+            timestamp: new Date(),
+            device_info: {
+              user_agent: socket.handshake.headers['user-agent'],
+              ip: socket.data.ip_address
+            }
+          },
+          severity
+        )
+
+        // Update session
+        const updatedSession = await examSessionService.recordViolation(session_id)
+
+        if (updatedSession) {
+          // Notify client
+          socket.emit('violation_recorded', {
+            session_id,
+            violations: updatedSession.violations,
+            score: updatedSession.score,
+            type: 'mobile_screenshot',
+            severity
+          })
+        }
+      } catch (error) {
+        console.error('Error processing mobile screenshot detection:', error)
+      }
+    })
     // Periodic time updates (every 5 seconds)
     const timeInterval = setInterval(() => {
       // Get all rooms this socket is in

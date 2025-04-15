@@ -4,23 +4,50 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useState, useRef } from 'react'
 import { toast } from 'sonner'
+import MobileScreenshotDetector from './MobileScreenshotDetector'
 
 interface Props {
   onScreenCaptureDetected: () => void
   enabled?: boolean
+  sessionId: string
+  socket: any
 }
 
 /**
  * Enhanced component to detect and prevent screen capture attempts
- * Uses multiple detection techniques for improved effectiveness
+ * Now with device-specific optimizations to avoid false positives
  */
-const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabled = true }) => {
+const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabled = true, sessionId, socket }) => {
   const [isMonitoring, setIsMonitoring] = useState(false)
   const lastScreenshotTime = useRef<number>(0)
   const screenshotAttemptCount = useRef<number>(0)
 
+  // Device detection
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Setup device detection
   useEffect(() => {
     if (!enabled) return
+
+    // Check if device is mobile
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+    setIsMobile(isMobileDevice)
+
+    // Log device information
+    console.log('Device detection:', {
+      userAgent,
+      isMobile: isMobileDevice,
+      platform: navigator.platform,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height
+    })
+  }, [enabled])
+
+  // DESKTOP-SPECIFIC IMPLEMENTATION
+  // This will only run if the device is not mobile
+  useEffect(() => {
+    if (!enabled || isMobile) return
 
     // DETECTION METHOD 1: CSS-based detection using screenshot feedback
     // Create a unique CSS fingerprint that changes when screenshot is taken
@@ -31,7 +58,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
       const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`
 
       style.innerHTML = `
-        @media (prefers-color-scheme: dark) {
+        @media print {
           body::after {
             content: "";
             position: fixed;
@@ -57,44 +84,11 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         screenshotAttemptCount.current += 1
 
         if (screenshotAttemptCount.current >= 1) {
-          toast.error('Đã phát hiện thấy ảnh chụp màn hình!')
-          onScreenCaptureDetected()
-
-          // Add immediate visual feedback
-          const feedback = document.createElement('div')
-          feedback.style.position = 'fixed'
-          feedback.style.top = '0'
-          feedback.style.left = '0'
-          feedback.style.width = '100%'
-          feedback.style.height = '100%'
-          feedback.style.backgroundColor = 'rgba(255,0,0,0.3)'
-          feedback.style.color = 'white'
-          feedback.style.display = 'flex'
-          feedback.style.alignItems = 'center'
-          feedback.style.justifyContent = 'center'
-          feedback.style.zIndex = '9999'
-          feedback.style.fontSize = '32px'
-          feedback.style.fontWeight = 'bold'
-          feedback.style.textAlign = 'center'
-          feedback.innerHTML = 'SCREENSHOT DETECTED<br/>EXAM TERMINATED'
-
-          document.body.appendChild(feedback)
-
-          // Remove after 3 seconds
-          setTimeout(() => {
-            if (document.body.contains(feedback)) {
-              document.body.removeChild(feedback)
-            }
-          }, 3000)
+          triggerDetection('css_feedback')
         }
       }
 
-      // Detect via media query changes (this works on many browsers)
-      const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')
-      mediaQueryList.addEventListener('change', detectScreenshot)
-
       return () => {
-        mediaQueryList.removeEventListener('change', detectScreenshot)
         if (document.head.contains(style)) {
           document.head.removeChild(style)
         }
@@ -112,7 +106,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
       canvas.style.left = '-9999px'
       document.body.appendChild(canvas)
 
-      const context = canvas.getContext('2d')
+      const context = canvas.getContext('2d', { willReadFrequently: true })
       if (!context) return () => {}
 
       let previousData: ImageData | null = null
@@ -168,8 +162,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
           if (identical) {
             screenshotAttemptCount.current += 1
             if (screenshotAttemptCount.current >= 2) {
-              toast.error('Có thể đã phát hiện có ghi lại màn hình!')
-              onScreenCaptureDetected()
+              triggerDetection('canvas_freeze')
             }
           }
         }
@@ -215,7 +208,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
       // CSS that only activates during screenshot/print
       const style = document.createElement('style')
       style.innerHTML = `
-        @media print, (min-resolution: 2dppx) {
+        @media print {
           #screenshot-trap {
             opacity: 0.8 !important;
             content: "UNAUTHORIZED SCREENSHOT";
@@ -250,8 +243,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
 
             if (focusChangeCount >= 3) {
               // Rapid focus changes can indicate screenshot tools
-              toast.warning('Đã phát hiện hoạt động tab đáng ngờ')
-              onScreenCaptureDetected()
+              triggerDetection('focus_change')
               focusChangeCount = 0
             }
           } else {
@@ -276,8 +268,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 's' || e.key === 'S')) {
           e.preventDefault()
           e.stopPropagation()
-          toast.error('Đã phát hiện thấy lối tắt ảnh chụp màn hình!')
-          onScreenCaptureDetected()
+          triggerDetection('keyboard_shortcut')
           return false
         }
 
@@ -285,8 +276,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         if (e.key === 'PrintScreen') {
           e.preventDefault()
           e.stopPropagation()
-          toast.error('Đã phát hiện thấy lối tắt ảnh chụp màn hình!')
-          onScreenCaptureDetected()
+          triggerDetection('keyboard_shortcut')
           return false
         }
 
@@ -294,8 +284,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         if (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
           e.preventDefault()
           e.stopPropagation()
-          toast.error('Đã phát hiện thấy lối tắt ảnh chụp màn hình!')
-          onScreenCaptureDetected()
+          triggerDetection('keyboard_shortcut')
           return false
         }
       }
@@ -304,35 +293,9 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
       window.addEventListener('keydown', handleKeyDown, { capture: true })
       document.addEventListener('keydown', handleKeyDown, { capture: true })
 
-      // Also override document keydown handler at a low level
-      const originalAddEventListener = document.addEventListener
-      document.addEventListener = function (...args: any[]) {
-        if (args[0] === 'keydown' || args[0] === 'keyup') {
-          const originalHandler = args[1]
-          args[1] = function (event: KeyboardEvent) {
-            if (
-              event.key === 'PrintScreen' ||
-              (event.ctrlKey && event.shiftKey && (event.key === 's' || event.key === 'S')) ||
-              (event.metaKey && event.shiftKey && ['3', '4', '5'].includes(event.key))
-            ) {
-              event.preventDefault()
-              event.stopPropagation()
-              toast.error('Đã phát hiện thấy lối tắt ảnh chụp màn hình!')
-              onScreenCaptureDetected()
-              return false
-            }
-            // @ts-ignore
-            return originalHandler.apply(this, arguments)
-          }
-        }
-        // @ts-ignore
-        return originalAddEventListener.apply(this, args)
-      }
-
       return () => {
         window.removeEventListener('keydown', handleKeyDown, { capture: true })
         document.removeEventListener('keydown', handleKeyDown, { capture: true })
-        document.addEventListener = originalAddEventListener
       }
     }
 
@@ -345,8 +308,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
           screenshotAttemptCount.current += 1
 
           if (screenshotAttemptCount.current >= 2) {
-            toast.error('Copying exam content is not allowed!')
-            onScreenCaptureDetected()
+            triggerDetection('clipboard')
           } else {
             toast.warning('Copying exam content is not allowed!')
           }
@@ -368,8 +330,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia
         // @ts-ignore
         navigator.mediaDevices.getDisplayMedia = function (...args) {
-          toast.error('Screen sharing attempt detected!')
-          onScreenCaptureDetected()
+          triggerDetection('screen_sharing_api')
           // Still allow the original function to run, but alert the system
           // @ts-ignore
           return originalGetDisplayMedia.apply(this, args)
@@ -386,7 +347,54 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
       return () => {}
     }
 
-    // Combine all detection methods
+    // Helper function to trigger detection events
+    const triggerDetection = (method: string) => {
+      toast.error('Screenshot detected! This violation has been recorded.')
+
+      // Report to server
+      if (socket && sessionId) {
+        socket.emit('exam_violation', {
+          session_id: sessionId,
+          type: 'screen_capture',
+          details: {
+            detection_method: method,
+            timestamp: new Date().toISOString()
+          }
+        })
+      }
+
+      // Call main callback
+      onScreenCaptureDetected()
+
+      // Add immediate visual feedback
+      const feedback = document.createElement('div')
+      feedback.style.position = 'fixed'
+      feedback.style.top = '0'
+      feedback.style.left = '0'
+      feedback.style.width = '100%'
+      feedback.style.height = '100%'
+      feedback.style.backgroundColor = 'rgba(255,0,0,0.7)'
+      feedback.style.color = 'white'
+      feedback.style.display = 'flex'
+      feedback.style.alignItems = 'center'
+      feedback.style.justifyContent = 'center'
+      feedback.style.zIndex = '9999'
+      feedback.style.fontSize = '32px'
+      feedback.style.fontWeight = 'bold'
+      feedback.style.textAlign = 'center'
+      feedback.innerHTML = 'SCREENSHOT DETECTED<br/>EXAM TERMINATED'
+
+      document.body.appendChild(feedback)
+
+      // Remove after 3 seconds
+      setTimeout(() => {
+        if (document.body.contains(feedback)) {
+          document.body.removeChild(feedback)
+        }
+      }, 3000)
+    }
+
+    // Combine all detection methods for desktop
     const cleanupFunctions = [
       createScreenshotFeedback(),
       setupCanvasDetection(),
@@ -397,12 +405,28 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
       interceptScreenCaptureAPIs()
     ]
 
+    setIsMonitoring(true)
+
     // Return cleanup function
     return () => {
       cleanupFunctions.forEach((cleanup) => cleanup && cleanup())
+      setIsMonitoring(false)
     }
-  }, [enabled, onScreenCaptureDetected])
+  }, [enabled, isMobile, sessionId, socket, onScreenCaptureDetected])
 
+  // For mobile, use our specialized mobile detector
+  if (isMobile) {
+    return (
+      <MobileScreenshotDetector
+        onScreenCaptureDetected={onScreenCaptureDetected}
+        enabled={enabled}
+        sessionId={sessionId}
+        socket={socket}
+      />
+    )
+  }
+
+  // For desktop, we use the above implementation
   return null
 }
 

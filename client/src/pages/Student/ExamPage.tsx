@@ -33,7 +33,8 @@ const ExamPage = () => {
   const [completed, setCompleted] = useState(false)
 
   // Socket connection
-  const { violations, resetViolations, socket } = useSocketExam(session?._id)
+  const { resetViolations, socket } = useSocketExam(session?._id)
+  const [violations, setViolations] = useState(0)
 
   // Enable exam protection
   useExamProtection(true, {
@@ -136,10 +137,30 @@ const ExamPage = () => {
   // Handle screen capture detection
   const handleScreenCaptureDetected = () => {
     if (socket) {
-      socket.emit('screen_capture', { session_id: session._id })
+      socket.emit('exam_violation', {
+        session_id: session._id,
+        type: 'screen_capture',
+        details: {
+          detection_method: 'ui_detector',
+          timestamp: new Date().toISOString(),
+          device_info: {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height,
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+          }
+        }
+      })
+
       setShowViolationWarning(true)
 
-      toast.error('Phát hiện ảnh chụp màn hình! Đây là hành vi vi phạm nghiêm trọng và bài thi của bạn sẽ bị chấm dứt.')
+      toast.error('Screenshot detected! This is a serious violation and your exam may be terminated.')
+
+      // Increment local violation count
+      setViolations((prev) => prev + 1)
+
+      // Auto-submit exam for severe violations
       handleSubmit()
     }
   }
@@ -239,8 +260,12 @@ const ExamPage = () => {
   return (
     <div className='min-h-screen bg-gray-50 pb-16 exam-protected'>
       {/* Screen Capture Detection */}
-      <ScreenCaptureDetector onScreenCaptureDetected={handleScreenCaptureDetected} enabled={!completed} />
-
+      <ScreenCaptureDetector
+        onScreenCaptureDetected={handleScreenCaptureDetected}
+        enabled={!completed}
+        sessionId={session?._id}
+        socket={socket}
+      />
       {/* Timer */}
       <ExamTimer remainingTime={remainingTime} onTimeUp={handleTimeUp} enabled={!completed} />
 
