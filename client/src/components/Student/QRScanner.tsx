@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useRef, useState } from 'react'
 import { Html5QrcodeScanner, Html5QrcodeScanType, Html5Qrcode } from 'html5-qrcode'
 import { Camera, XCircle } from 'lucide-react'
-import { getAccessTokenFromLS } from '@/utils/auth'
 
 interface QRScannerProps {
   onScan: (examCode: string) => void
@@ -236,17 +236,6 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan }) => {
           <div className='mt-4 p-4 bg-gray-100 rounded-lg text-sm text-gray-700'>
             <p>Quét mã QR để bắt đầu kỳ thi. Đảm bảo bạn có đủ ánh sáng và giữ máy ảnh ổn định.</p>
           </div>
-        </div>
-      )}
-
-      {/* Hiển thị thông tin debug - chỉ hiển thị khi cần debug */}
-      {debug && (
-        <div className='mt-4 p-2 border border-gray-200 rounded text-xs font-mono bg-gray-50 text-gray-500 overflow-x-auto'>
-          <pre>{debug}</pre>
-          <button onClick={() => setDebug('')} className='mt-1 text-xs text-gray-500 hover:text-gray-700'>
-            Xóa thông tin debug
-            {getAccessTokenFromLS()}
-          </button>
         </div>
       )}
     </div>
