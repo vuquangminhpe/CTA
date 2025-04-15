@@ -35,7 +35,7 @@ const httpServer = createServer(app)
 const port = envConfig.port || 3002
 app.use(helmet())
 const corsOptions: CorsOptions = {
-  origin: isProduction ? envConfig.client_url : '*',
+  origin: '*',
   optionsSuccessStatus: 200
 }
 
