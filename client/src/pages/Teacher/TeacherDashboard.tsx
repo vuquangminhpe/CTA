@@ -201,7 +201,7 @@ const TeacherDashboard = () => {
             ) : (
               <div className='space-y-6'>
                 <div className='flex justify-between items-center'>
-                  <h2 className='text-lg font-medium text-gray-900'>Question Bank</h2>
+                  <h2 className='text-lg font-medium text-gray-900'>Ngân hàng câu hỏi</h2>
                   <div className='flex space-x-3'>
                     <button
                       onClick={() => setIsBulkImportOpen(true)}

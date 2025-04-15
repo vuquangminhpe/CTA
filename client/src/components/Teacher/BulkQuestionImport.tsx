@@ -134,9 +134,9 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
       <div className='px-6 py-4 bg-blue-600 text-white flex justify-between items-center'>
         <div className='flex items-center'>
           <FileText className='h-5 w-5 mr-2' />
-          <h3 className='text-lg font-medium'>Bulk Question Import</h3>
+          <h3 className='text-lg font-medium'>Nhập câu hỏi hàng loạt</h3>
         </div>
-        <button onClick={onCancel} className='text-white hover:text-gray-200 focus:outline-none'>
+        <button onClick={onCancel} className='text-black hover:text-black/60 focus:outline-none'>
           <X className='h-5 w-5' />
         </button>
       </div>
@@ -147,7 +147,7 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
             <div className='mb-4'>
               <div className='flex justify-between items-center mb-2'>
                 <label htmlFor='questionText' className='block text-sm font-medium text-gray-700'>
-                  Paste your questions below:
+                  Dán câu hỏi của bạn bên dưới:
                 </label>
                 <button
                   type='button'
@@ -155,7 +155,7 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
                   className='text-sm text-blue-600 hover:text-blue-800 flex items-center'
                 >
                   <HelpCircle className='h-4 w-4 mr-1' />
-                  View example
+                  Xem ví dụ
                 </button>
               </div>
               <textarea
@@ -179,7 +179,7 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
 
             <div className='flex justify-between items-center'>
               <span className='text-sm text-gray-500'>
-                Found {parsedQuestions.length} valid question{parsedQuestions.length !== 1 ? 's' : ''}
+                Tạo {parsedQuestions.length} câu hỏi hợp lệ{parsedQuestions.length !== 1 ? '' : ''}
               </span>
               <div className='space-x-3'>
                 <button
@@ -187,7 +187,7 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
                   onClick={onCancel}
                   className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                 >
-                  Cancel
+                  Hủy bỏ
                 </button>
                 <button
                   type='button'
@@ -195,7 +195,7 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
                   disabled={parsedQuestions.length === 0}
                   className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
                 >
-                  Preview Questions
+                  Xem trước câu hỏi
                 </button>
               </div>
             </div>
@@ -203,16 +203,16 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
         ) : (
           <>
             <div className='mb-4'>
-              <h4 className='text-lg font-medium text-gray-900 mb-2'>Select correct answers</h4>
+              <h4 className='text-lg font-medium text-gray-900 mb-2'>Chọn câu trả lời đúng</h4>
               <p className='text-sm text-gray-500 mb-4'>
-                Review each question and select the correct answer. By default, the first option (A) is selected.
+                Xem lại từng câu hỏi và chọn câu trả lời đúng. Theo mặc định, tùy chọn đầu tiên (A) được chọn.
               </p>
 
               <div className='space-y-6 max-h-[50vh] overflow-y-auto pr-2'>
                 {parsedQuestions.map((question, questionIndex) => (
                   <div key={questionIndex} className='border border-gray-200 rounded-lg p-4 bg-gray-50'>
                     <h5 className='font-medium text-gray-900 mb-2'>
-                      Question {questionIndex + 1}: {question.content}
+                      Câu hỏi {questionIndex + 1}: {question.content}
                     </h5>
                     <div className='ml-4 space-y-2'>
                       {question.answers.map((answer, answerIndex) => (
@@ -249,7 +249,7 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
                 onClick={() => setIsPreviewMode(false)}
                 className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
               >
-                Back to Edit
+                Quay lại chỉnh sửa
               </button>
               <button
                 type='button'
@@ -257,7 +257,7 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
                 className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
               >
                 <Check className='h-4 w-4 mr-1' />
-                Import Questions
+                Nhập câu hỏi
               </button>
             </div>
           </>

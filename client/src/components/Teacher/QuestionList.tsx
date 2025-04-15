@@ -19,8 +19,8 @@ const QuestionList = ({ questions, onEdit, onDelete }: any) => {
             d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
           />
         </svg>
-        <h3 className='mt-2 text-sm font-medium text-gray-900'>No questions</h3>
-        <p className='mt-1 text-sm text-gray-500'>Get started by creating a new question.</p>
+        <h3 className='mt-2 text-sm font-medium text-gray-900'>Không có câu hỏi</h3>
+        <p className='mt-1 text-sm text-gray-500'>Bắt đầu bằng cách tạo một câu hỏi mới.</p>
       </div>
     )
   }
@@ -53,7 +53,7 @@ const QuestionList = ({ questions, onEdit, onDelete }: any) => {
                         <span className='ml-2 text-sm text-gray-700'>{answer}</span>
                         {question.correct_index === index && (
                           <span className='ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
-                            Correct
+                            đáp án
                           </span>
                         )}
                       </li>
