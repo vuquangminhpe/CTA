@@ -14,7 +14,7 @@ const dbName = envConfig.db_name
 class DatabaseService {
   private static instance: DatabaseService
   private client: MongoClient
-  private db: Db
+  public db: Db
 
   private constructor() {
     this.client = new MongoClient(uri)

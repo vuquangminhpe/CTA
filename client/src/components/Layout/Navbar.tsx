@@ -22,7 +22,7 @@ const Navbar = () => {
         <div className='flex justify-between h-16'>
           <div className='flex items-center'>
             <Link to='/' className='flex-shrink-0 flex items-center'>
-              <span className='text-xl font-bold'>QR Exam System</span>
+              <span className='text-xl text-black font-bold'>Hệ thống kiểm tra</span>
             </Link>
           </div>
 
@@ -35,20 +35,29 @@ const Navbar = () => {
                     <div className='flex items-center space-x-4'>
                       {/* For teachers */}
                       {(role === UserRole.Teacher || role === UserRole.Admin) && (
-                        <Link to='/teacher' className='px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700'>
-                          Teacher Dashboard
+                        <Link
+                          to='/teacher'
+                          className='px-3 text-black py-2 rounded-md hover:text-black/90 text-sm font-medium hover:bg-gray-300'
+                        >
+                          Bảng điều khiển của giáo viên
                         </Link>
                       )}
 
                       {/* For students - everyone can access student features */}
-                      <Link to='/student' className='px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700'>
-                        Student Dashboard
+                      <Link
+                        to='/student'
+                        className='px-3 py-2 text-black rounded-md hover:text-black/90 text-sm font-medium hover:bg-gray-300'
+                      >
+                        Bảng điều khiển của học sinh
                       </Link>
 
                       {/* For admins */}
                       {role === UserRole.Admin && (
-                        <Link to='/admin' className='px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700'>
-                          Admin Dashboard
+                        <Link
+                          to='/admin'
+                          className='px-3 py-2 text-black hover:text-black/90 rounded-md text-sm font-medium hover:bg-gray-300'
+                        >
+                          Bảng điều khiển của quản trị viên
                         </Link>
                       )}
                     </div>
@@ -67,7 +76,7 @@ const Navbar = () => {
 
                 <button
                   onClick={handleLogout}
-                  className='p-1 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-600 focus:ring-white'
+                  className='p-1 rounded-full hover:bg-blue-700 bg-slate-900 transition-all '
                 >
                   <LogOut size={20} />
                 </button>

@@ -15,8 +15,8 @@ const ExamHistory = ({ examSessions, isLoading }: any) => {
     return (
       <div className='py-8 text-center'>
         <ClipboardList className='mx-auto h-12 w-12 text-gray-400' />
-        <h3 className='mt-2 text-sm font-medium text-gray-900'>No exam history</h3>
-        <p className='mt-1 text-sm text-gray-500'>You haven't taken any exams yet.</p>
+        <h3 className='mt-2 text-sm font-medium text-gray-900'>Không có lịch sử thi</h3>
+        <p className='mt-1 text-sm text-gray-500'>Bạn vẫn chưa tham gia kỳ thi nào.</p>
       </div>
     )
   }
@@ -33,12 +33,12 @@ const ExamHistory = ({ examSessions, isLoading }: any) => {
                   {session.completed ? (
                     <p className='inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800'>
                       <CheckCircle className='mr-1 h-4 w-4' />
-                      Completed
+                      Hoàn thành
                     </p>
                   ) : (
                     <p className='inline-flex rounded-full bg-yellow-100 px-2 text-xs font-semibold leading-5 text-yellow-800'>
                       <Clock className='mr-1 h-4 w-4' />
-                      In Progress
+                      Đang tiến hành
                     </p>
                   )}
                 </div>
@@ -46,7 +46,7 @@ const ExamHistory = ({ examSessions, isLoading }: any) => {
               <div className='mt-2 sm:flex sm:justify-between'>
                 <div className='sm:flex'>
                   <p className='flex items-center text-sm text-gray-500'>
-                    Score:{' '}
+                    Điểm:{' '}
                     {session.completed ? (
                       <span className='ml-1 font-medium text-gray-900'>{session.score.toFixed(1)}%</span>
                     ) : (
@@ -57,7 +57,7 @@ const ExamHistory = ({ examSessions, isLoading }: any) => {
                     {session.violations > 0 && (
                       <span className='flex items-center text-red-500'>
                         <XCircle className='mr-1 h-4 w-4' />
-                        {session.violations} violation{session.violations !== 1 ? 's' : ''}
+                        {session.violations} lỗi vi phạm{session.violations !== 1 ? '' : ''}
                       </span>
                     )}
                   </p>

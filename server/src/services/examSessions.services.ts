@@ -99,7 +99,15 @@ class ExamSessionService {
       }
     }
 
-    const score = (correctAnswers / questions.length) * 100
+    // If there are existing violations, check if score should be affected
+    let score = (correctAnswers / questions.length) * 100
+
+    // Reduce score based on violation count
+    if (session.violations > 0) {
+      const penaltyPerViolation = 25 // 25% penalty per violation
+      const penaltyPercentage = Math.min(100, session.violations * penaltyPerViolation)
+      score = Math.max(0, score * (1 - penaltyPercentage / 100))
+    }
 
     // Update session
     const result = await databaseService.examSessions.findOneAndUpdate(
@@ -119,13 +127,45 @@ class ExamSessionService {
     return result
   }
 
+  // Standard violation (like tab switching)
   async recordViolation(session_id: string) {
+    const session = await databaseService.examSessions.findOne({
+      _id: new ObjectId(session_id)
+    })
+
+    if (!session) {
+      throw new Error('Exam session not found')
+    }
+
+    // For the first violation, apply a warning
+    // For subsequent violations, reduce score progressively
+    const penaltyScore = session.violations === 0 ? session.score : Math.max(0, session.score - 25)
+
     const result = await databaseService.examSessions.findOneAndUpdate(
       { _id: new ObjectId(session_id) },
       {
         $inc: { violations: 1 },
         $set: {
-          score: 0, // Reset score to 0 on violation
+          score: penaltyScore,
+          updated_at: new Date()
+        }
+      },
+      { returnDocument: 'after' }
+    )
+
+    return result
+  }
+
+  // Critical violation (like screen capture) - immediately end the exam
+  async recordCriticalViolation(session_id: string) {
+    const result = await databaseService.examSessions.findOneAndUpdate(
+      { _id: new ObjectId(session_id) },
+      {
+        $inc: { violations: 5 }, // Count as 5 violations to indicate severity
+        $set: {
+          score: 0, // Set score to 0
+          completed: true, // End the exam
+          end_time: new Date(),
           updated_at: new Date()
         }
       },

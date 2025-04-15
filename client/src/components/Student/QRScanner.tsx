@@ -58,16 +58,12 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan }) => {
 
   return (
     <div className='max-w-md mx-auto'>
-      {error && (
-        <div className='mb-4 p-3 bg-red-100 text-red-800 rounded-md text-sm'>
-          {error}
-        </div>
-      )}
+      {error && <div className='mb-4 p-3 bg-red-100 text-red-800 rounded-md text-sm'>{error}</div>}
 
       {isCameraOpen ? (
         <div className='space-y-4'>
           <div id='qr-scanner' className='rounded-lg overflow-hidden' />
-          
+
           <div className='flex justify-center'>
             <button
               onClick={stopScanner}
@@ -83,14 +79,11 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan }) => {
             onClick={() => setIsCameraOpen(true)}
             className='py-3 px-6 border border-transparent shadow-sm text-lg font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           >
-            Scan QR Code
+            Quét mã QR
           </button>
 
           <div className='mt-4 p-4 bg-gray-100 rounded-lg text-sm text-gray-700'>
-            <p>
-              Scan a QR code to start the exam. Make sure you have good lighting
-              and hold your camera steady.
-            </p>
+            <p>Quét mã QR để bắt đầu kỳ thi. Đảm bảo bạn có đủ ánh sáng và giữ máy ảnh ổn định.</p>
           </div>
         </div>
       )}

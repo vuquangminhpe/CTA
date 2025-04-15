@@ -23,13 +23,13 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
     // Validate
     if (formData.question_count > questionCount) {
       alert(
-        `You only have ${questionCount} questions in your bank. Please create more questions or reduce the question count.`
+        `Bạn chỉ có ${questionCount} câu hỏi trong ngân hàng của bạn. Vui lòng tạo thêm câu hỏi hoặc giảm số lượng câu hỏi.`
       )
       return
     }
 
     if (!formData.title.trim()) {
-      alert('Please enter an exam title')
+      alert('Vui lòng nhập tiêu đề bài kiểm tra')
       return
     }
 
@@ -39,15 +39,15 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
   return (
     <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
       <div className='px-4 py-5 sm:p-6'>
-        <h3 className='text-lg leading-6 font-medium text-gray-900'>Generate Exam QR Codes</h3>
+        <h3 className='text-lg leading-6 font-medium text-gray-900'>Tạo mã QR cho bài kiểm tra</h3>
         <div className='mt-2 max-w-xl text-sm text-gray-500'>
-          <p>Create QR codes for students to take an exam. Each QR code will represent a unique exam.</p>
+          <p>Tạo mã QR để học sinh làm bài kiểm tra. Mỗi mã QR sẽ đại diện cho một bài kiểm tra duy nhất.</p>
         </div>
 
         <form onSubmit={handleSubmit} className='mt-5 space-y-6'>
           <div>
             <label htmlFor='title' className='block text-sm font-medium text-gray-700'>
-              Exam Title
+              Tiêu đề bài thi
             </label>
             <input
               type='text'
@@ -56,7 +56,7 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
               value={formData.title}
               onChange={handleChange}
               className='mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
-              placeholder='Midterm Exam'
+              placeholder='Kỳ thi giữa kỳ'
               required
             />
           </div>
@@ -64,7 +64,7 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
           <div className='grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3'>
             <div>
               <label htmlFor='quantity' className='block text-sm font-medium text-gray-700'>
-                Number of QR Codes
+                Số lượng mã QR
               </label>
               <div className='mt-1'>
                 <input
@@ -79,12 +79,12 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
                   required
                 />
               </div>
-              <p className='mt-2 text-sm text-gray-500'>How many different exam versions to generate</p>
+              <p className='mt-2 text-sm text-gray-500'>Có bao nhiêu phiên bản bài kiểm tra khác nhau để tạo ra</p>
             </div>
 
             <div>
               <label htmlFor='question_count' className='block text-sm font-medium text-gray-700'>
-                Questions per Exam
+                Câu hỏi cho mỗi kỳ thi
               </label>
               <div className='mt-1'>
                 <input
@@ -101,16 +101,16 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
               </div>
               <p className='mt-2 text-sm text-gray-500'>
                 {questionCount === 0 ? (
-                  <span className='text-red-500'>You need to create questions first</span>
+                  <span className='text-red-500'>Bạn cần tạo câu hỏi trước</span>
                 ) : (
-                  `Questions will be randomly selected from your bank of ${questionCount} questions`
+                  `Các câu hỏi sẽ được chọn ngẫu nhiên từ ngân hàng có ${questionCount} câu hỏi của bạn`
                 )}
               </p>
             </div>
 
             <div>
               <label htmlFor='duration' className='block text-sm font-medium text-gray-700'>
-                Duration (minutes)
+                Thời lượng (phút)
               </label>
               <div className='mt-1'>
                 <input
@@ -125,7 +125,7 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
                   required
                 />
               </div>
-              <p className='mt-2 text-sm text-gray-500'>Time students will have to complete the exam</p>
+              <p className='mt-2 text-sm text-gray-500'>Thời gian sinh viên sẽ phải hoàn thành bài thi</p>
             </div>
           </div>
 
@@ -135,7 +135,7 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
               className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
               disabled={questionCount === 0}
             >
-              Generate QR Codes
+              Tạo mã QR
             </button>
           </div>
         </form>

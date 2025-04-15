@@ -15,8 +15,9 @@ import Unauthorized from '../pages/Unauthorized'
 import { AuthContext, AuthProvider } from '../Contexts/auth.context'
 import MainLayout from '../layouts/layouts/MainLayout'
 import AdminDashboard from '../pages/Admin/AdminDashboard'
+import ExamResultsPage from '../pages/Teacher/ExamResultsPage'
 
-// Layouts
+// Teacher specific pages
 
 const AppRoutes = () => {
   const { role } = useContext(AuthContext)
@@ -52,6 +53,8 @@ const AppRoutes = () => {
           {/* Teacher routes */}
           <Route element={<TeacherRoute />}>
             <Route path='/teacher' element={<TeacherDashboard />} />
+            {/* New route for viewing exam results */}
+            <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />
           </Route>
 
           {/* Student routes */}

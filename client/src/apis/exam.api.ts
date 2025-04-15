@@ -39,6 +39,11 @@ interface ExamSession {
   updated_at: string
 }
 
+interface ExamSessionWithStudentInfo extends ExamSession {
+  student_name: string
+  student_username: string
+}
+
 interface ExamHistoryItem extends ExamSession {
   exam_title: string
   duration: number
@@ -74,6 +79,13 @@ interface SubmitExamRequest {
   }>
 }
 
+interface ExamResultsStatistics {
+  averageScore: number
+  completionRate: number
+  totalStudents: number
+  violationCount: number
+}
+
 const examApi = {
   generateExam: (body: GenerateExamRequest) =>
     http.post<SuccessResponse<QRCodeResponse[]>>('/api/exams/generate', body),
@@ -84,7 +96,17 @@ const examApi = {
 
   submitExam: (body: SubmitExamRequest) => http.post<SuccessResponse<ExamSession>>('/api/exams/submit', body),
 
-  getExamHistory: () => http.get<SuccessResponse<ExamHistoryItem[]>>('/api/exams/history')
+  getExamHistory: () => http.get<SuccessResponse<ExamHistoryItem[]>>('/api/exams/history'),
+
+  // New methods for teacher's exam results
+  getExamResults: (examId: string) =>
+    http.get<SuccessResponse<ExamSessionWithStudentInfo[]>>(`/api/exams/${examId}/results`),
+
+  getExamResultsStatistics: (examId: string) =>
+    http.get<SuccessResponse<ExamResultsStatistics>>(`/api/exams/${examId}/statistics`),
+
+  // Get detailed exam information
+  getExamById: (examId: string) => http.get<SuccessResponse<Exam>>(`/api/exams/${examId}`)
 }
 
 export default examApi

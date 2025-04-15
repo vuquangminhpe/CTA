@@ -36,7 +36,7 @@ class ExamService {
     const questions = await questionService.getRandomQuestions(teacher_id, question_count)
 
     if (questions.length === 0) {
-      throw new Error('No questions available. Please create questions first.')
+      throw new Error('Không có câu hỏi nào. Vui lòng tạo câu hỏi trước.')
     }
 
     const exam_code = this.generateExamCode()
@@ -69,11 +69,15 @@ class ExamService {
     return exams
   }
 
+  async getExamById(exam_id: string) {
+    return await databaseService.exams.findOne({ _id: new ObjectId(exam_id) })
+  }
+
   async getExamByCode(exam_code: string) {
     const exam = await databaseService.exams.findOne({ exam_code, active: true })
 
     if (!exam) {
-      throw new Error('Exam not found or not active')
+      throw new Error('Không tìm thấy bài kiểm tra hoặc không hoạt động')
     }
 
     return exam
@@ -83,7 +87,7 @@ class ExamService {
     const exam = await databaseService.exams.findOne({ _id: new ObjectId(exam_id) })
 
     if (!exam) {
-      throw new Error('Exam not found')
+      throw new Error('Không tìm thấy bài kiểm tra')
     }
 
     // Get all questions for this exam
@@ -133,6 +137,67 @@ class ExamService {
 
     return qrCodes
   }
+
+  // New method to get exam results with student information
+  async getExamResults(exam_id: string) {
+    // Get the exam sessions
+    const sessions = await databaseService.examSessions
+      .find({ exam_id: new ObjectId(exam_id) })
+      .sort({ start_time: -1 })
+      .toArray()
+
+    // Get student info for each session
+    const sessionsWithStudentInfo = await Promise.all(
+      sessions.map(async (session) => {
+        const student = await databaseService.users.findOne({ _id: session.student_id })
+
+        return {
+          ...session,
+          student_name: student?.username || 'Unknown',
+          student_username: student?.username || 'Unknown'
+        }
+      })
+    )
+
+    return sessionsWithStudentInfo
+  }
+
+  // New method to get exam statistics
+  async getExamStatistics(exam_id: string) {
+    const sessions = await databaseService.examSessions.find({ exam_id: new ObjectId(exam_id) }).toArray()
+
+    const totalSessions = sessions.length
+
+    if (totalSessions === 0) {
+      return {
+        averageScore: 0,
+        completionRate: 0,
+        totalStudents: 0,
+        violationCount: 0
+      }
+    }
+
+    const completedSessions = sessions.filter((session) => session.completed)
+    const completionRate = (completedSessions.length / totalSessions) * 100
+
+    // Calculate average score (only for completed exams)
+    let averageScore = 0
+    if (completedSessions.length > 0) {
+      const totalScore = completedSessions.reduce((sum, session) => sum + session.score, 0)
+      averageScore = totalScore / completedSessions.length
+    }
+
+    // Count total violations
+    const violationCount = sessions.reduce((sum, session) => sum + session.violations, 0)
+
+    return {
+      averageScore,
+      completionRate,
+      totalStudents: totalSessions,
+      violationCount
+    }
+  }
 }
+
 const examService = new ExamService()
 export default examService
