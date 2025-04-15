@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -5,7 +6,7 @@ import QRScanner from '../../components/Student/QRScanner'
 import ExamHistory from '../../components/Student/ExamHistory'
 import examApi from '../../apis/exam.api'
 import { toast } from 'sonner'
-import { QrCode, History, User, AlertCircle } from 'lucide-react'
+import { QrCode, History, User } from 'lucide-react'
 import { AuthContext } from '../../Contexts/auth.context'
 
 const StudentDashboard = () => {
@@ -190,7 +191,7 @@ const StudentDashboard = () => {
               <h2 className='text-lg font-medium text-gray-900 mb-4'>Quét mã QR của kỳ thi</h2>
 
               {/* Hiển thị kỳ thi gần đây nếu có */}
-              {recentExam && (
+              {/* {recentExam && (
                 <div className='mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md'>
                   <h3 className='text-sm font-medium text-blue-800 flex items-center'>
                     <AlertCircle size={16} className='mr-1' />
@@ -204,7 +205,7 @@ const StudentDashboard = () => {
                     Tiếp tục kỳ thi
                   </button>
                 </div>
-              )}
+              )} */}
 
               <QRScanner onScan={handleScan} />
 

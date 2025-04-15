@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Html5QrcodeScanner, Html5QrcodeScanType, Html5Qrcode } from 'html5-qrcode'
 import { Camera, XCircle } from 'lucide-react'
+import { getAccessTokenFromLS } from '@/utils/auth'
 
 interface QRScannerProps {
   onScan: (examCode: string) => void
@@ -244,6 +245,7 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan }) => {
           <pre>{debug}</pre>
           <button onClick={() => setDebug('')} className='mt-1 text-xs text-gray-500 hover:text-gray-700'>
             Xóa thông tin debug
+            {getAccessTokenFromLS()}
           </button>
         </div>
       )}
