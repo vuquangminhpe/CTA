@@ -22,7 +22,6 @@ interface GeminiResponse {
 }
 
 const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerate, onCancel }) => {
-  const [subject, setSubject] = useState('Toán học')
   const [count, setCount] = useState(5)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -32,7 +31,6 @@ const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerat
       toast.loading('Đang tạo câu hỏi...')
 
       const response = await http.post<GeminiResponse>('/gemini/generate/text', {
-        message: subject,
         count: count
       })
 
@@ -196,21 +194,6 @@ const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerat
 
       <div className='p-6'>
         <div className='space-y-4'>
-          <div>
-            <label htmlFor='subject' className='block text-sm font-medium text-gray-700 mb-1'>
-              Môn học
-            </label>
-            <input
-              type='text'
-              id='subject'
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md'
-              placeholder='Nhập tên môn học hoặc chủ đề'
-            />
-            <p className='mt-1 text-xs text-gray-500'>Ví dụ: Toán học, Vật lý, Lịch sử, Địa lý, v.v.</p>
-          </div>
-
           <div>
             <label htmlFor='count' className='block text-sm font-medium text-gray-700 mb-1'>
               Số lượng câu hỏi

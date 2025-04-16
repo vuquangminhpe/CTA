@@ -113,7 +113,7 @@ export function extractGeminiData(geminiResponse: string | object): any {
   }
 }
 
-export async function extractContentAndInsertToDB(user_id: string, aiResponseText: string, message: string) {
+export async function extractContentAndInsertToDB(aiResponseText: string) {
   try {
     let content = extractContentFromResponse(aiResponseText)
 

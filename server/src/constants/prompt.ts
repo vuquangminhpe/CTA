@@ -67,8 +67,8 @@ Nếu vi phạm BẤT KỲ tiêu chí nào trên, DỪNG XỬ LÝ NGAY và trả
     4. Phân tích cảm xúc của nội dung phải được thực hiện và trả về kết quả chính xác.
 `
 
-export const PROMPT_CHAT = (count: number, message: string) => `
-Tạo ${count} câu hỏi trắc nghiệm môn ${message}, chương trình Trung học phổ thông Việt Nam. Các câu hỏi cần bao gồm cả lý thuyết và bài tập cơ bản đến vận dụng đến vận dụng cao.
+export const PROMPT_CHAT = (count: number) => `
+Hãy vào vai một giáo viên dạy môn Hóa học cấp trung học phổ thông ở Việt Nam và suy nghĩ sau đó tạo ${count} câu hỏi trắc nghiệm môn hóa học (lưu ý đặc biệt đó là sách giáo khóa sách kết nối tri thức nhé - không được lấy kiến thức khác ngoài sách giáo khoa này nhé), chương trình Trung học phổ thông Việt Nam. Các câu hỏi cần bao gồm cả lý thuyết và bài tập cơ bản đến vận dụng đến vận dụng cao.
 
 Yêu cầu trả về kết quả DƯỚI DẠNG MỘT ĐỐI TƯỢNG JSON DUY NHẤT, không kèm theo bất kỳ văn bản giải thích nào khác.
 

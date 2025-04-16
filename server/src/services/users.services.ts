@@ -431,16 +431,16 @@ class UserService {
     )
     return changePassword
   }
-  async chatWithGemini(user_id: string, message: string, count: number) {
+  async chatWithGemini(count: number) {
     const apiKey = process.env.GERMINI_API_KEY
     const genAI = new GoogleGenerativeAI(apiKey as string)
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
-    const result = await model.generateContent([PROMPT_CHAT(count, message), message])
+    const result = await model.generateContent(PROMPT_CHAT(count))
 
     const response = await result.response
     const aiResponseText = response.text()
 
-    return await extractContentAndInsertToDB(user_id, aiResponseText, message)
+    return await extractContentAndInsertToDB(aiResponseText)
   }
 }
 
