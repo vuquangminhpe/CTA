@@ -484,7 +484,42 @@ const MonitoringDashboard = () => {
       }))
     }
   }
+  useEffect(() => {
+    console.log('Setting up auto refresh every 3 seconds')
 
+    // Function to refresh data
+    const autoRefresh = () => {
+      if (socketRef.current && socketRef.current.connected) {
+        console.log('Auto refreshing data')
+        socketRef.current.emit('get_all_active_sessions')
+        // No toast message here to avoid flooding the UI
+      }
+    }
+
+    // Setup the first timeout
+    const timeoutId = setTimeout(autoRefresh, 3000)
+
+    // Recursive function to continue refreshing
+    const setupRecursiveRefresh = () => {
+      const nextTimeoutId = setTimeout(() => {
+        autoRefresh()
+        setupRecursiveRefresh()
+      }, 3000)
+
+      // Store the timeout ID in a ref to clean it up later
+      return nextTimeoutId
+    }
+
+    // Start the recursive refresh after the first timeout
+    const recursiveTimeoutId = setupRecursiveRefresh()
+
+    // Clean up on unmount
+    return () => {
+      console.log('Clearing auto refresh')
+      clearTimeout(timeoutId)
+      clearTimeout(recursiveTimeoutId)
+    }
+  }, []) // Empty dependency array means this runs once on mount
   // Handle refresh data
   const handleRefresh = () => {
     if (!socketRef.current) return
