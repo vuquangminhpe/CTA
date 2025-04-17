@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users,
@@ -19,8 +19,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import examApi from '../../apis/exam.api'
-import io from 'socket.io-client'
 import configBase from '../../constants/config'
+import io from 'socket.io-client'
 
 interface StudentSession {
   session_id: string
@@ -34,8 +34,8 @@ interface StudentSession {
   violations: number
   active: boolean
   last_activity?: Date
-  score?: number // Add score property
-  completed?: boolean // Add completed property
+  score?: number
+  completed?: boolean
 }
 
 interface CompletedSession {
@@ -74,7 +74,6 @@ const MonitoringDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedExam, setSelectedExam] = useState<string | null>(null)
   const [exams, setExams] = useState<any[]>([])
-  const [socket, setSocket] = useState<any>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [stats, setStats] = useState({
     totalActive: 0,
@@ -85,12 +84,23 @@ const MonitoringDashboard = () => {
   const [messageText, setMessageText] = useState('')
   const [activeTab, setActiveTab] = useState<'students' | 'violations' | 'scores'>('students')
 
+  // Referencias para el socket y exámenes para evitar problemas de cierre
+  const socketRef = useRef<any>(null)
+  const examsRef = useRef<any[]>([])
+
+  // Actualizaciones de estado consistentes
+  const activeSessionsRef = useRef<StudentSession[]>([])
+  const completedSessionsRef = useRef<CompletedSession[]>([])
+  const violationsRef = useRef<Violation[]>([])
+
   // Fetch all exams when component mounts
   useEffect(() => {
     const fetchExams = async () => {
       try {
         const response = await examApi.getExams()
-        setExams(response.data.result)
+        const examsData = response.data.result
+        setExams(examsData)
+        examsRef.current = examsData
       } catch (error) {
         console.error('Failed to fetch exams:', error)
         toast.error('Không thể tải được danh sách bài thi')
@@ -100,192 +110,263 @@ const MonitoringDashboard = () => {
     fetchExams()
   }, [])
 
-  // Initialize socket connection
+  // Initialize socket connection - Este useEffect se ejecuta solo una vez
   useEffect(() => {
+    console.log('Initializing socket connection')
     const token = localStorage.getItem('access_token')
 
-    // Initialize socket
-    const newSocket = io(configBase.baseURL, {
-      auth: { token },
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 20000
-    })
-
-    setSocket(newSocket)
-
-    // Clean up on unmount
-    return () => {
-      if (newSocket) {
-        newSocket.disconnect()
+    // Función para crear y configurar el socket
+    const setupSocket = () => {
+      // Limpiar socket anterior si existe
+      if (socketRef.current) {
+        socketRef.current.disconnect()
       }
-    }
-  }, [])
 
-  // Set up socket event listeners
-  useEffect(() => {
-    if (!socket) return
-
-    // Set up event handlers
-    socket.on('connect', () => {
-      console.log('Socket connected for global monitoring')
-      setIsConnected(true)
-      setIsLoading(false)
-
-      // Request data for all active exams
-      socket.emit('get_all_active_sessions')
-    })
-
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected')
-      setIsConnected(false)
-    })
-
-    socket.on('connect_error', (error: any) => {
-      console.error('Socket connection error:', error)
-      setIsLoading(false)
-    })
-
-    // Handle all active sessions data
-    socket.on('all_active_sessions', (data: { sessions: StudentSession[]; violations: Violation[] }) => {
-      // Separate active and completed sessions
-      const active = data.sessions.filter((s) => !s.completed)
-      const completed = data.sessions.filter((s) => s.completed) as CompletedSession[]
-
-      setActiveSessions(active || [])
-      setCompletedSessions(completed || [])
-      setViolations(data.violations || [])
-
-      // Update stats
-      setStats({
-        totalActive: active.length,
-        totalViolations: data.violations.length,
-        examsInProgress: new Set(data.sessions.map((session) => session.exam_id)).size
+      // Inicializar socket
+      const newSocket = io(configBase.baseURL, {
+        auth: { token },
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 20000
       })
-    })
 
-    // Handle new student joining any exam
-    socket.on('student_joined', (data: any) => {
-      // Look up exam info from our exams list
-      const exam = exams.find((e) => e._id === data.exam_id)
+      // Almacenar el socket en la referencia
+      socketRef.current = newSocket
 
-      const newSession: StudentSession = {
-        session_id: data.session_id,
-        student_id: data.student_id,
-        student_name: data.student_name,
-        student_username: data.student_username,
-        exam_id: data.exam_id,
-        exam_title: exam?.title || 'Unknown Exam',
-        exam_code: exam?.exam_code,
-        start_time: data.start_time,
-        violations: data.violations || 0,
-        active: true
-      }
+      // Configurar eventos
+      newSocket.on('connect', () => {
+        console.log('Socket connected for global monitoring')
+        setIsConnected(true)
+        setIsLoading(false)
+        // Solicitar datos iniciales
+        newSocket.emit('get_all_active_sessions')
+      })
 
-      setActiveSessions((prev) => [newSession, ...prev])
+      newSocket.on('disconnect', () => {
+        console.log('Socket disconnected')
+        setIsConnected(false)
+      })
 
-      // Update stats
-      setStats((prev) => ({
-        ...prev,
-        totalActive: prev.totalActive + 1,
-        examsInProgress: new Set([...activeSessions.map((s) => s.exam_id), data.exam_id]).size
-      }))
-    })
+      newSocket.on('connect_error', (error: any) => {
+        console.error('Socket connection error:', error)
+        setIsLoading(false)
+      })
 
-    // Handle student disconnect
-    socket.on('student_disconnected', (data: any) => {
-      setActiveSessions((prev) =>
-        prev.map((session) => (session.session_id === data.session_id ? { ...session, active: false } : session))
-      )
-    })
+      // Manejar datos de todas las sesiones activas
+      newSocket.on('all_active_sessions', (data: { sessions: StudentSession[]; violations: Violation[] }) => {
+        console.log('Received all_active_sessions event:', data)
 
-    // Handle student submission
-    socket.on('student_submitted', (data: any) => {
-      // Move session from active to completed
-      setActiveSessions((prev) => {
-        const activeSession = prev.find((s) => s.session_id === data.session_id)
+        if (!data) return
 
-        if (!activeSession) return prev
+        // Separar sesiones activas y completadas
+        const active = Array.isArray(data.sessions) ? data.sessions.filter((s) => !s.completed) : []
+        const completed = Array.isArray(data.sessions)
+          ? (data.sessions.filter((s) => s.completed) as CompletedSession[])
+          : []
 
-        // Update completed sessions
-        setCompletedSessions((completedSessions) => [
-          ...completedSessions,
-          {
+        // Actualizar referencias
+        activeSessionsRef.current = active
+        completedSessionsRef.current = completed
+        violationsRef.current = Array.isArray(data.violations) ? data.violations : []
+
+        // Actualizar estado
+        setActiveSessions(active)
+        setCompletedSessions(completed)
+        setViolations(Array.isArray(data.violations) ? data.violations : [])
+
+        // Actualizar estadísticas
+        setStats({
+          totalActive: active.length,
+          totalViolations: Array.isArray(data.violations) ? data.violations.length : 0,
+          examsInProgress: new Set(Array.isArray(data.sessions) ? data.sessions.map((s) => s.exam_id) : []).size
+        })
+      })
+
+      // Manejar nuevo estudiante uniéndose a un examen
+      newSocket.on('student_joined', (data: any) => {
+        console.log('Received student_joined event:', data)
+
+        if (!data || !data.session_id) return
+
+        // Buscar información del examen
+        const exam = examsRef.current.find((e) => e._id === data.exam_id)
+
+        // Crear nueva sesión
+        const newSession: StudentSession = {
+          session_id: data.session_id,
+          student_id: data.student_id,
+          student_name: data.student_name,
+          student_username: data.student_username,
+          exam_id: data.exam_id,
+          exam_title: exam?.title || 'Unknown Exam',
+          exam_code: exam?.exam_code,
+          start_time: data.start_time,
+          violations: data.violations || 0,
+          active: true
+        }
+
+        // Actualizar lista de sesiones activas
+        const updatedSessions = [newSession, ...activeSessionsRef.current]
+        activeSessionsRef.current = updatedSessions
+        setActiveSessions(updatedSessions)
+
+        // Actualizar estadísticas
+        setStats((prev) => ({
+          ...prev,
+          totalActive: prev.totalActive + 1,
+          examsInProgress: new Set([...activeSessionsRef.current.map((s) => s.exam_id)]).size
+        }))
+      })
+
+      // Manejar desconexión de estudiante
+      newSocket.on('student_disconnected', (data: any) => {
+        console.log('Received student_disconnected event:', data)
+
+        if (!data || !data.session_id) return
+
+        // Actualizar estado de sesión a inactivo
+        const updatedSessions = activeSessionsRef.current.map((session) =>
+          session.session_id === data.session_id ? { ...session, active: false } : session
+        )
+
+        activeSessionsRef.current = updatedSessions
+        setActiveSessions(updatedSessions)
+      })
+
+      // Manejar envío de examen
+      newSocket.on('student_submitted', (data: any) => {
+        console.log('Received student_submitted event:', data)
+
+        if (!data || !data.session_id) return
+
+        // Encontrar la sesión activa
+        const activeSession = activeSessionsRef.current.find((s) => s.session_id === data.session_id)
+
+        if (activeSession) {
+          // Mover de activa a completada
+          const newCompletedSession: CompletedSession = {
             ...activeSession,
             score: data.score,
             completed: true,
             end_time: new Date().toISOString()
           }
-        ])
 
-        // Remove from active sessions
-        return prev.filter((s) => s.session_id !== data.session_id)
+          // Actualizar listas
+          const updatedActiveSessions = activeSessionsRef.current.filter((s) => s.session_id !== data.session_id)
+          const updatedCompletedSessions = [newCompletedSession, ...completedSessionsRef.current]
+
+          // Actualizar referencias
+          activeSessionsRef.current = updatedActiveSessions
+          completedSessionsRef.current = updatedCompletedSessions
+
+          // Actualizar estado
+          setActiveSessions(updatedActiveSessions)
+          setCompletedSessions(updatedCompletedSessions)
+
+          // Actualizar estadísticas
+          setStats((prev) => ({
+            ...prev,
+            totalActive: prev.totalActive - 1
+          }))
+        }
       })
 
-      // Update stats
-      setStats((prev) => ({
-        ...prev,
-        totalActive: prev.totalActive - 1
-      }))
-    })
+      // Manejar nuevas violaciones
+      newSocket.on('violation_recorded', (data: any) => {
+        console.log('Received violation_recorded event:', data)
 
-    // Handle new violation
-    socket.on('violation_recorded', (data: any) => {
-      // Find session to get student info
-      const session = activeSessions.find((s) => s.session_id === data.session_id)
-      if (!session) return
+        if (!data || !data.session_id) return
 
-      // Create violation record
-      const newViolation: Violation = {
-        session_id: data.session_id,
-        student_id: session.student_id,
-        student_name: session.student_name,
-        student_username: session.student_username,
-        exam_id: session.exam_id,
-        type: data.type,
-        severity: data.severity || 'medium',
-        details: data.details,
-        timestamp: new Date().toISOString()
-      }
+        // Encontrar la sesión correspondiente
+        const session = activeSessionsRef.current.find((s) => s.session_id === data.session_id)
 
-      // Add to violations list
-      setViolations((prev) => [newViolation, ...prev])
+        if (session) {
+          // Crear registro de violación
+          const newViolation: Violation = {
+            session_id: data.session_id,
+            student_id: session.student_id,
+            student_name: session.student_name,
+            student_username: session.student_username,
+            exam_id: session.exam_id,
+            type: data.type,
+            severity: data.severity || 'medium',
+            details: data.details,
+            timestamp: new Date().toISOString()
+          }
 
-      // Update session's violation count
-      setActiveSessions((prev) =>
-        prev.map((s) => (s.session_id === data.session_id ? { ...s, violations: data.violations } : s))
-      )
+          // Actualizar lista de violaciones
+          const updatedViolations = [newViolation, ...violationsRef.current]
+          violationsRef.current = updatedViolations
+          setViolations(updatedViolations)
 
-      // Update stats
-      setStats((prev) => ({
-        ...prev,
-        totalViolations: prev.totalViolations + 1
-      }))
-    })
+          // Actualizar conteo de violaciones en la sesión correspondiente
+          const violations = data.violations || session.violations + 1
+          const updatedSessions = activeSessionsRef.current.map((s) =>
+            s.session_id === data.session_id ? { ...s, violations } : s
+          )
 
-    socket.connect()
+          activeSessionsRef.current = updatedSessions
+          setActiveSessions(updatedSessions)
 
-    // Set up auto-refresh every 30 seconds
-    const refreshInterval = setInterval(() => {
-      if (socket && socket.connected) {
-        socket.emit('get_all_active_sessions')
-      }
-    }, 30000)
+          // Actualizar estadísticas
+          setStats((prev) => ({
+            ...prev,
+            totalViolations: prev.totalViolations + 1
+          }))
+        }
+      })
 
-    // Clean up function
-    return () => {
-      socket.off('connect')
-      socket.off('disconnect')
-      socket.off('connect_error')
-      socket.off('all_active_sessions')
-      socket.off('student_joined')
-      socket.off('student_disconnected')
-      socket.off('student_submitted')
-      socket.off('violation_recorded')
-      clearInterval(refreshInterval)
+      // Conectar socket
+      newSocket.connect()
+
+      return newSocket
     }
-  }, [socket, exams, activeSessions])
+
+    // Configurar socket inicial
+    const socket = setupSocket()
+
+    // Limpiar al desmontar
+    return () => {
+      console.log('Cleaning up socket connection')
+      if (socket) {
+        // Eliminar todos los listeners
+        socket.off('connect')
+        socket.off('disconnect')
+        socket.off('connect_error')
+        socket.off('all_active_sessions')
+        socket.off('student_joined')
+        socket.off('student_disconnected')
+        socket.off('student_submitted')
+        socket.off('violation_recorded')
+
+        // Desconectar socket
+        socket.disconnect()
+      }
+    }
+  }, []) // Sin dependencias para que se ejecute solo una vez
+
+  // Configurar actualización periódica cada 15 segundos
+  useEffect(() => {
+    console.log('Setting up periodic refresh')
+
+    // Función para solicitar datos
+    const refreshData = () => {
+      if (socketRef.current && socketRef.current.connected) {
+        console.log('Requesting fresh data from server')
+        socketRef.current.emit('get_all_active_sessions')
+      }
+    }
+
+    // Configurar intervalo
+    const intervalId = setInterval(refreshData, 15000)
+
+    // Limpiar al desmontar
+    return () => {
+      console.log('Clearing periodic refresh')
+      clearInterval(intervalId)
+    }
+  }, [])
 
   // Filter sessions based on search term and selected exam
   const filteredActiveSessions = activeSessions.filter((session) => {
@@ -376,23 +457,25 @@ const MonitoringDashboard = () => {
 
   // Handle sending a message to a student
   const handleSendMessage = () => {
-    if (!selectedSession || !messageText.trim() || !socket) return
+    if (!selectedSession || !messageText.trim() || !socketRef.current) return
 
-    socket.emit('teacher_message', { session_id: selectedSession, message: messageText.trim() })
+    socketRef.current.emit('teacher_message', { session_id: selectedSession, message: messageText.trim() })
     toast.success('Message sent to student')
     setMessageText('')
   }
 
   // Handle ending a student's exam
   const handleEndExam = (sessionId: string, studentName: string) => {
-    if (!socket) return
+    if (!socketRef.current) return
 
     if (window.confirm(`Are you sure you want to end the exam for ${studentName}? This action cannot be undone.`)) {
-      socket.emit('end_student_exam', { session_id: sessionId, reason: 'Terminated by teacher' })
+      socketRef.current.emit('end_student_exam', { session_id: sessionId, reason: 'Terminated by teacher' })
       toast.success(`Exam ended for ${studentName}`)
 
       // Remove from active sessions
-      setActiveSessions((prev) => prev.filter((s) => s.session_id !== sessionId))
+      const updatedSessions = activeSessionsRef.current.filter((s) => s.session_id !== sessionId)
+      activeSessionsRef.current = updatedSessions
+      setActiveSessions(updatedSessions)
 
       // Update stats
       setStats((prev) => ({
@@ -404,9 +487,9 @@ const MonitoringDashboard = () => {
 
   // Handle refresh data
   const handleRefresh = () => {
-    if (!socket) return
+    if (!socketRef.current) return
 
-    socket.emit('get_all_active_sessions')
+    socketRef.current.emit('get_all_active_sessions')
     toast.success('Refreshing data...')
   }
 
