@@ -4,7 +4,7 @@ import React, { useState, useEffect, useContext } from 'react'
 import { FileText, Check, AlertTriangle, HelpCircle, X, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import AutoQuestionGenerator from './AutoQuestionGenerator'
-import { AppContext } from '@/Contexts/app.context'
+import { AppContext } from '../../Contexts/app.context'
 
 interface Question {
   content: string

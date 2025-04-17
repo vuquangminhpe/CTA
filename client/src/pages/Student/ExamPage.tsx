@@ -14,6 +14,7 @@ import { AuthContext } from '../../Contexts/auth.context'
 import './AntiScreenshot.css'
 import useExamProtection from '../../components/helper/ExamProtection'
 import MobileTabDetector from '../../components/Student/MobileTabDetector'
+import ConfirmDialog from '../../components/helper/ConfirmDialog'
 
 const ExamPage = () => {
   const { examCode } = useParams()
@@ -32,6 +33,9 @@ const ExamPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showViolationWarning, setShowViolationWarning] = useState(false)
   const [completed, setCompleted] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [confirmMessage, setConfirmMessage] = useState<string>('')
+  const [confirmAction, setConfirmAction] = useState<() => void>(() => () => {})
 
   // Socket connection
   const { resetViolations, socket } = useSocketExam(session?._id)
@@ -208,20 +212,16 @@ const ExamPage = () => {
     const totalQuestions = exam.questions.length
 
     if (answeredCount < totalQuestions) {
-      const confirmSubmit = window.confirm(
-        `Bạn chỉ trả lời ${answeredCount} trong tổng số ${totalQuestions} câu hỏi. Bạn có chắc chắn muốn gửi không?`
+      setConfirmMessage(
+        `Bạn chỉ trả lời ${answeredCount} out of ${totalQuestions} câu hỏi. Bạn có chắc chắn muốn gửi không?`
       )
-
-      if (!confirmSubmit) return
+      setConfirmAction(() => handleSubmit)
+      setShowConfirmDialog(true)
     } else {
-      const confirmSubmit = window.confirm(
-        'Bạn có chắc chắn muốn nộp bài thi của mình không? Hành động này không thể hoàn tác.'
-      )
-
-      if (!confirmSubmit) return
+      setConfirmMessage('Bạn có chắc chắn muốn nộp bài thi của mình không? Hành động này không thể hoàn tác.')
+      setConfirmAction(() => handleSubmit)
+      setShowConfirmDialog(true)
     }
-
-    handleSubmit()
   }
 
   // Render loading state
@@ -276,6 +276,15 @@ const ExamPage = () => {
         }}
         enabled={!completed}
       />
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        message={confirmMessage}
+        onConfirm={() => {
+          setShowConfirmDialog(false)
+          confirmAction()
+        }}
+        onCancel={() => setShowConfirmDialog(false)}
+      />
       {/* Timer */}
       <ExamTimer remainingTime={remainingTime} onTimeUp={handleTimeUp} enabled={!completed} />
 
@@ -295,7 +304,7 @@ const ExamPage = () => {
         <div className='mb-8'>
           <h1 className='text-2xl font-bold text-gray-900'>{exam.title}</h1>
           <p className='mt-2 text-sm text-gray-500'>
-            Exam Code: {examCode} • {exam.questions.length} questions
+            Mã bài thi: {examCode} • {exam.questions.length} câu hỏi
           </p>
 
           {violations > 0 && (
@@ -350,7 +359,7 @@ const ExamPage = () => {
               className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
             >
               <Save className='-ml-1 mr-2 h-5 w-5' />
-              {isSubmitting ? 'Submitting...' : 'Submit Exam'}
+              {isSubmitting ? 'Đang trong quá trình nộp bài thi...' : 'Nộp bài thi'}
             </button>
           </div>
 
