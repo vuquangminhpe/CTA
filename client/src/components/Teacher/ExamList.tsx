@@ -120,7 +120,7 @@ const ExamList = () => {
                         className={`p-1.5 rounded-full ${
                           exam.active ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
                         } hover:bg-opacity-70`}
-                        title={exam.active ? 'Disable' : 'Enable'}
+                        title={exam.active ? 'Đã tắt' : 'Đã bật'}
                       >
                         <Power className='h-4 w-4' />
                       </button>
