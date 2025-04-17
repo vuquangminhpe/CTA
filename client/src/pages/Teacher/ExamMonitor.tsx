@@ -159,14 +159,14 @@ const ExamMonitor = () => {
         <div className='flex-1 min-w-0'>
           <h2 className='text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate flex items-center'>
             <Shield className='mr-2 h-8 w-8 text-blue-500' />
-            Live Exam Monitoring
+            Giám sát kỳ thi trực tiếp
           </h2>
           <p className='mt-1 text-sm text-gray-500'>
             {exam.title} — Code: {exam.exam_code} —{' '}
             {isConnected ? (
-              <span className='text-green-600 font-medium'>Connected</span>
+              <span className='text-green-600 font-medium'>Đã kết nối</span>
             ) : (
-              <span className='text-red-600 font-medium'>Disconnected</span>
+              <span className='text-red-600 font-medium'>Đã ngắt kết nối</span>
             )}
           </p>
         </div>
@@ -177,14 +177,14 @@ const ExamMonitor = () => {
             onClick={handleRefresh}
             className='inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           >
-            <RefreshCw className='h-4 w-4 mr-2' /> Refresh
+            <RefreshCw className='h-4 w-4 mr-2' /> Làm mới
           </button>
           <button
             type='button'
             onClick={() => navigate(`/teacher/exams/${examId}`)}
             className='inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           >
-            <ArrowLeft className='h-4 w-4 mr-2' /> Back to Exam
+            <ArrowLeft className='h-4 w-4 mr-2' /> Quay lại bài kiểm tra
           </button>
         </div>
       </div>
