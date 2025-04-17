@@ -44,6 +44,12 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
       return
     }
 
+    // Validate that start_time is in the future if provided
+    if (formData.start_time && new Date(formData.start_time) <= new Date()) {
+      alert('Thời gian bắt đầu phải là thời gian trong tương lai')
+      return
+    }
+
     onSubmit(formData)
   }
 
@@ -87,6 +93,8 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
                   placeholderText='Chọn thời gian bắt đầu'
                   className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2'
                   isClearable
+                  minDate={new Date()}
+                  minTime={new Date()}
                 />
               </div>
               <p className='mt-2 text-sm text-gray-500'>Nếu không chọn thời gian, bài thi sẽ bắt đầu ngay lập tức</p>

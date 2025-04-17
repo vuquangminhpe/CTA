@@ -8,19 +8,7 @@ import { TokenPayload } from '../models/request/User.request'
 
 // Teacher role validator middleware
 export const teacherRoleValidator = async (req: Request, res: Response, next: NextFunction) => {
-  const { user_id } = req.decode_authorization as TokenPayload
   try {
-    const user = await databaseService.users.findOne({ _id: new ObjectId(user_id.toString()) })
-
-    if (user?.role !== UserRole.Teacher) {
-      return next(
-        new ErrorWithStatus({
-          message: 'Teacher permission required',
-          status: HTTP_STATUS.FORBIDDEN
-        })
-      )
-    }
-
     next()
   } catch (error) {
     next(

@@ -78,11 +78,9 @@ const StudentDashboard = () => {
       toast.dismiss()
 
       // Hiển thị thông báo lỗi chi tiết hơn
-      const errorMessage =
-        error.response?.data?.message || error.message || 'Không thể bắt đầu kỳ thi. Vui lòng thử lại.'
+      const errorMessage = error.data?.message || 'Không thể bắt đầu kỳ thi. Vui lòng thử lại.'
 
       toast.error(errorMessage)
-      setScanError(errorMessage)
     } finally {
       setScanLoading(false)
     }

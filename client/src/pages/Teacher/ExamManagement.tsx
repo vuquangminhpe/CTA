@@ -49,6 +49,12 @@ const ExamManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validate that start_time is in the future if provided
+    if (startTime && new Date(startTime) <= new Date()) {
+      toast.error('Thời gian bắt đầu phải là thời gian trong tương lai')
+      return
+    }
+
     try {
       setIsUpdating(true)
 
@@ -58,14 +64,14 @@ const ExamManagement = () => {
         duration
       })
 
-      toast.success('Exam settings updated successfully')
+      toast.success('Đã cập nhật cài đặt bài kiểm tra thành công')
       setShowSettings(false)
 
       // Refresh exam data
       const response = await examApi.getExamById(examId as string)
       setExam(response.data.result)
     } catch (error) {
-      toast.error('Failed to update exam settings')
+      toast.error('Không cập nhật được cài đặt thi')
       console.error(error)
     } finally {
       setIsUpdating(false)
@@ -82,13 +88,13 @@ const ExamManagement = () => {
       })
 
       setActive(!active)
-      toast.success(`Exam ${!active ? 'enabled' : 'disabled'} successfully`)
+      toast.success(`Bài thi ${!active ? 'đã bật' : 'đã tắt'} thành công`)
 
       // Refresh exam data
       const response = await examApi.getExamById(examId as string)
       setExam(response.data.result)
     } catch (error) {
-      toast.error('Failed to update exam status')
+      toast.error('Không cập nhật được trạng thái bài kiểm tra')
       console.error(error)
     } finally {
       setIsUpdating(false)
@@ -116,13 +122,13 @@ const ExamManagement = () => {
   if (!exam) {
     return (
       <div className='text-center py-12'>
-        <h2 className='text-xl font-medium text-gray-900'>Exam not found</h2>
-        <p className='mt-2 text-gray-500'>The exam you're looking for doesn't exist</p>
+        <h2 className='text-xl font-medium text-gray-900'>Không tìm thấy bài kiểm tra</h2>
+        <p className='mt-2 text-gray-500'>Kỳ thi bạn đang tìm kiếm không tồn tại</p>
         <button
           onClick={goBack}
           className='mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700'
         >
-          <ArrowLeft className='h-4 w-4 mr-2' /> Back to Dashboard
+          <ArrowLeft className='h-4 w-4 mr-2' /> Quay lại Trang tổng quan
         </button>
       </div>
     )
@@ -134,7 +140,7 @@ const ExamManagement = () => {
         <div className='px-4 py-5 sm:px-6 flex justify-between items-center'>
           <div>
             <h2 className='text-xl font-bold text-gray-900'>{exam.title}</h2>
-            <p className='mt-1 text-sm text-gray-500'>Exam Code: {exam.exam_code}</p>
+            <p className='mt-1 text-sm text-gray-500'>Mã bài thi: {exam.exam_code}</p>
           </div>
           <div className='flex space-x-2'>
             <button
@@ -152,14 +158,14 @@ const ExamManagement = () => {
               className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
             >
               <Edit className='h-4 w-4 mr-1' />
-              Settings
+              Cài đặt
             </button>
             <button
               onClick={goToMonitoring}
               className='inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
             >
               <Eye className='h-4 w-4 mr-1' />
-              Monitor
+              Màn hình
             </button>
           </div>
         </div>
@@ -169,7 +175,7 @@ const ExamManagement = () => {
             <div>
               <dt className='text-sm font-medium text-gray-500 flex items-center'>
                 <Clock className='h-4 w-4 mr-1' />
-                Duration
+                Khoảng thời gian
               </dt>
               <dd className='mt-1 text-sm text-gray-900'>{exam.duration} minutes</dd>
             </div>
@@ -177,7 +183,7 @@ const ExamManagement = () => {
             <div>
               <dt className='text-sm font-medium text-gray-500 flex items-center'>
                 <Calendar className='h-4 w-4 mr-1' />
-                Start Time
+                Thời gian bắt đầu
               </dt>
               <dd className='mt-1 text-sm text-gray-900'>
                 {exam.start_time ? new Date(exam.start_time).toLocaleString() : 'Immediately (no scheduled time)'}
@@ -185,33 +191,33 @@ const ExamManagement = () => {
             </div>
 
             <div>
-              <dt className='text-sm font-medium text-gray-500'>Status</dt>
+              <dt className='text-sm font-medium text-gray-500'>Trạng thái</dt>
               <dd className='mt-1 text-sm text-gray-900'>
                 <span
                   className={`px-2 py-1 text-xs font-medium rounded-full ${
                     exam.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}
                 >
-                  {exam.active ? 'Active' : 'Disabled'}
+                  {exam.active ? 'đã bật' : 'đã tắt'}
                 </span>
               </dd>
             </div>
 
             <div>
-              <dt className='text-sm font-medium text-gray-500'>Questions</dt>
-              <dd className='mt-1 text-sm text-gray-900'>{exam.question_ids.length} questions</dd>
+              <dt className='text-sm font-medium text-gray-500'>Câu hỏi</dt>
+              <dd className='mt-1 text-sm text-gray-900'>{exam.question_ids.length} câu hỏi</dd>
             </div>
           </dl>
         </div>
 
         {showSettings && (
           <div className='border-t border-gray-200 px-4 py-5 sm:p-6'>
-            <h3 className='text-lg font-medium text-gray-900 mb-4'>Exam Settings</h3>
+            <h3 className='text-lg font-medium text-gray-900 mb-4'>Cài đặt bài kiểm tra</h3>
 
             <form onSubmit={handleSubmit}>
               <div className='space-y-4'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>Exam Status</label>
+                  <label className='block text-sm font-medium text-gray-700'>Trạng thái thi</label>
                   <div className='mt-1 flex items-center space-x-4'>
                     <label className='inline-flex items-center'>
                       <input
@@ -221,7 +227,7 @@ const ExamManagement = () => {
                         checked={active}
                         onChange={() => setActive(true)}
                       />
-                      <span className='ml-2 text-sm text-gray-700'>Active</span>
+                      <span className='ml-2 text-sm text-gray-700'>đã bật</span>
                     </label>
                     <label className='inline-flex items-center'>
                       <input
@@ -231,13 +237,13 @@ const ExamManagement = () => {
                         checked={!active}
                         onChange={() => setActive(false)}
                       />
-                      <span className='ml-2 text-sm text-gray-700'>Disabled</span>
+                      <span className='ml-2 text-sm text-gray-700'>đã tắt</span>
                     </label>
                   </div>
                 </div>
 
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>Start Time</label>
+                  <label className='block text-sm font-medium text-gray-700'>Thời gian bắt đầu</label>
                   <div className='mt-1'>
                     <DatePicker
                       selected={startTime}
@@ -247,14 +253,16 @@ const ExamManagement = () => {
                       placeholderText='No scheduled start time (start immediately)'
                       className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2'
                       isClearable
+                      minDate={new Date()}
+                      minTime={new Date()}
                     />
                   </div>
-                  <p className='mt-1 text-xs text-gray-500'>Leave blank to allow the exam to start immediately</p>
+                  <p className='mt-1 text-xs text-gray-500'>Để trống để cho phép kỳ thi bắt đầu ngay lập tức</p>
                 </div>
 
                 <div>
                   <label htmlFor='duration' className='block text-sm font-medium text-gray-700'>
-                    Duration (minutes)
+                    Thời lượng (phút)
                   </label>
                   <div className='mt-1'>
                     <input
@@ -278,7 +286,7 @@ const ExamManagement = () => {
                   onClick={() => setShowSettings(false)}
                   className='px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                 >
-                  Cancel
+                  Hủy bỏ
                 </button>
                 <button
                   type='submit'

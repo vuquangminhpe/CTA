@@ -11,6 +11,7 @@ import questionApi from '../../apis/question.api'
 import examApi from '../../apis/exam.api'
 import { AuthContext } from '../../Contexts/auth.context'
 import { toast } from 'sonner'
+import ExamList from '../../components/Teacher/ExamList'
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
@@ -93,6 +94,12 @@ const TeacherDashboard = () => {
 
   const handleGenerateExam = async (formData: any) => {
     try {
+      // Validate that start_time is in the future if provided
+      if (formData.start_time && new Date(formData.start_time) <= new Date()) {
+        toast.error('Start time must be in the future')
+        return
+      }
+
       setQrCodes([])
       setExamTitle(formData.title)
 
@@ -182,6 +189,20 @@ const TeacherDashboard = () => {
             <QrCode className='w-5 h-5 mr-2' />
             Tạo bài kiểm tra
           </Tab>
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                'w-full rounded-lg py-2.5 text-sm font-medium leading-5 flex items-center justify-center',
+                'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                selected
+                  ? 'bg-white text-blue-700 shadow'
+                  : 'text-blue-700/70 hover:bg-white/[0.12] hover:text-blue-700'
+              )
+            }
+          >
+            <FileText className='w-5 h-5 mr-2' />
+            Danh sách bài thi
+          </Tab>
         </Tab.List>
 
         <Tab.Panels className='mt-4'>
@@ -259,6 +280,11 @@ const TeacherDashboard = () => {
 
               {qrCodes.length > 0 && <QRCodeList qrCodes={qrCodes} examTitle={examTitle} />}
             </div>
+          </Tab.Panel>
+
+          {/* Exams List Panel */}
+          <Tab.Panel className='rounded-xl bg-white p-4'>
+            <ExamList />
           </Tab.Panel>
         </Tab.Panels>
       </Tab.Group>

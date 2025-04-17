@@ -208,6 +208,7 @@ class ExamSessionService {
         }
       })
     )
+    console.log('sessionsWithExams', sessionsWithExams)
 
     return sessionsWithExams
   }

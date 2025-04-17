@@ -211,13 +211,19 @@ const MobileTabDetector: React.FC<MobileTabDetectorProps> = ({ sessionId, socket
       // @ts-ignore
       document.addEventListener('webkitvisibilitychange', handleVisibilityChange)
 
-      // Xử lý phiên bản Safari cũ
+      // Xử lý phiên bản Safari cũ - FIX: Don't try to set visibilityState directly
       // @ts-ignore
       if (typeof document.webkitHidden !== 'undefined') {
         log('Using webkit visibility API')
-        // Override để có thể làm việc với Safari
+        // Instead of trying to override document.visibilityState, we'll handle events appropriately
+        const webkitVisibilityHandler = () => {
+          // @ts-ignore
+          const isHidden = document.webkitHidden
+          lastVisibilityStateRef.current = isHidden ? 'hidden' : 'visible'
+          handleVisibilityChange()
+        }
         // @ts-ignore
-        document.visibilityState = document.webkitHidden ? 'hidden' : 'visible'
+        document.addEventListener('webkitvisibilitychange', webkitVisibilityHandler)
       }
     }
 

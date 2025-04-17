@@ -19,7 +19,7 @@ export const startExamController = async (req: Request, res: Response) => {
     })
   } catch (error) {
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      message: 'Failed to start exam',
+      message: 'chưa đến thời gian làm bài thi',
       error: error
     })
   }
@@ -57,6 +57,7 @@ export const getExamHistoryController = async (req: Request, res: Response) => {
       result: history
     })
   } catch (error) {
+    console.log('sessionsWithExams')
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       message: 'Failed to retrieve exam history',
       error: error
