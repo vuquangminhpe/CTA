@@ -58,14 +58,14 @@ const QRCodeList = ({ qrCodes, examTitle = 'Exam' }: any) => {
   return (
     <div className='mt-8'>
       <div className='flex justify-between items-center mb-4'>
-        <h3 className='text-lg font-medium text-gray-900'>Generated QR Codes</h3>
+        <h3 className='text-lg font-medium text-gray-900'>Mã QR được tạo</h3>
         <div className='flex space-x-2'>
           <button
             onClick={printAllQRCodes}
             className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           >
             <Printer className='h-4 w-4 mr-1' />
-            Print All
+            In tất cả
           </button>
         </div>
       </div>
@@ -75,7 +75,7 @@ const QRCodeList = ({ qrCodes, examTitle = 'Exam' }: any) => {
           <div key={qrCode.exam_code} className='bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200'>
             <div className='p-3 text-center'>
               <img src={qrCode.qrCode} alt={`QR Code ${index + 1}`} className='mx-auto max-w-full h-auto' />
-              <p className='mt-2 text-xs font-medium text-gray-700'>Code: {qrCode.exam_code}</p>
+              <p className='mt-2 text-xs font-medium text-gray-700'>Mã: {qrCode.exam_code}</p>
             </div>
             <div className='px-2 py-2 bg-gray-50 flex justify-center'>
               <button
@@ -91,7 +91,7 @@ const QRCodeList = ({ qrCodes, examTitle = 'Exam' }: any) => {
       </div>
 
       <p className='mt-4 text-sm text-gray-500'>
-        Total: {qrCodes.length} QR codes generated. Use the print button to print all QR codes at once.
+        Tổng cộng: {qrCodes.length} đã tạo mã QR. Sử dụng nút in để in tất cả mã QR cùng một lúc.
       </p>
     </div>
   )

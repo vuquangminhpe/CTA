@@ -83,7 +83,7 @@ const UserManagement = () => {
         name: editingUser.name,
         role: editingUser.role
       })
-      toast.success('User updated successfully')
+      toast.success('Người dùng đã cập nhật thành công')
       setEditingUser(null)
       fetchUsers()
     } catch (error) {
@@ -93,7 +93,7 @@ const UserManagement = () => {
   }
 
   const handleDeleteUser = async (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này không?')) {
       try {
         await adminApi.deleteUser(userId)
         toast.success('User deleted successfully')

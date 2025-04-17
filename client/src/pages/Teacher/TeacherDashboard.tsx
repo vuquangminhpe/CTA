@@ -52,7 +52,7 @@ const TeacherDashboard = () => {
     try {
       await questionApi.createQuestion(questionData)
       setIsFormOpen(false)
-      toast.success('Question created successfully')
+      toast.success('Câu hỏi được tạo thành công')
       fetchQuestions()
     } catch (error) {
       console.error('Error creating question:', error)
@@ -65,26 +65,26 @@ const TeacherDashboard = () => {
       await questionApi.updateQuestion(editingQuestion._id, questionData)
       setIsFormOpen(false)
       setEditingQuestion(null)
-      toast.success('Question updated successfully')
+      toast.success('Câu hỏi được cập nhật thành công')
       fetchQuestions()
     } catch (error) {
-      console.error('Error updating question:', error)
-      toast.error('Failed to update question')
+      console.error('Lỗi cập nhật câu hỏi:', error)
+      toast.error('Không cập nhật được câu hỏi')
     }
   }
 
   const handleDeleteQuestion = async (questionId: any) => {
-    if (!window.confirm('Are you sure you want to delete this question?')) {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa câu hỏi này không?')) {
       return
     }
 
     try {
       await questionApi.deleteQuestion(questionId)
-      toast.success('Question deleted successfully')
+      toast.success('Đã xóa câu hỏi thành công')
       fetchQuestions()
     } catch (error) {
-      console.error('Error deleting question:', error)
-      toast.error('Failed to delete question')
+      console.error('Lỗi xóa câu hỏi:', error)
+      toast.error('Không xóa được câu hỏi')
     }
   }
 

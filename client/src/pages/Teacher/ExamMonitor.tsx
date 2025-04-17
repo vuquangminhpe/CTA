@@ -67,7 +67,7 @@ const ExamMonitor = () => {
 
     const success = sendMessageToStudent(selectedStudent, messageText.trim())
     if (success) {
-      toast.success('Message sent to student')
+      toast.success('Tin nhắn gửi tới học sinh')
       setMessageText('')
     } else {
       toast.error('Failed to send message. Check connection.')
@@ -76,12 +76,14 @@ const ExamMonitor = () => {
 
   // Handle ending a student's exam
   const handleEndExam = (sessionId: string, studentName: string) => {
-    if (window.confirm(`Are you sure you want to end the exam for ${studentName}? This action cannot be undone.`)) {
+    if (
+      window.confirm(`Bạn có chắc chắn muốn kết thúc kỳ thi không? ${studentName}? Không thể hoàn tác hành động này.`)
+    ) {
       const success = endStudentExam(sessionId, 'Terminated by teacher')
       if (success) {
-        toast.success(`Exam ended for ${studentName}`)
+        toast.success(`Kỳ thi đã kết thúc cho ${studentName}`)
       } else {
-        toast.error('Failed to end exam. Check connection.')
+        toast.error('Không thể kết thúc kỳ thi. Kiểm tra kết nối.')
       }
     }
   }

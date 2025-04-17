@@ -12,6 +12,7 @@ import { AuthContext } from '../../Contexts/auth.context'
 import { Save, ChevronLeft, ChevronRight, AlertTriangle, MessageSquare, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import MobileTabDetector from './MobileTabDetector'
+import ConfirmDialog from '../helper/ConfirmDialog'
 
 interface ExamSessionProps {
   session: { _id: string }
@@ -36,6 +37,9 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
   const [teacherMessages, setTeacherMessages] = useState<{ message: string; timestamp: Date }[]>([])
   const [showMessages, setShowMessages] = useState(false)
   const [hasNewMessage, setHasNewMessage] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<() => void>(() => () => {})
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [confirmMessage, setConfirmMessage] = useState<string>('')
 
   // Initialize socket connection
   useEffect(() => {
@@ -225,20 +229,16 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
     const totalQuestions = exam.questions.length
 
     if (answeredCount < totalQuestions) {
-      const confirmSubmit = window.confirm(
+      setConfirmMessage(
         `Bạn chỉ trả lời ${answeredCount} out of ${totalQuestions} câu hỏi. Bạn có chắc chắn muốn gửi không?`
       )
-
-      if (!confirmSubmit) return
+      setConfirmAction(() => handleSubmit)
+      setShowConfirmDialog(true)
     } else {
-      const confirmSubmit = window.confirm(
-        'Bạn có chắc chắn muốn nộp bài thi của mình không? Hành động này không thể hoàn tác.'
-      )
-
-      if (!confirmSubmit) return
+      setConfirmMessage('Bạn có chắc chắn muốn nộp bài thi của mình không? Hành động này không thể hoàn tác.')
+      setConfirmAction(() => handleSubmit)
+      setShowConfirmDialog(true)
     }
-
-    handleSubmit()
   }
 
   // Toggle teacher messages panel
@@ -320,6 +320,15 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
           ])
         }}
         enabled={true}
+      />
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        message={confirmMessage}
+        onConfirm={() => {
+          setShowConfirmDialog(false)
+          confirmAction()
+        }}
+        onCancel={() => setShowConfirmDialog(false)}
       />
       {/* Timer */}
       <ExamTimer remainingTime={timeLeft} onTimeUp={handleTimeUp} enabled={true} />
@@ -427,7 +436,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
               className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
             >
               <Save className='-ml-1 mr-2 h-5 w-5' />
-              {isSubmitting ? 'Submitting...' : 'Submit Exam'}
+              {isSubmitting ? 'Đang trong quá trình nộp bài...' : 'Nộp bài thi'}
             </button>
           </div>
 

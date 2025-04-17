@@ -468,9 +468,11 @@ const MonitoringDashboard = () => {
   const handleEndExam = (sessionId: string, studentName: string) => {
     if (!socketRef.current) return
 
-    if (window.confirm(`Are you sure you want to end the exam for ${studentName}? This action cannot be undone.`)) {
-      socketRef.current.emit('end_student_exam', { session_id: sessionId, reason: 'Terminated by teacher' })
-      toast.success(`Exam ended for ${studentName}`)
+    if (
+      window.confirm(`Bạn có chắc chắn muốn kết thúc kỳ thi không? ${studentName}? Không thể hoàn tác hành động này.`)
+    ) {
+      socketRef.current.emit('end_student_exam', { session_id: sessionId, reason: 'Bị giáo viên chấm dứt' })
+      toast.success(`Kỳ thi đã kết thúc cho ${studentName}`)
 
       // Remove from active sessions
       const updatedSessions = activeSessionsRef.current.filter((s) => s.session_id !== sessionId)
