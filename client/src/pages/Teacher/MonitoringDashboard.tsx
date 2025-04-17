@@ -504,7 +504,7 @@ const MonitoringDashboard = () => {
       const nextTimeoutId = setTimeout(() => {
         autoRefresh()
         setupRecursiveRefresh()
-      }, 3000)
+      }, 1000)
 
       // Store the timeout ID in a ref to clean it up later
       return nextTimeoutId
