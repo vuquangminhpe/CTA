@@ -25,12 +25,14 @@ class ExamService {
     title,
     teacher_id,
     question_count,
-    duration
+    duration,
+    start_time = null // New optional parameter
   }: {
     title: string
     teacher_id: string
     question_count: number
     duration: number
+    start_time?: Date | null
   }) {
     // Get random questions from this teacher's question bank
     const questions = await questionService.getRandomQuestions(teacher_id, question_count)
@@ -46,7 +48,9 @@ class ExamService {
       exam_code,
       teacher_id: new ObjectId(teacher_id),
       question_ids: questions.map((q) => q._id),
-      duration
+      duration,
+      start_time: start_time || undefined, // Use undefined to avoid setting null in MongoDB
+      active: true
     })
 
     await databaseService.exams.insertOne(exam)
@@ -74,10 +78,20 @@ class ExamService {
   }
 
   async getExamByCode(exam_code: string) {
-    const exam = await databaseService.exams.findOne({ exam_code, active: true })
+    const exam = await databaseService.exams.findOne({ exam_code })
 
     if (!exam) {
       throw new Error('Không tìm thấy bài kiểm tra hoặc không hoạt động')
+    }
+
+    // Check if exam is active
+    if (!exam.active) {
+      throw new Error('Bài kiểm tra này hiện đã bị vô hiệu hóa')
+    }
+
+    // Check if the exam start time is in the future
+    if (exam.start_time && new Date() < exam.start_time) {
+      throw new Error('Chưa đến giờ thi, hãy liên hệ giáo viên')
     }
 
     return exam
@@ -111,13 +125,15 @@ class ExamService {
     teacher_id,
     quantity,
     question_count,
-    duration
+    duration,
+    start_time = null // New optional parameter
   }: {
     title: string
     teacher_id: string
     quantity: number
     question_count: number
     duration: number
+    start_time?: Date | null
   }) {
     const qrCodes = []
 
@@ -126,19 +142,60 @@ class ExamService {
         title: `${title} #${i + 1}`,
         teacher_id,
         question_count,
-        duration
+        duration,
+        start_time
       })
 
       qrCodes.push({
         exam_code: exam.exam_code,
-        qrCode
+        qrCode,
+        start_time: exam.start_time // Include start time in response
       })
     }
 
     return qrCodes
   }
 
-  // New method to get exam results with student information
+  // New method to update exam status
+  async updateExamStatus(
+    exam_id: string,
+    {
+      active,
+      start_time,
+      duration
+    }: {
+      active?: boolean
+      start_time?: Date | null
+      duration?: number
+    }
+  ) {
+    const updateFields: any = {}
+
+    // Only include fields that are provided
+    if (active !== undefined) {
+      updateFields.active = active
+    }
+
+    if (start_time !== undefined) {
+      updateFields.start_time = start_time
+    }
+
+    if (duration !== undefined) {
+      updateFields.duration = duration
+    }
+
+    const result = await databaseService.exams.findOneAndUpdate(
+      { _id: new ObjectId(exam_id) },
+      {
+        $set: updateFields
+      },
+      { returnDocument: 'after' }
+    )
+
+    return result
+  }
+
+  // Get exam results with student information
   async getExamResults(exam_id: string) {
     // Get the exam sessions
     const sessions = await databaseService.examSessions
@@ -153,7 +210,7 @@ class ExamService {
 
         return {
           ...session,
-          student_name: student?.username || 'Unknown',
+
           student_username: student?.username || 'Unknown'
         }
       })
@@ -162,7 +219,7 @@ class ExamService {
     return sessionsWithStudentInfo
   }
 
-  // New method to get exam statistics
+  // Get exam statistics
   async getExamStatistics(exam_id: string) {
     const sessions = await databaseService.examSessions.find({ exam_id: new ObjectId(exam_id) }).toArray()
 
@@ -196,6 +253,20 @@ class ExamService {
       totalStudents: totalSessions,
       violationCount
     }
+  }
+
+  // Calculate remaining time helper method
+  calculateRemainingTime(startTime: Date, durationMinutes: number): number {
+    const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000)
+    const now = new Date()
+
+    // If exam is over, return 0
+    if (now > endTime) {
+      return 0
+    }
+
+    // Return remaining seconds
+    return Math.floor((endTime.getTime() - now.getTime()) / 1000)
   }
 }
 

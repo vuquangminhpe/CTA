@@ -9,7 +9,7 @@ import ExamProgress from './ExamProgress'
 import ViolationWarning from './ViolationWarning'
 import ExamSecurity from './ExamSecurity'
 import { AuthContext } from '../../Contexts/auth.context'
-import { Save, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import { Save, ChevronLeft, ChevronRight, AlertTriangle, MessageSquare, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import MobileTabDetector from './MobileTabDetector'
 
@@ -33,6 +33,9 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [securityLevel, setSecurityLevel] = useState<'high' | 'medium' | 'low'>('high')
+  const [teacherMessages, setTeacherMessages] = useState<{ message: string; timestamp: Date }[]>([])
+  const [showMessages, setShowMessages] = useState(false)
+  const [hasNewMessage, setHasNewMessage] = useState(false)
 
   // Initialize socket connection
   useEffect(() => {
@@ -67,6 +70,30 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
     newSocket.on('security_level_update', (data) => {
       if (data.session_id === session._id) {
         setSecurityLevel(data.level)
+      }
+    })
+
+    // Handle teacher messages
+    newSocket.on('teacher_message', (data) => {
+      if (data.session_id === session._id) {
+        const newMessage = {
+          message: data.message,
+          timestamp: new Date(data.timestamp)
+        }
+        setTeacherMessages((prev) => [...prev, newMessage])
+        setHasNewMessage(true)
+
+        // Show toast notification for new message
+        toast.info(`Message from teacher: ${data.message}`)
+      }
+    })
+
+    // Handle exam being ended by teacher
+    newSocket.on('exam_ended_by_teacher', (data) => {
+      if (data.session_id === session._id) {
+        toast.error(`Your exam has been ended: ${data.reason}`)
+        // Force submit
+        handleSubmit()
       }
     })
 
@@ -184,6 +211,11 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
       selected_index: selectedIndex
     }))
 
+    // Notify server that exam is being submitted
+    if (socket && socket.connected) {
+      socket.emit('exam_submitted', session._id)
+    }
+
     onSubmit(session._id, formattedAnswers)
   }
 
@@ -207,6 +239,14 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
     }
 
     handleSubmit()
+  }
+
+  // Toggle teacher messages panel
+  const toggleMessages = () => {
+    setShowMessages(!showMessages)
+    if (hasNewMessage) {
+      setHasNewMessage(false)
+    }
   }
 
   // Apply anti-screenshot/recording CSS
@@ -286,6 +326,49 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
 
       {/* Violation Warning */}
       {hasViolation && <ViolationWarning count={violations.length} onDismiss={() => setHasViolation(false)} />}
+
+      {/* Teacher Messages button */}
+      <div className='fixed top-4 left-24 z-50'>
+        <button
+          onClick={toggleMessages}
+          className={`flex items-center rounded-md px-3 py-2 text-sm font-medium ${
+            hasNewMessage
+              ? 'bg-blue-600 text-white animate-pulse'
+              : showMessages
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-white text-gray-700 border border-gray-300'
+          } shadow-sm hover:bg-blue-50`}
+        >
+          <MessageSquare className='h-4 w-4 mr-2' />
+          Messages {teacherMessages.length > 0 && `(${teacherMessages.length})`}
+        </button>
+      </div>
+
+      {/* Teacher Messages panel */}
+      {showMessages && (
+        <div className='fixed top-16 left-4 z-50 bg-white shadow-lg rounded-lg w-80 max-h-96 overflow-y-auto'>
+          <div className='p-3 border-b border-gray-200 flex justify-between items-center'>
+            <h3 className='font-medium text-gray-900'>Teacher Messages</h3>
+            <button onClick={toggleMessages} className='text-gray-400 hover:text-gray-500'>
+              <XCircle className='h-4 w-4' />
+            </button>
+          </div>
+          <div className='p-3'>
+            {teacherMessages.length > 0 ? (
+              <ul className='space-y-3'>
+                {teacherMessages.map((msg, index) => (
+                  <li key={index} className='bg-blue-50 p-3 rounded-lg'>
+                    <p className='text-sm text-gray-800'>{msg.message}</p>
+                    <p className='text-xs text-gray-500 mt-1'>{msg.timestamp.toLocaleTimeString()}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className='text-sm text-gray-500 text-center py-4'>No messages from teacher</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16'>

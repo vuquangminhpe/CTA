@@ -8,6 +8,16 @@ class ExamSessionService {
     // Get exam by code
     const exam = await examService.getExamByCode(exam_code)
 
+    // Check if the exam is active
+    if (!exam.active) {
+      throw new Error('Bài kiểm tra này hiện đã bị vô hiệu hóa')
+    }
+
+    // Check if the current time is after the scheduled start time
+    if (exam.start_time && new Date() < exam.start_time) {
+      throw new Error('Chưa đến giờ thi, hãy liên hệ giáo viên')
+    }
+
     // Check if student already has an active session for this exam
     const existingSession = await databaseService.examSessions.findOne({
       exam_id: exam._id,
@@ -37,6 +47,9 @@ class ExamSessionService {
 
     // Get exam with questions
     const examWithQuestions = await examService.getExamWithQuestions(exam._id.toString())
+
+    // Notify teachers that a student has joined via socket
+    // This will be handled in socket/index.ts
 
     return {
       session,

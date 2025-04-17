@@ -39,6 +39,39 @@ export const generateExamValidator = validate(
           options: { min: 1 },
           errorMessage: 'Duration must be a positive integer'
         }
+      },
+      start_time: {
+        optional: true,
+        isISO8601: {
+          errorMessage: 'Start time must be a valid ISO8601 date'
+        }
+      }
+    },
+    ['body']
+  )
+)
+
+export const updateExamStatusValidator = validate(
+  checkSchema(
+    {
+      active: {
+        optional: true,
+        isBoolean: {
+          errorMessage: 'Active status must be a boolean'
+        }
+      },
+      start_time: {
+        optional: true,
+        isISO8601: {
+          errorMessage: 'Start time must be a valid ISO8601 date'
+        }
+      },
+      duration: {
+        optional: true,
+        isInt: {
+          options: { min: 1 },
+          errorMessage: 'Duration must be a positive integer'
+        }
       }
     },
     ['body']

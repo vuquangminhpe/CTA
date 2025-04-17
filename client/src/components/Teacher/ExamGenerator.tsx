@@ -1,12 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
+import { Clock, Calendar, Book } from 'lucide-react'
 
 const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
   const [formData, setFormData] = useState({
     title: '',
     quantity: 10,
     question_count: Math.min(5, questionCount),
-    duration: 30 // minutes
+    duration: 30, // minutes
+    start_time: null // New field for scheduled start time
   })
 
   const handleChange = (e: any) => {
@@ -14,6 +18,13 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
     setFormData({
       ...formData,
       [name]: name === 'title' ? value : parseInt(value, 10)
+    })
+  }
+
+  const handleDateChange = (date: Date | null) => {
+    setFormData({
+      ...formData,
+      start_time: date as any
     })
   }
 
@@ -61,7 +72,26 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
             />
           </div>
 
-          <div className='grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3'>
+          <div className='grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2'>
+            <div>
+              <label htmlFor='start_time' className='block text-sm font-medium text-gray-700 flex items-center'>
+                <Calendar className='w-4 h-4 mr-1 text-gray-500' />
+                Thời gian bắt đầu
+              </label>
+              <div className='mt-1'>
+                <DatePicker
+                  selected={formData.start_time}
+                  onChange={handleDateChange}
+                  showTimeSelect
+                  dateFormat='Pp'
+                  placeholderText='Chọn thời gian bắt đầu'
+                  className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2'
+                  isClearable
+                />
+              </div>
+              <p className='mt-2 text-sm text-gray-500'>Nếu không chọn thời gian, bài thi sẽ bắt đầu ngay lập tức</p>
+            </div>
+
             <div>
               <label htmlFor='quantity' className='block text-sm font-medium text-gray-700'>
                 Số lượng mã QR
@@ -81,9 +111,12 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
               </div>
               <p className='mt-2 text-sm text-gray-500'>Có bao nhiêu phiên bản bài kiểm tra khác nhau để tạo ra</p>
             </div>
+          </div>
 
+          <div className='grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2'>
             <div>
-              <label htmlFor='question_count' className='block text-sm font-medium text-gray-700'>
+              <label htmlFor='question_count' className='block text-sm font-medium text-gray-700 flex items-center'>
+                <Book className='w-4 h-4 mr-1 text-gray-500' />
                 Câu hỏi cho mỗi kỳ thi
               </label>
               <div className='mt-1'>
@@ -109,7 +142,8 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
             </div>
 
             <div>
-              <label htmlFor='duration' className='block text-sm font-medium text-gray-700'>
+              <label htmlFor='duration' className='block text-sm font-medium text-gray-700 flex items-center'>
+                <Clock className='w-4 h-4 mr-1 text-gray-500' />
                 Thời lượng (phút)
               </label>
               <div className='mt-1'>

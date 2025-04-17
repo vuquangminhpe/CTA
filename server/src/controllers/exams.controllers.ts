@@ -4,16 +4,20 @@ import { TokenPayload } from '../models/request/User.request'
 import examService from '../services/exams.services'
 
 export const generateExamController = async (req: Request, res: Response) => {
-  const { title, quantity, question_count, duration } = req.body
+  const { title, quantity, question_count, duration, start_time } = req.body
   const { user_id } = req.decode_authorization as TokenPayload
 
   try {
+    // Parse start_time if it's provided
+    const parsedStartTime = start_time ? new Date(start_time) : null
+
     const qrCodes = await examService.bulkGenerateExams({
       title,
       teacher_id: user_id,
       quantity,
       question_count,
-      duration
+      duration,
+      start_time: parsedStartTime
     })
 
     res.json({
@@ -46,7 +50,84 @@ export const getExamsController = async (req: Request, res: Response) => {
   }
 }
 
-// New controller to get exam results
+// New controller to get a specific exam by ID
+export const getExamByIdController = async (req: Request, res: Response) => {
+  const { exam_id } = req.params
+  const { user_id } = req.decode_authorization as TokenPayload
+
+  try {
+    const exam = await examService.getExamById(exam_id)
+
+    if (!exam) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        message: 'Exam not found'
+      })
+    }
+
+    // Check if the exam belongs to this teacher
+    if (exam.teacher_id.toString() !== user_id) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        message: 'Not authorized to view this exam'
+      })
+    }
+
+    res.json({
+      message: 'Exam retrieved successfully',
+      result: exam
+    })
+  } catch (error) {
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      message: 'Failed to retrieve exam',
+      error: error
+    })
+  }
+}
+
+// New controller to update exam status (enable/disable)
+export const updateExamStatusController = async (req: Request, res: Response) => {
+  const { exam_id } = req.params
+  const { active, start_time, duration } = req.body
+  const { user_id } = req.decode_authorization as TokenPayload
+
+  try {
+    // Verify the exam belongs to the current teacher
+    const exam = await examService.getExamById(exam_id)
+
+    if (!exam) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        message: 'Exam not found'
+      })
+    }
+
+    if (exam.teacher_id.toString() !== user_id) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        message: 'Not authorized to update this exam'
+      })
+    }
+
+    // Parse start_time if provided
+    const parsedStartTime = start_time !== undefined ? (start_time ? new Date(start_time) : null) : undefined
+
+    // Update the exam
+    const updatedExam = await examService.updateExamStatus(exam_id, {
+      active: active !== undefined ? active : undefined,
+      start_time: parsedStartTime,
+      duration: duration !== undefined ? duration : undefined
+    })
+
+    res.json({
+      message: 'Exam status updated successfully',
+      result: updatedExam
+    })
+  } catch (error) {
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      message: 'Failed to update exam status',
+      error: error
+    })
+  }
+}
+
+// Controller to get exam results
 export const getExamResultsController = async (req: Request, res: Response) => {
   const { exam_id } = req.params
   const { user_id } = req.decode_authorization as TokenPayload
@@ -81,7 +162,7 @@ export const getExamResultsController = async (req: Request, res: Response) => {
   }
 }
 
-// New controller to get exam statistics
+// Controller to get exam statistics
 export const getExamStatisticsController = async (req: Request, res: Response) => {
   const { exam_id } = req.params
   const { user_id } = req.decode_authorization as TokenPayload

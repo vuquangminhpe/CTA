@@ -8,6 +8,7 @@ interface Exam {
   teacher_id: string
   question_ids: string[]
   duration: number
+  start_time?: string
   created_at: string
   active: boolean
 }
@@ -54,11 +55,13 @@ interface GenerateExamRequest {
   quantity: number
   question_count: number
   duration: number
+  start_time?: string
 }
 
 interface QRCodeResponse {
   exam_code: string
   qrCode: string
+  start_time?: string
 }
 
 interface StartExamRequest {
@@ -86,11 +89,22 @@ interface ExamResultsStatistics {
   violationCount: number
 }
 
+interface UpdateExamStatusRequest {
+  active?: boolean
+  start_time?: string | null
+  duration?: number
+}
+
 const examApi = {
   generateExam: (body: GenerateExamRequest) =>
     http.post<SuccessResponse<QRCodeResponse[]>>('/api/exams/generate', body),
 
   getExams: () => http.get<SuccessResponse<Exam[]>>('/api/exams'),
+
+  getExamById: (examId: string) => http.get<SuccessResponse<Exam>>(`/api/exams/${examId}`),
+
+  updateExamStatus: (examId: string, body: UpdateExamStatusRequest) =>
+    http.put<SuccessResponse<Exam>>(`/api/exams/${examId}/status`, body),
 
   startExam: (body: StartExamRequest) => http.post<SuccessResponse<StartExamResponse>>('/api/exams/start', body),
 
@@ -98,15 +112,12 @@ const examApi = {
 
   getExamHistory: () => http.get<SuccessResponse<ExamHistoryItem[]>>('/api/exams/history'),
 
-  // New methods for teacher's exam results
+  // Methods for teacher's exam results
   getExamResults: (examId: string) =>
     http.get<SuccessResponse<ExamSessionWithStudentInfo[]>>(`/api/exams/${examId}/results`),
 
   getExamResultsStatistics: (examId: string) =>
-    http.get<SuccessResponse<ExamResultsStatistics>>(`/api/exams/${examId}/statistics`),
-
-  // Get detailed exam information
-  getExamById: (examId: string) => http.get<SuccessResponse<Exam>>(`/api/exams/${examId}`)
+    http.get<SuccessResponse<ExamResultsStatistics>>(`/api/exams/${examId}/statistics`)
 }
 
 export default examApi

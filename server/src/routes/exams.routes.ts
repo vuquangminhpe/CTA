@@ -2,8 +2,10 @@ import { Router } from 'express'
 import {
   generateExamController,
   getExamsController,
+  getExamByIdController,
   getExamResultsController,
-  getExamStatisticsController
+  getExamStatisticsController,
+  updateExamStatusController
 } from '../controllers/exams.controllers'
 import {
   startExamController,
@@ -24,6 +26,8 @@ examsRouter.use(AccessTokenValidator, verifiedUserValidator)
 // Teacher routes
 examsRouter.post('/generate', teacherRoleValidator, generateExamValidator, wrapAsync(generateExamController))
 examsRouter.get('/', teacherRoleValidator, wrapAsync(getExamsController))
+examsRouter.get('/:exam_id', teacherRoleValidator, wrapAsync(getExamByIdController))
+examsRouter.put('/:exam_id/status', teacherRoleValidator, wrapAsync(updateExamStatusController))
 examsRouter.get('/:exam_id/results', teacherRoleValidator, wrapAsync(getExamResultsController))
 examsRouter.get('/:exam_id/statistics', teacherRoleValidator, wrapAsync(getExamStatisticsController))
 
