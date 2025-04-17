@@ -150,9 +150,9 @@ const MonitoringDashboard = () => {
     // Handle all active sessions data
     socket.on('all_active_sessions', (data: { sessions: StudentSession[]; violations: Violation[] }) => {
       // Separate active and completed sessions
-      const active = data.sessions.filter(s => !s.completed)
-      const completed = data.sessions.filter(s => s.completed) as CompletedSession[]
-      
+      const active = data.sessions.filter((s) => !s.completed)
+      const completed = data.sessions.filter((s) => s.completed) as CompletedSession[]
+
       setActiveSessions(active || [])
       setCompletedSessions(completed || [])
       setViolations(data.violations || [])
@@ -204,13 +204,13 @@ const MonitoringDashboard = () => {
     socket.on('student_submitted', (data: any) => {
       // Move session from active to completed
       setActiveSessions((prev) => {
-        const activeSession = prev.find(s => s.session_id === data.session_id)
-        
+        const activeSession = prev.find((s) => s.session_id === data.session_id)
+
         if (!activeSession) return prev
-        
+
         // Update completed sessions
-        setCompletedSessions(completedSessions => [
-          ...completedSessions, 
+        setCompletedSessions((completedSessions) => [
+          ...completedSessions,
           {
             ...activeSession,
             score: data.score,
@@ -218,9 +218,9 @@ const MonitoringDashboard = () => {
             end_time: new Date().toISOString()
           }
         ])
-        
+
         // Remove from active sessions
-        return prev.filter(s => s.session_id !== data.session_id)
+        return prev.filter((s) => s.session_id !== data.session_id)
       })
 
       // Update stats
@@ -797,8 +797,8 @@ const MonitoringDashboard = () => {
                         </tr>
                       </thead>
                       <tbody className='bg-white divide-y divide-gray-200'>
-                        {allSessions.map((session) => (
-                          <tr 
+                        {allSessions.map((session: any) => (
+                          <tr
                             key={session.session_id}
                             className='hover:bg-gray-50 cursor-pointer'
                             onClick={() => setSelectedSession(session.session_id)}
@@ -811,25 +811,35 @@ const MonitoringDashboard = () => {
                               {session.exam_code || 'N/A'}
                             </td>
                             <td className='px-4 py-3 whitespace-nowrap'>
-                              <span className={`px-2 py-1 text-xs rounded-full ${
-                                session.violations > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                              }`}>
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${
+                                  session.violations > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                                }`}
+                              >
                                 {session.violations}
                               </span>
                             </td>
                             <td className='px-4 py-3 whitespace-nowrap'>
-                              <div className={`text-sm font-medium ${
-                                session.completed 
-                                  ? session.score >= 70 ? 'text-green-600' : session.score >= 50 ? 'text-yellow-600' : 'text-red-600' 
-                                  : 'text-gray-500'
-                              }`}>
+                              <div
+                                className={`text-sm font-medium ${
+                                  session.completed
+                                    ? session.score >= 70
+                                      ? 'text-green-600'
+                                      : session.score >= 50
+                                        ? 'text-yellow-600'
+                                        : 'text-red-600'
+                                    : 'text-gray-500'
+                                }`}
+                              >
                                 {session.completed ? formatScore(session.score) : 'Đang thi'}
                               </div>
                             </td>
                             <td className='px-4 py-3 whitespace-nowrap'>
-                              <span className={`px-2 py-1 text-xs rounded-full ${
-                                session.completed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                              }`}>
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${
+                                  session.completed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                }`}
+                              >
                                 {session.completed ? 'Hoàn thành' : 'Đang làm bài'}
                               </span>
                             </td>
@@ -857,50 +867,66 @@ const MonitoringDashboard = () => {
               <div className='bg-white shadow overflow-hidden sm:rounded-lg mb-6'>
                 <div className='px-4 py-5 sm:px-6'>
                   <h3 className='text-lg leading-6 font-medium text-gray-900'>Thông tin chi tiết về học sinh</h3>
-                  {(activeSessions.find((s) => s.session_id === selectedSession) || 
+                  {(activeSessions.find((s) => s.session_id === selectedSession) ||
                     completedSessions.find((s) => s.session_id === selectedSession)) && (
                     <p className='mt-1 text-sm text-gray-500'>
-                      {(activeSessions.find((s) => s.session_id === selectedSession) || 
-                        completedSessions.find((s) => s.session_id === selectedSession))?.student_name}
+                      {
+                        (
+                          activeSessions.find((s) => s.session_id === selectedSession) ||
+                          completedSessions.find((s) => s.session_id === selectedSession)
+                        )?.student_name
+                      }
                     </p>
                   )}
                 </div>
 
                 <div className='border-t border-gray-200 px-4 py-5 sm:p-0'>
-                  {activeSessions.find((s) => s.session_id === selectedSession) || 
-                   completedSessions.find((s) => s.session_id === selectedSession) ? (
+                  {activeSessions.find((s) => s.session_id === selectedSession) ||
+                  completedSessions.find((s) => s.session_id === selectedSession) ? (
                     <dl className='sm:divide-y sm:divide-gray-200'>
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Tên học sinh</dt>
                         <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
-                          {(activeSessions.find((s) => s.session_id === selectedSession) || 
-                            completedSessions.find((s) => s.session_id === selectedSession))?.student_name || 'Unknown'}
+                          {(
+                            activeSessions.find((s) => s.session_id === selectedSession) ||
+                            completedSessions.find((s) => s.session_id === selectedSession)
+                          )?.student_name || 'Unknown'}
                         </dd>
                       </div>
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Tên đăng nhập</dt>
                         <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
-                          {(activeSessions.find((s) => s.session_id === selectedSession) || 
-                            completedSessions.find((s) => s.session_id === selectedSession))?.student_username}
+                          {
+                            (
+                              activeSessions.find((s) => s.session_id === selectedSession) ||
+                              completedSessions.find((s) => s.session_id === selectedSession)
+                            )?.student_username
+                          }
                         </dd>
                       </div>
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Bài thi</dt>
                         <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
-                          {(activeSessions.find((s) => s.session_id === selectedSession) || 
-                            completedSessions.find((s) => s.session_id === selectedSession))?.exam_title}
+                          {
+                            (
+                              activeSessions.find((s) => s.session_id === selectedSession) ||
+                              completedSessions.find((s) => s.session_id === selectedSession)
+                            )?.exam_title
+                          }
                         </dd>
                       </div>
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Thời gian bắt đầu</dt>
                         <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
                           {formatDate(
-                            (activeSessions.find((s) => s.session_id === selectedSession) || 
-                              completedSessions.find((s) => s.session_id === selectedSession))?.start_time as string
+                            (
+                              activeSessions.find((s) => s.session_id === selectedSession) ||
+                              completedSessions.find((s) => s.session_id === selectedSession)
+                            )?.start_time as string
                           )}
                         </dd>
                       </div>
-                      
+
                       {/* Show end time for completed sessions */}
                       {completedSessions.find((s) => s.session_id === selectedSession)?.end_time && (
                         <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
@@ -912,42 +938,49 @@ const MonitoringDashboard = () => {
                           </dd>
                         </div>
                       )}
-                      
+
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Số vi phạm</dt>
                         <dd className='mt-1 text-sm sm:mt-0 sm:col-span-2'>
                           <span
                             className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              ((activeSessions.find((s) => s.session_id === selectedSession) || 
-                                completedSessions.find((s) => s.session_id === selectedSession))?.violations || 0) > 0
+                              ((
+                                activeSessions.find((s) => s.session_id === selectedSession) ||
+                                completedSessions.find((s) => s.session_id === selectedSession)
+                              )?.violations || 0) > 0
                                 ? 'bg-red-100 text-red-800'
                                 : 'bg-green-100 text-green-800'
                             }`}
                           >
-                            {(activeSessions.find((s) => s.session_id === selectedSession) || 
-                              completedSessions.find((s) => s.session_id === selectedSession))?.violations || 0} vi phạm
+                            {(
+                              activeSessions.find((s) => s.session_id === selectedSession) ||
+                              completedSessions.find((s) => s.session_id === selectedSession)
+                            )?.violations || 0}{' '}
+                            vi phạm
                           </span>
                         </dd>
                       </div>
-                      
+
                       {/* Show score for completed sessions */}
                       {completedSessions.find((s) => s.session_id === selectedSession)?.score !== undefined && (
                         <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                           <dt className='text-sm font-medium text-gray-500'>Điểm số</dt>
                           <dd className='mt-1 text-sm sm:mt-0 sm:col-span-2'>
-                            <span className={`font-medium ${
-                              (completedSessions.find((s) => s.session_id === selectedSession)?.score || 0) >= 70 
-                                ? 'text-green-600' 
-                                : (completedSessions.find((s) => s.session_id === selectedSession)?.score || 0) >= 50 
-                                ? 'text-yellow-600' 
-                                : 'text-red-600'
-                            }`}>
+                            <span
+                              className={`font-medium ${
+                                (completedSessions.find((s) => s.session_id === selectedSession)?.score || 0) >= 70
+                                  ? 'text-green-600'
+                                  : (completedSessions.find((s) => s.session_id === selectedSession)?.score || 0) >= 50
+                                    ? 'text-yellow-600'
+                                    : 'text-red-600'
+                              }`}
+                            >
                               {formatScore(completedSessions.find((s) => s.session_id === selectedSession)?.score || 0)}
                             </span>
                           </dd>
                         </div>
                       )}
-                      
+
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Trạng thái</dt>
                         <dd className='mt-1 text-sm sm:mt-0 sm:col-span-2'>
@@ -956,19 +989,19 @@ const MonitoringDashboard = () => {
                               completedSessions.find((s) => s.session_id === selectedSession)
                                 ? 'bg-green-100 text-green-800'
                                 : activeSessions.find((s) => s.session_id === selectedSession)?.active
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-yellow-100 text-yellow-800'
                             }`}
                           >
                             {completedSessions.find((s) => s.session_id === selectedSession)
                               ? 'Hoàn thành'
                               : activeSessions.find((s) => s.session_id === selectedSession)?.active
-                              ? 'Đang hoạt động'
-                              : 'Không hoạt động hoặc bị ngắt kết nối'}
+                                ? 'Đang hoạt động'
+                                : 'Không hoạt động hoặc bị ngắt kết nối'}
                           </span>
                         </dd>
                       </div>
-                      
+
                       {/* Only show message box and actions for active sessions */}
                       {activeSessions.find((s) => s.session_id === selectedSession) && (
                         <>
