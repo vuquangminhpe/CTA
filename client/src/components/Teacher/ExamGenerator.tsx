@@ -88,6 +88,7 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
                 <DatePicker
                   selected={formData.start_time}
                   onChange={handleDateChange}
+                  timeIntervals={10}
                   showTimeSelect
                   dateFormat='Pp'
                   placeholderText='Chọn thời gian bắt đầu'
