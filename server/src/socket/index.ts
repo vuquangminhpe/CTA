@@ -11,8 +11,10 @@ import { UserRole } from '../models/schemas/User.schema'
 export const initSocketServer = (httpServer: http.Server) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: '*',
-      methods: ['GET', 'POST']
+      origin: ['https://cta-client.vercel.app', 'http://localhost:3002'],
+
+      methods: ['GET', 'POST'],
+      credentials: true
     }
   })
 
