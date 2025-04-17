@@ -323,7 +323,7 @@ const ExamMonitor = () => {
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
                 <AlertTriangle className='h-5 w-5 inline-block mr-2 -mt-1' />
-                Violations ({violations.length})
+                Tổng lỗi vi phạm ({violations.length})
               </button>
             </nav>
           </div>
@@ -337,7 +337,7 @@ const ExamMonitor = () => {
           {activeTab === 'students' ? (
             <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
               <div className='px-4 py-5 sm:px-6 flex justify-between items-center'>
-                <h3 className='text-lg leading-6 font-medium text-gray-900'>Active Students</h3>
+                <h3 className='text-lg leading-6 font-medium text-gray-900'>Số học sinh tham gia</h3>
               </div>
               <div className='border-t border-gray-200'>
                 {activeSessions.length > 0 ? (
