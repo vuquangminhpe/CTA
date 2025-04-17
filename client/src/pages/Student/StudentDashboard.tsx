@@ -166,7 +166,7 @@ const StudentDashboard = () => {
                 <QrCode className='-ml-0.5 mr-2 h-5 w-5' />
                 Quét mã QR
               </button>
-              <button
+              {/* <button
                 onClick={() => setActiveTab('history')}
                 className={`${
                   activeTab === 'history'
@@ -176,7 +176,7 @@ const StudentDashboard = () => {
               >
                 <History className='-ml-0.5 mr-2 h-5 w-5' />
                 Lịch sử thi
-              </button>
+              </button> */}
             </nav>
           </div>
         </div>

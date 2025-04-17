@@ -253,8 +253,6 @@ const ExamManagement = () => {
                       placeholderText='No scheduled start time (start immediately)'
                       className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2'
                       isClearable
-                      minDate={new Date()}
-                      minTime={new Date()}
                     />
                   </div>
                   <p className='mt-1 text-xs text-gray-500'>Để trống để cho phép kỳ thi bắt đầu ngay lập tức</p>

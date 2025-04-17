@@ -18,6 +18,7 @@ import AdminDashboard from '../pages/Admin/AdminDashboard'
 import ExamResultsPage from '../pages/Teacher/ExamResultsPage'
 import ExamManagement from '../pages/Teacher/ExamManagement'
 import ExamMonitor from '../pages/Teacher/ExamMonitor'
+import MonitoringDashboard from '../pages/Teacher/MonitoringDashboard'
 
 const AppRoutes = () => {
   const { role } = useContext(AuthContext)
@@ -58,6 +59,8 @@ const AppRoutes = () => {
             <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />
             {/* New route for exam monitoring */}
             <Route path='/teacher/exams/:examId/monitor' element={<ExamMonitor />} />
+            {/* Global monitoring dashboard */}
+            <Route path='/teacher/monitoring' element={<MonitoringDashboard />} />
           </Route>
 
           {/* Student routes */}

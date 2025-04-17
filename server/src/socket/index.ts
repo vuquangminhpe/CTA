@@ -598,7 +598,172 @@ export const initSocketServer = (httpServer: http.Server) => {
         socket.emit('error', { message: 'Failed to get exam progress' })
       }
     })
+    // Get all active sessions across all exams (for global monitoring)
+    socket.on('get_all_active_sessions', async () => {
+      // Verify this user is a teacher or admin
+      if (socket.data.role !== UserRole.Teacher && socket.data.role !== UserRole.Admin) {
+        socket.emit('error', { message: 'Not authorized to monitor exams' })
+        return
+      }
 
+      try {
+        // Get all active sessions across all exams
+        const activeSessions = await databaseService.examSessions
+          .find({
+            completed: false
+          })
+          .toArray()
+
+        // Get exams info
+        const examIds = [...new Set(activeSessions.map((session) => session.exam_id.toString()))]
+        const exams = await databaseService.exams
+          .find({ _id: { $in: examIds.map((id) => new ObjectId(id)) } })
+          .toArray()
+
+        const examsMap = new Map(exams.map((exam) => [exam._id.toString(), exam]))
+
+        // Get student info for each session
+        const sessionsWithInfo = await Promise.all(
+          activeSessions.map(async (session) => {
+            const student = await databaseService.users.findOne({ _id: session.student_id })
+            const exam = examsMap.get(session.exam_id.toString())
+
+            return {
+              session_id: session._id.toString(),
+              student_id: session.student_id.toString(),
+              student_username: student?.username || 'Unknown',
+              exam_id: session.exam_id.toString(),
+              exam_title: exam?.title || 'Unknown Exam',
+              exam_code: exam?.exam_code,
+              start_time: session.start_time,
+              violations: session.violations,
+              active: activeExams.has(session._id.toString())
+            }
+          })
+        )
+
+        // Get all violations
+        const violations = await databaseService.db
+          .collection('exam_violations')
+          .find({})
+          .sort({ timestamp: -1 })
+          .limit(200)
+          .toArray()
+
+        // Enrich violations with student info
+        const violationsWithInfo = await Promise.all(
+          violations.map(async (violation) => {
+            const session = activeSessions.find((s) => s._id.toString() === violation.session_id?.toString())
+            if (!session) return null
+
+            const student = await databaseService.users.findOne({ _id: session.student_id })
+            const exam = examsMap.get(session.exam_id.toString())
+
+            return {
+              ...violation,
+              student_username: student?.username || 'Unknown',
+              exam_id: session.exam_id.toString(),
+              exam_title: exam?.title || 'Unknown Exam'
+            }
+          })
+        )
+
+        // Filter out null values from violationsWithInfo
+        const filteredViolations = violationsWithInfo.filter((v) => v !== null)
+
+        // Send data to the requesting client
+        socket.emit('all_active_sessions', {
+          sessions: sessionsWithInfo,
+          violations: filteredViolations
+        })
+      } catch (error) {
+        console.error('Error fetching all active sessions:', error)
+        socket.emit('error', { message: 'Failed to fetch active sessions' })
+      }
+    })
+
+    // Teacher joins monitoring room for a specific exam
+    socket.on('monitor_exam', async (examId) => {
+      // Verify this user is a teacher and owns this exam
+      if (socket.data.role !== UserRole.Teacher && socket.data.role !== UserRole.Admin) {
+        socket.emit('error', { message: 'Not authorized to monitor exams' })
+        return
+      }
+
+      try {
+        // Get the exam
+        const exam = await databaseService.exams.findOne({ _id: new ObjectId(examId) })
+
+        if (!exam) {
+          socket.emit('error', { message: 'Exam not found' })
+          return
+        }
+
+        // Verify exam ownership
+        if (exam.teacher_id.toString() !== socket.data.user_id && socket.data.role !== UserRole.Admin) {
+          socket.emit('error', { message: 'Not authorized to monitor this exam' })
+          return
+        }
+
+        // Join teacher to monitoring room
+        socket.join(`monitor_${examId}`)
+        console.log(`Teacher ${socket.data.user_id} monitoring exam ${examId}`)
+
+        // Track this teacher connection
+        if (!teacherMonitors.has(examId)) {
+          teacherMonitors.set(examId, new Set())
+        }
+        teacherMonitors.get(examId).add(socket.id)
+
+        // Get active sessions for this exam
+        const activeSessions = await databaseService.examSessions
+          .find({
+            exam_id: new ObjectId(examId),
+            completed: false
+          })
+          .toArray()
+
+        // Get student info for each session
+        const sessionsWithStudentInfo = await Promise.all(
+          activeSessions.map(async (session) => {
+            const student = await databaseService.users.findOne({ _id: session.student_id })
+
+            return {
+              session_id: session._id.toString(),
+              student_id: session.student_id.toString(),
+              student_username: student?.username || 'Unknown',
+              start_time: session.start_time,
+              violations: session.violations,
+              active: activeExams.has(session._id.toString())
+            }
+          })
+        )
+
+        // Send current active sessions to teacher
+        socket.emit('active_sessions', {
+          exam_id: examId,
+          sessions: sessionsWithStudentInfo
+        })
+
+        // Send violation history for this exam
+        const violations = await databaseService.db
+          .collection('exam_violations')
+          .find({ session_id: { $in: activeSessions.map((s) => s._id) } })
+          .sort({ timestamp: -1 })
+          .limit(100)
+          .toArray()
+
+        if (violations.length > 0) {
+          socket.emit('violations_history', {
+            exam_id: examId,
+            violations: violations
+          })
+        }
+      } catch (error) {
+        console.error('Error setting up monitoring:', error)
+        socket.emit('error', { message: 'Failed to set up monitoring' })
+      }
+    })
     // Periodic time updates (every 5 seconds)
     const timeInterval = setInterval(() => {
       // Get all rooms this socket is in
