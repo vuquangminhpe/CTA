@@ -199,7 +199,7 @@ const ExamMonitor = () => {
               </div>
               <div className='ml-5 w-0 flex-1'>
                 <dl>
-                  <dt className='text-sm font-medium text-gray-500 truncate'>Active Students</dt>
+                  <dt className='text-sm font-medium text-gray-500 truncate'>học sinh tham gia</dt>
                   <dd>
                     <div className='text-lg font-medium text-gray-900'>{activeSessions.length}</div>
                   </dd>
@@ -217,7 +217,7 @@ const ExamMonitor = () => {
               </div>
               <div className='ml-5 w-0 flex-1'>
                 <dl>
-                  <dt className='text-sm font-medium text-gray-500 truncate'>Completed Exams</dt>
+                  <dt className='text-sm font-medium text-gray-500 truncate'>Đã hoàn thành bài kiểm tra</dt>
                   <dd>
                     <div className='text-lg font-medium text-gray-900'>{stats.completed_sessions}</div>
                   </dd>
@@ -235,7 +235,7 @@ const ExamMonitor = () => {
               </div>
               <div className='ml-5 w-0 flex-1'>
                 <dl>
-                  <dt className='text-sm font-medium text-gray-500 truncate'>Total Violations</dt>
+                  <dt className='text-sm font-medium text-gray-500 truncate'>Tổng số lỗi vi phạm</dt>
                   <dd>
                     <div className='text-lg font-medium text-gray-900'>{stats.total_violations}</div>
                   </dd>
@@ -253,7 +253,7 @@ const ExamMonitor = () => {
               </div>
               <div className='ml-5 w-0 flex-1'>
                 <dl>
-                  <dt className='text-sm font-medium text-gray-500 truncate'>Average Score</dt>
+                  <dt className='text-sm font-medium text-gray-500 truncate'>Điểm trung bình</dt>
                   <dd>
                     <div className='text-lg font-medium text-gray-900'>
                       {stats.average_score ? `${stats.average_score.toFixed(1)}%` : 'N/A'}
@@ -274,7 +274,7 @@ const ExamMonitor = () => {
               <XCircle className='h-5 w-5 text-red-400' aria-hidden='true' />
             </div>
             <div className='ml-3'>
-              <h3 className='text-sm font-medium text-red-800'>Error</h3>
+              <h3 className='text-sm font-medium text-red-800'>Lỗi</h3>
               <div className='mt-2 text-sm text-red-700'>
                 <p>{error}</p>
               </div>
@@ -296,8 +296,8 @@ const ExamMonitor = () => {
             value={activeTab}
             onChange={(e) => setActiveTab(e.target.value as 'students' | 'violations')}
           >
-            <option value='students'>Active Students ({activeSessions.length})</option>
-            <option value='violations'>Violations ({violations.length})</option>
+            <option value='students'>học sinh tham gia ({activeSessions.length})</option>
+            <option value='violations'>Tổng số lỗi vi phạm ({violations.length})</option>
           </select>
         </div>
         <div className='hidden sm:block'>
@@ -312,7 +312,7 @@ const ExamMonitor = () => {
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
                 <Users className='h-5 w-5 inline-block mr-2 -mt-1' />
-                Active Students ({activeSessions.length})
+                học sinh tham gia ({activeSessions.length})
               </button>
               <button
                 onClick={() => setActiveTab('violations')}
@@ -394,8 +394,8 @@ const ExamMonitor = () => {
                 ) : (
                   <div className='py-8 text-center'>
                     <Users className='mx-auto h-12 w-12 text-gray-400' />
-                    <h3 className='mt-2 text-sm font-medium text-gray-900'>No active students</h3>
-                    <p className='mt-1 text-sm text-gray-500'>There are no students currently taking this exam.</p>
+                    <h3 className='mt-2 text-sm font-medium text-gray-900'>Không có học sinh tham gia</h3>
+                    <p className='mt-1 text-sm text-gray-500'>Hiện tại không có học sinh nào tham gia kỳ thi này.</p>
                   </div>
                 )}
               </div>
@@ -403,8 +403,8 @@ const ExamMonitor = () => {
           ) : (
             <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
               <div className='px-4 py-5 sm:px-6'>
-                <h3 className='text-lg leading-6 font-medium text-gray-900'>Recent Violations</h3>
-                <p className='mt-1 text-sm text-gray-500'>Log of student violations during this exam.</p>
+                <h3 className='text-lg leading-6 font-medium text-gray-900'>Vi phạm gần đây</h3>
+                <p className='mt-1 text-sm text-gray-500'>Nhật ký vi phạm của học sinh trong kỳ thi này.</p>
               </div>
               <div className='border-t border-gray-200'>
                 {violations.length > 0 ? (
@@ -447,8 +447,8 @@ const ExamMonitor = () => {
                 ) : (
                   <div className='py-8 text-center'>
                     <CheckCircle className='mx-auto h-12 w-12 text-green-500' />
-                    <h3 className='mt-2 text-sm font-medium text-gray-900'>No violations</h3>
-                    <p className='mt-1 text-sm text-gray-500'>No violations have been recorded for this exam.</p>
+                    <h3 className='mt-2 text-sm font-medium text-gray-900'>Không vi phạm</h3>
+                    <p className='mt-1 text-sm text-gray-500'>Không có vi phạm nào được ghi nhận trong kỳ thi này.</p>
                   </div>
                 )}
               </div>
@@ -461,7 +461,7 @@ const ExamMonitor = () => {
           {selectedStudent ? (
             <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
               <div className='px-4 py-5 sm:px-6'>
-                <h3 className='text-lg leading-6 font-medium text-gray-900'>Student Details</h3>
+                <h3 className='text-lg leading-6 font-medium text-gray-900'>Thông tin chi tiết về học sinh</h3>
                 {activeSessions.find((s) => s.session_id === selectedStudent) && (
                   <p className='mt-1 text-sm text-gray-500'>
                     {activeSessions.find((s) => s.session_id === selectedStudent)?.student_name}
@@ -473,19 +473,18 @@ const ExamMonitor = () => {
                 {activeSessions.find((s) => s.session_id === selectedStudent) ? (
                   <dl className='sm:divide-y sm:divide-gray-200'>
                     <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
-                      <dt className='text-sm font-medium text-gray-500'>Student Name</dt>
                       <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
                         {activeSessions.find((s) => s.session_id === selectedStudent)?.student_name}
                       </dd>
                     </div>
                     <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
-                      <dt className='text-sm font-medium text-gray-500'>Username</dt>
+                      <dt className='text-sm font-medium text-gray-500'>Tên học sinh</dt>
                       <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
                         {activeSessions.find((s) => s.session_id === selectedStudent)?.student_username}
                       </dd>
                     </div>
                     <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
-                      <dt className='text-sm font-medium text-gray-500'>Start Time</dt>
+                      <dt className='text-sm font-medium text-gray-500'>Thời gian bắt đầu</dt>
                       <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
                         {new Date(
                           activeSessions.find((s) => s.session_id === selectedStudent)?.start_time as string
@@ -493,7 +492,7 @@ const ExamMonitor = () => {
                       </dd>
                     </div>
                     <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
-                      <dt className='text-sm font-medium text-gray-500'>Violations</dt>
+                      <dt className='text-sm font-medium text-gray-500'>lỗi vi phạm</dt>
                       <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
                         <span
                           className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -502,7 +501,7 @@ const ExamMonitor = () => {
                               : 'bg-green-100 text-green-800'
                           }`}
                         >
-                          {activeSessions.find((s) => s.session_id === selectedStudent)?.violations || 0} violations
+                          {activeSessions.find((s) => s.session_id === selectedStudent)?.violations || 0} vi phạm
                         </span>
                       </dd>
                     </div>
@@ -523,7 +522,7 @@ const ExamMonitor = () => {
                       </dd>
                     </div>
                     <div className='py-4 sm:py-5 sm:px-6'>
-                      <dt className='text-sm font-medium text-gray-500 mb-2'>Send Message</dt>
+                      <dt className='text-sm font-medium text-gray-500 mb-2'>Gửi tin nhắn</dt>
                       <dd className='mt-1 text-sm text-gray-900'>
                         <div className='mt-1'>
                           <textarea
@@ -544,13 +543,13 @@ const ExamMonitor = () => {
                             className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50'
                           >
                             <MessageSquare className='h-4 w-4 mr-1' />
-                            Send Message
+                            Gửi tin nhắn
                           </button>
                         </div>
                       </dd>
                     </div>
                     <div className='py-4 sm:py-5 sm:px-6'>
-                      <dt className='text-sm font-medium text-gray-500 mb-2'>Actions</dt>
+                      <dt className='text-sm font-medium text-gray-500 mb-2'>hành động</dt>
                       <dd className='mt-1 text-sm text-gray-900'>
                         <button
                           type='button'
@@ -564,14 +563,14 @@ const ExamMonitor = () => {
                           className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'
                         >
                           <XCircle className='h-4 w-4 mr-1' />
-                          End Exam for Student
+                          Kết thúc kỳ thi dành cho học sinh
                         </button>
                       </dd>
                     </div>
                   </dl>
                 ) : (
                   <div className='py-8 text-center'>
-                    <p className='text-sm text-gray-500'>Student no longer active</p>
+                    <p className='text-sm text-gray-500'>học sinh không còn hoạt động</p>
                   </div>
                 )}
               </div>
@@ -580,9 +579,9 @@ const ExamMonitor = () => {
             <div className='bg-white shadow sm:rounded-lg'>
               <div className='px-4 py-5 sm:p-6 text-center'>
                 <Users className='mx-auto h-12 w-12 text-gray-400' />
-                <h3 className='mt-2 text-sm font-medium text-gray-900'>Select a student</h3>
+                <h3 className='mt-2 text-sm font-medium text-gray-900'>Chọn một học sinh</h3>
                 <p className='mt-1 text-sm text-gray-500'>
-                  Select a student from the list to view details and send messages.
+                  Chọn một học sinh từ danh sách để xem chi tiết và gửi tin nhắn.
                 </p>
               </div>
             </div>
@@ -624,7 +623,7 @@ const ExamMonitor = () => {
                   </ul>
                 ) : (
                   <div className='py-4 text-center'>
-                    <p className='text-sm text-gray-500'>No violations for this student</p>
+                    <p className='text-sm text-gray-500'>Không có vi phạm nào đối với học sinh này</p>
                   </div>
                 )}
               </div>
