@@ -13,7 +13,9 @@ import {
   XCircle,
   MessageSquare,
   BarChart,
-  CheckCircle
+  CheckCircle,
+  GraduationCap,
+  FileText
 } from 'lucide-react'
 import { toast } from 'sonner'
 import examApi from '../../apis/exam.api'
@@ -32,6 +34,23 @@ interface StudentSession {
   violations: number
   active: boolean
   last_activity?: Date
+  score?: number // Add score property
+  completed?: boolean // Add completed property
+}
+
+interface CompletedSession {
+  session_id: string
+  student_id: string
+  student_name: string
+  student_username: string
+  exam_id: string
+  exam_title: string
+  exam_code?: string
+  start_time: string
+  end_time?: string
+  violations: number
+  score: number
+  completed: boolean
 }
 
 interface Violation {
@@ -49,6 +68,7 @@ interface Violation {
 const MonitoringDashboard = () => {
   const navigate = useNavigate()
   const [activeSessions, setActiveSessions] = useState<StudentSession[]>([])
+  const [completedSessions, setCompletedSessions] = useState<CompletedSession[]>([])
   const [violations, setViolations] = useState<Violation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -63,6 +83,7 @@ const MonitoringDashboard = () => {
   })
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [messageText, setMessageText] = useState('')
+  const [activeTab, setActiveTab] = useState<'students' | 'violations' | 'scores'>('students')
 
   // Fetch all exams when component mounts
   useEffect(() => {
@@ -72,7 +93,7 @@ const MonitoringDashboard = () => {
         setExams(response.data.result)
       } catch (error) {
         console.error('Failed to fetch exams:', error)
-        toast.error('Failed to load exams')
+        toast.error('Không thể tải được danh sách bài thi')
       }
     }
 
@@ -128,12 +149,17 @@ const MonitoringDashboard = () => {
 
     // Handle all active sessions data
     socket.on('all_active_sessions', (data: { sessions: StudentSession[]; violations: Violation[] }) => {
-      setActiveSessions(data.sessions || [])
+      // Separate active and completed sessions
+      const active = data.sessions.filter(s => !s.completed)
+      const completed = data.sessions.filter(s => s.completed) as CompletedSession[]
+      
+      setActiveSessions(active || [])
+      setCompletedSessions(completed || [])
       setViolations(data.violations || [])
 
       // Update stats
       setStats({
-        totalActive: data.sessions.length,
+        totalActive: active.length,
         totalViolations: data.violations.length,
         examsInProgress: new Set(data.sessions.map((session) => session.exam_id)).size
       })
@@ -176,7 +202,26 @@ const MonitoringDashboard = () => {
 
     // Handle student submission
     socket.on('student_submitted', (data: any) => {
-      setActiveSessions((prev) => prev.filter((session) => session.session_id !== data.session_id))
+      // Move session from active to completed
+      setActiveSessions((prev) => {
+        const activeSession = prev.find(s => s.session_id === data.session_id)
+        
+        if (!activeSession) return prev
+        
+        // Update completed sessions
+        setCompletedSessions(completedSessions => [
+          ...completedSessions, 
+          {
+            ...activeSession,
+            score: data.score,
+            completed: true,
+            end_time: new Date().toISOString()
+          }
+        ])
+        
+        // Remove from active sessions
+        return prev.filter(s => s.session_id !== data.session_id)
+      })
 
       // Update stats
       setStats((prev) => ({
@@ -209,7 +254,7 @@ const MonitoringDashboard = () => {
 
       // Update session's violation count
       setActiveSessions((prev) =>
-        prev.map((s) => (s.session_id === data.session_id ? { ...s, violations: (s.violations || 0) + 1 } : s))
+        prev.map((s) => (s.session_id === data.session_id ? { ...s, violations: data.violations } : s))
       )
 
       // Update stats
@@ -221,6 +266,13 @@ const MonitoringDashboard = () => {
 
     socket.connect()
 
+    // Set up auto-refresh every 30 seconds
+    const refreshInterval = setInterval(() => {
+      if (socket && socket.connected) {
+        socket.emit('get_all_active_sessions')
+      }
+    }, 30000)
+
     // Clean up function
     return () => {
       socket.off('connect')
@@ -231,11 +283,12 @@ const MonitoringDashboard = () => {
       socket.off('student_disconnected')
       socket.off('student_submitted')
       socket.off('violation_recorded')
+      clearInterval(refreshInterval)
     }
   }, [socket, exams, activeSessions])
 
   // Filter sessions based on search term and selected exam
-  const filteredSessions = activeSessions.filter((session) => {
+  const filteredActiveSessions = activeSessions.filter((session) => {
     const matchesSearch =
       session.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       session.student_username?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -244,6 +297,20 @@ const MonitoringDashboard = () => {
 
     return matchesSearch && matchesExam
   })
+
+  // Filter completed sessions
+  const filteredCompletedSessions = completedSessions.filter((session) => {
+    const matchesSearch =
+      session.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      session.student_username?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesExam = !selectedExam || session.exam_id === selectedExam
+
+    return matchesSearch && matchesExam
+  })
+
+  // Combined list for scores tab (both active and completed sessions)
+  const allSessions = [...filteredCompletedSessions, ...filteredActiveSessions]
 
   // Get violations for a specific session
   const getSessionViolations = (sessionId: string) => {
@@ -343,6 +410,11 @@ const MonitoringDashboard = () => {
     toast.success('Refreshing data...')
   }
 
+  // Format score as a number (not percentage)
+  const formatScore = (score: number) => {
+    return (score / 100).toFixed(2)
+  }
+
   return (
     <div className='max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8'>
       {/* Header */}
@@ -392,7 +464,7 @@ const MonitoringDashboard = () => {
                 <dl>
                   <dt className='text-sm font-medium text-gray-500 truncate'>Học sinh đang thi</dt>
                   <dd>
-                    <div className='text-lg font-medium text-gray-900'>{stats.totalActive}</div>
+                    <div className='text-lg font-medium text-gray-900'>{activeSessions.length}</div>
                   </dd>
                 </dl>
               </div>
@@ -410,7 +482,7 @@ const MonitoringDashboard = () => {
                 <dl>
                   <dt className='text-sm font-medium text-gray-500 truncate'>Tổng số vi phạm</dt>
                   <dd>
-                    <div className='text-lg font-medium text-gray-900'>{stats.totalViolations}</div>
+                    <div className='text-lg font-medium text-gray-900'>{violations.length}</div>
                   </dd>
                 </dl>
               </div>
@@ -493,207 +565,461 @@ const MonitoringDashboard = () => {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-        {/* Left panel - Active Students */}
-        <div className='lg:col-span-2'>
-          <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
-            <div className='px-4 py-5 sm:px-6 flex justify-between items-center'>
-              <h3 className='text-lg leading-6 font-medium text-gray-900'>Học sinh đang thi</h3>
-              <span className='text-sm text-gray-500'>{filteredSessions.length} học sinh</span>
-            </div>
-            <div className='border-t border-gray-200'>
-              {isLoading ? (
-                <div className='bg-white px-4 py-12 text-center'>
-                  <div className='inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600'></div>
-                  <p className='mt-2 text-gray-500'>Đang tải dữ liệu...</p>
-                </div>
-              ) : filteredSessions.length > 0 ? (
-                <ul className='divide-y divide-gray-200 max-h-[60vh] overflow-y-auto'>
-                  {filteredSessions.map((session) => (
-                    <li
-                      key={session.session_id}
-                      className={`px-4 py-4 hover:bg-gray-50 cursor-pointer ${
-                        selectedSession === session.session_id ? 'bg-blue-50' : ''
-                      }`}
-                      onClick={() => setSelectedSession(session.session_id)}
-                    >
-                      <div className='flex items-start justify-between'>
-                        <div className='flex items-center'>
-                          <div
-                            className={`h-2 w-2 rounded-full mr-3 ${session.active ? 'bg-green-500' : 'bg-gray-400'}`}
-                          ></div>
-                          <div>
-                            <h4 className='text-sm font-medium text-gray-900'>{session.student_name}</h4>
-                            <p className='text-sm text-gray-500'>{session.student_username}</p>
-                          </div>
-                        </div>
-
-                        <div className='ml-2 flex-shrink-0 flex'>
-                          {session.violations > 0 && (
-                            <span className='px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800'>
-                              {session.violations} vi phạm
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className='mt-2 text-sm text-gray-500'>
-                        <div>
-                          <span className='font-medium'>Bài thi:</span> {session.exam_title}
-                        </div>
-                        <div className='flex justify-between mt-1'>
-                          <div className='flex items-center'>
-                            <Clock className='h-4 w-4 inline-block mr-1' />
-                            {getElapsedTime(session.start_time)}
-                          </div>
-                          <div className='flex space-x-2'>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleEndExam(session.session_id, session.student_name)
-                              }}
-                              className='text-red-600 hover:text-red-800'
-                              title='Kết thúc bài thi'
-                            >
-                              <XCircle className='h-4 w-4' />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className='py-8 text-center'>
-                  <Users className='mx-auto h-12 w-12 text-gray-400' />
-                  <h3 className='mt-2 text-sm font-medium text-gray-900'>Không có học sinh đang thi</h3>
-                  <p className='mt-1 text-sm text-gray-500'>Hiện không có học sinh nào đang tham gia bài thi.</p>
-                </div>
-              )}
-            </div>
+      {/* Tabs */}
+      <div className='mb-6'>
+        <div className='sm:hidden'>
+          <label htmlFor='tabs' className='sr-only'>
+            Select a tab
+          </label>
+          <select
+            id='tabs'
+            name='tabs'
+            className='block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value as 'students' | 'violations' | 'scores')}
+          >
+            <option value='students'>Học sinh đang thi ({filteredActiveSessions.length})</option>
+            <option value='violations'>Vi phạm ({violations.length})</option>
+            <option value='scores'>Điểm số ({allSessions.length})</option>
+          </select>
+        </div>
+        <div className='hidden sm:block'>
+          <div className='border-b border-gray-200'>
+            <nav className='-mb-px flex space-x-8' aria-label='Tabs'>
+              <button
+                onClick={() => setActiveTab('students')}
+                className={`${
+                  activeTab === 'students'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+              >
+                <Users className='h-5 w-5 inline-block mr-2' />
+                Học sinh đang thi ({filteredActiveSessions.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('violations')}
+                className={`${
+                  activeTab === 'violations'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+              >
+                <AlertTriangle className='h-5 w-5 inline-block mr-2' />
+                Vi phạm ({violations.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('scores')}
+                className={`${
+                  activeTab === 'scores'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+              >
+                <GraduationCap className='h-5 w-5 inline-block mr-2' />
+                Điểm số ({allSessions.length})
+              </button>
+            </nav>
           </div>
         </div>
+      </div>
 
-        {/* Right panel - Student details and violations */}
+      {/* Main content */}
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+        {/* Left panel - Content based on active tab */}
+        <div className='lg:col-span-2'>
+          {activeTab === 'students' && (
+            <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
+              <div className='px-4 py-5 sm:px-6 flex justify-between items-center'>
+                <h3 className='text-lg leading-6 font-medium text-gray-900'>Số học sinh tham gia</h3>
+              </div>
+              <div className='border-t border-gray-200'>
+                {isLoading ? (
+                  <div className='bg-white px-4 py-12 text-center'>
+                    <div className='inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600'></div>
+                    <p className='mt-2 text-gray-500'>Đang tải dữ liệu...</p>
+                  </div>
+                ) : filteredActiveSessions.length > 0 ? (
+                  <ul className='divide-y divide-gray-200 max-h-[60vh] overflow-y-auto'>
+                    {filteredActiveSessions.map((session) => (
+                      <li
+                        key={session.session_id}
+                        className={`px-4 py-4 hover:bg-gray-50 cursor-pointer ${
+                          selectedSession === session.session_id ? 'bg-blue-50' : ''
+                        }`}
+                        onClick={() => setSelectedSession(session.session_id)}
+                      >
+                        <div className='flex items-start justify-between'>
+                          <div className='flex items-center'>
+                            <div
+                              className={`h-2 w-2 rounded-full mr-3 ${session.active ? 'bg-green-500' : 'bg-gray-400'}`}
+                            ></div>
+                            <div>
+                              <h4 className='text-sm font-medium text-gray-900'>{session.student_name}</h4>
+                              <p className='text-sm text-gray-500'>{session.student_username}</p>
+                            </div>
+                          </div>
+
+                          <div className='ml-2 flex-shrink-0 flex'>
+                            {session.violations > 0 && (
+                              <span className='px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800'>
+                                {session.violations} vi phạm
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className='mt-2 text-sm text-gray-500'>
+                          <div>
+                            <span className='font-medium'>Bài thi:</span> {session.exam_title}
+                          </div>
+                          <div className='flex justify-between mt-1'>
+                            <div className='flex items-center'>
+                              <Clock className='h-4 w-4 inline-block mr-1' />
+                              {getElapsedTime(session.start_time)}
+                            </div>
+                            <div className='flex space-x-2'>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleEndExam(session.session_id, session.student_name)
+                                }}
+                                className='text-red-600 hover:text-red-800'
+                                title='Kết thúc bài thi'
+                              >
+                                <XCircle className='h-4 w-4' />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className='py-8 text-center'>
+                    <Users className='mx-auto h-12 w-12 text-gray-400' />
+                    <h3 className='mt-2 text-sm font-medium text-gray-900'>Không có học sinh đang thi</h3>
+                    <p className='mt-1 text-sm text-gray-500'>Hiện không có học sinh nào đang tham gia bài thi.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'violations' && (
+            <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
+              <div className='px-4 py-5 sm:px-6'>
+                <h3 className='text-lg leading-6 font-medium text-gray-900'>Vi phạm gần đây</h3>
+                <p className='mt-1 text-sm text-gray-500'>Nhật ký vi phạm của học sinh trong tất cả kỳ thi.</p>
+              </div>
+              <div className='border-t border-gray-200'>
+                {isLoading ? (
+                  <div className='bg-white px-4 py-12 text-center'>
+                    <div className='inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600'></div>
+                    <p className='mt-2 text-gray-500'>Đang tải dữ liệu...</p>
+                  </div>
+                ) : violations.length > 0 ? (
+                  <ul className='divide-y divide-gray-200 max-h-[60vh] overflow-y-auto'>
+                    {violations.map((violation, index) => (
+                      <li key={index} className='px-4 py-4 sm:px-6'>
+                        <div className='flex items-center justify-between'>
+                          <p className='text-sm font-medium text-gray-900'>{violation.student_name}</p>
+                          <div className='ml-2 flex-shrink-0 flex'>
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getSeverityColor(
+                                violation.severity
+                              )}`}
+                            >
+                              {violation.severity.charAt(0).toUpperCase() + violation.severity.slice(1)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className='mt-2 sm:flex sm:justify-between'>
+                          <div className='sm:flex'>
+                            <p className='flex items-center text-sm text-gray-500'>
+                              {getViolationTypeName(violation.type)}
+                            </p>
+                          </div>
+                          <div className='mt-2 flex items-center text-sm text-gray-500 sm:mt-0'>
+                            <Clock className='flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400' />
+                            <p>{violation.timestamp ? formatDate(violation.timestamp) : 'Unknown time'}</p>
+                          </div>
+                        </div>
+                        <div className='mt-1 text-xs text-gray-500'>
+                          <span className='font-medium'>Bài thi:</span> {violation.exam_id}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className='py-8 text-center'>
+                    <CheckCircle className='mx-auto h-12 w-12 text-green-500' />
+                    <h3 className='mt-2 text-sm font-medium text-gray-900'>Không vi phạm</h3>
+                    <p className='mt-1 text-sm text-gray-500'>Không có vi phạm nào được ghi nhận.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'scores' && (
+            <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
+              <div className='px-4 py-5 sm:px-6'>
+                <h3 className='text-lg leading-6 font-medium text-gray-900'>Danh sách điểm học sinh</h3>
+                <p className='mt-1 text-sm text-gray-500'>Điểm số của học sinh trong tất cả kỳ thi.</p>
+              </div>
+              <div className='border-t border-gray-200'>
+                {isLoading ? (
+                  <div className='bg-white px-4 py-12 text-center'>
+                    <div className='inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600'></div>
+                    <p className='mt-2 text-gray-500'>Đang tải dữ liệu...</p>
+                  </div>
+                ) : allSessions.length > 0 ? (
+                  <div className='overflow-x-auto'>
+                    <table className='min-w-full divide-y divide-gray-200'>
+                      <thead className='bg-gray-50'>
+                        <tr>
+                          <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                            Tên học sinh
+                          </th>
+                          <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                            Mã bài thi
+                          </th>
+                          <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                            Số lỗi
+                          </th>
+                          <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                            Điểm số
+                          </th>
+                          <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                            Trạng thái
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className='bg-white divide-y divide-gray-200'>
+                        {allSessions.map((session) => (
+                          <tr 
+                            key={session.session_id}
+                            className='hover:bg-gray-50 cursor-pointer'
+                            onClick={() => setSelectedSession(session.session_id)}
+                          >
+                            <td className='px-4 py-3 whitespace-nowrap'>
+                              <div className='text-sm font-medium text-gray-900'>{session.student_name}</div>
+                              <div className='text-xs text-gray-500'>{session.student_username}</div>
+                            </td>
+                            <td className='px-4 py-3 whitespace-nowrap text-sm text-gray-500'>
+                              {session.exam_code || 'N/A'}
+                            </td>
+                            <td className='px-4 py-3 whitespace-nowrap'>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                session.violations > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                              }`}>
+                                {session.violations}
+                              </span>
+                            </td>
+                            <td className='px-4 py-3 whitespace-nowrap'>
+                              <div className={`text-sm font-medium ${
+                                session.completed 
+                                  ? session.score >= 70 ? 'text-green-600' : session.score >= 50 ? 'text-yellow-600' : 'text-red-600' 
+                                  : 'text-gray-500'
+                              }`}>
+                                {session.completed ? formatScore(session.score) : 'Đang thi'}
+                              </div>
+                            </td>
+                            <td className='px-4 py-3 whitespace-nowrap'>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                session.completed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {session.completed ? 'Hoàn thành' : 'Đang làm bài'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className='py-8 text-center'>
+                    <FileText className='mx-auto h-12 w-12 text-gray-400' />
+                    <h3 className='mt-2 text-sm font-medium text-gray-900'>Không có dữ liệu</h3>
+                    <p className='mt-1 text-sm text-gray-500'>Chưa có học sinh nào làm bài thi.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right panel - Student details and message system */}
         <div className='lg:col-span-1'>
           {selectedSession ? (
             <>
               <div className='bg-white shadow overflow-hidden sm:rounded-lg mb-6'>
                 <div className='px-4 py-5 sm:px-6'>
-                  <h3 className='text-lg leading-6 font-medium text-gray-900'>Chi tiết học sinh</h3>
-                  {filteredSessions.find((s) => s.session_id === selectedSession) && (
+                  <h3 className='text-lg leading-6 font-medium text-gray-900'>Thông tin chi tiết về học sinh</h3>
+                  {(activeSessions.find((s) => s.session_id === selectedSession) || 
+                    completedSessions.find((s) => s.session_id === selectedSession)) && (
                     <p className='mt-1 text-sm text-gray-500'>
-                      {filteredSessions.find((s) => s.session_id === selectedSession)?.student_name}
+                      {(activeSessions.find((s) => s.session_id === selectedSession) || 
+                        completedSessions.find((s) => s.session_id === selectedSession))?.student_name}
                     </p>
                   )}
                 </div>
 
                 <div className='border-t border-gray-200 px-4 py-5 sm:p-0'>
-                  {filteredSessions.find((s) => s.session_id === selectedSession) ? (
+                  {activeSessions.find((s) => s.session_id === selectedSession) || 
+                   completedSessions.find((s) => s.session_id === selectedSession) ? (
                     <dl className='sm:divide-y sm:divide-gray-200'>
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Tên học sinh</dt>
                         <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
-                          {filteredSessions.find((s) => s.session_id === selectedSession)?.student_name || 'Unknown'}
+                          {(activeSessions.find((s) => s.session_id === selectedSession) || 
+                            completedSessions.find((s) => s.session_id === selectedSession))?.student_name || 'Unknown'}
                         </dd>
                       </div>
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Tên đăng nhập</dt>
                         <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
-                          {filteredSessions.find((s) => s.session_id === selectedSession)?.student_username}
+                          {(activeSessions.find((s) => s.session_id === selectedSession) || 
+                            completedSessions.find((s) => s.session_id === selectedSession))?.student_username}
                         </dd>
                       </div>
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Bài thi</dt>
                         <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
-                          {filteredSessions.find((s) => s.session_id === selectedSession)?.exam_title}
+                          {(activeSessions.find((s) => s.session_id === selectedSession) || 
+                            completedSessions.find((s) => s.session_id === selectedSession))?.exam_title}
                         </dd>
                       </div>
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Thời gian bắt đầu</dt>
                         <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
                           {formatDate(
-                            filteredSessions.find((s) => s.session_id === selectedSession)?.start_time as string
+                            (activeSessions.find((s) => s.session_id === selectedSession) || 
+                              completedSessions.find((s) => s.session_id === selectedSession))?.start_time as string
                           )}
                         </dd>
                       </div>
+                      
+                      {/* Show end time for completed sessions */}
+                      {completedSessions.find((s) => s.session_id === selectedSession)?.end_time && (
+                        <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+                          <dt className='text-sm font-medium text-gray-500'>Thời gian kết thúc</dt>
+                          <dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+                            {formatDate(
+                              completedSessions.find((s) => s.session_id === selectedSession)?.end_time as string
+                            )}
+                          </dd>
+                        </div>
+                      )}
+                      
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Số vi phạm</dt>
                         <dd className='mt-1 text-sm sm:mt-0 sm:col-span-2'>
                           <span
                             className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              (filteredSessions.find((s) => s.session_id === selectedSession)?.violations || 0) > 0
+                              ((activeSessions.find((s) => s.session_id === selectedSession) || 
+                                completedSessions.find((s) => s.session_id === selectedSession))?.violations || 0) > 0
                                 ? 'bg-red-100 text-red-800'
                                 : 'bg-green-100 text-green-800'
                             }`}
                           >
-                            {filteredSessions.find((s) => s.session_id === selectedSession)?.violations || 0} vi phạm
+                            {(activeSessions.find((s) => s.session_id === selectedSession) || 
+                              completedSessions.find((s) => s.session_id === selectedSession))?.violations || 0} vi phạm
                           </span>
                         </dd>
                       </div>
+                      
+                      {/* Show score for completed sessions */}
+                      {completedSessions.find((s) => s.session_id === selectedSession)?.score !== undefined && (
+                        <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+                          <dt className='text-sm font-medium text-gray-500'>Điểm số</dt>
+                          <dd className='mt-1 text-sm sm:mt-0 sm:col-span-2'>
+                            <span className={`font-medium ${
+                              (completedSessions.find((s) => s.session_id === selectedSession)?.score || 0) >= 70 
+                                ? 'text-green-600' 
+                                : (completedSessions.find((s) => s.session_id === selectedSession)?.score || 0) >= 50 
+                                ? 'text-yellow-600' 
+                                : 'text-red-600'
+                            }`}>
+                              {formatScore(completedSessions.find((s) => s.session_id === selectedSession)?.score || 0)}
+                            </span>
+                          </dd>
+                        </div>
+                      )}
+                      
                       <div className='py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
                         <dt className='text-sm font-medium text-gray-500'>Trạng thái</dt>
                         <dd className='mt-1 text-sm sm:mt-0 sm:col-span-2'>
                           <span
                             className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              filteredSessions.find((s) => s.session_id === selectedSession)?.active
+                              completedSessions.find((s) => s.session_id === selectedSession)
                                 ? 'bg-green-100 text-green-800'
+                                : activeSessions.find((s) => s.session_id === selectedSession)?.active
+                                ? 'bg-blue-100 text-blue-800'
                                 : 'bg-yellow-100 text-yellow-800'
                             }`}
                           >
-                            {filteredSessions.find((s) => s.session_id === selectedSession)?.active
+                            {completedSessions.find((s) => s.session_id === selectedSession)
+                              ? 'Hoàn thành'
+                              : activeSessions.find((s) => s.session_id === selectedSession)?.active
                               ? 'Đang hoạt động'
                               : 'Không hoạt động hoặc bị ngắt kết nối'}
                           </span>
                         </dd>
                       </div>
-                      <div className='py-4 sm:py-5 sm:px-6'>
-                        <dt className='text-sm font-medium text-gray-500 mb-2'>Gửi tin nhắn</dt>
-                        <dd className='mt-1 text-sm text-gray-900'>
-                          <div className='mt-1'>
-                            <textarea
-                              rows={3}
-                              name='message'
-                              id='message'
-                              className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md'
-                              placeholder='Nhập tin nhắn để gửi cho học sinh...'
-                              value={messageText}
-                              onChange={(e) => setMessageText(e.target.value)}
-                            />
+                      
+                      {/* Only show message box and actions for active sessions */}
+                      {activeSessions.find((s) => s.session_id === selectedSession) && (
+                        <>
+                          <div className='py-4 sm:py-5 sm:px-6'>
+                            <dt className='text-sm font-medium text-gray-500 mb-2'>Gửi tin nhắn</dt>
+                            <dd className='mt-1 text-sm text-gray-900'>
+                              <div className='mt-1'>
+                                <textarea
+                                  rows={3}
+                                  name='message'
+                                  id='message'
+                                  className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md'
+                                  placeholder='Nhập tin nhắn để gửi cho học sinh...'
+                                  value={messageText}
+                                  onChange={(e) => setMessageText(e.target.value)}
+                                />
+                              </div>
+                              <div className='mt-2 flex justify-end'>
+                                <button
+                                  type='button'
+                                  onClick={handleSendMessage}
+                                  disabled={!messageText.trim()}
+                                  className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50'
+                                >
+                                  <MessageSquare className='h-4 w-4 mr-1' />
+                                  Gửi tin nhắn
+                                </button>
+                              </div>
+                            </dd>
                           </div>
-                          <div className='mt-2 flex justify-end'>
-                            <button
-                              type='button'
-                              onClick={handleSendMessage}
-                              disabled={!messageText.trim()}
-                              className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50'
-                            >
-                              <MessageSquare className='h-4 w-4 mr-1' />
-                              Gửi tin nhắn
-                            </button>
+                          <div className='py-4 sm:py-5 sm:px-6'>
+                            <dt className='text-sm font-medium text-gray-500 mb-2'>Hành động</dt>
+                            <dd className='mt-1 text-sm text-gray-900'>
+                              <button
+                                type='button'
+                                onClick={() =>
+                                  handleEndExam(
+                                    selectedSession,
+                                    activeSessions.find((s) => s.session_id === selectedSession)?.student_name ||
+                                      'this student'
+                                  )
+                                }
+                                className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'
+                              >
+                                <XCircle className='h-4 w-4 mr-1' />
+                                Kết thúc bài thi
+                              </button>
+                            </dd>
                           </div>
-                        </dd>
-                      </div>
-                      <div className='py-4 sm:py-5 sm:px-6'>
-                        <dt className='text-sm font-medium text-gray-500 mb-2'>Hành động</dt>
-                        <dd className='mt-1 text-sm text-gray-900'>
-                          <button
-                            type='button'
-                            onClick={() =>
-                              handleEndExam(
-                                selectedSession,
-                                filteredSessions.find((s) => s.session_id === selectedSession)?.student_name ||
-                                  'this student'
-                              )
-                            }
-                            className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'
-                          >
-                            <XCircle className='h-4 w-4 mr-1' />
-                            Kết thúc bài thi
-                          </button>
-                        </dd>
-                      </div>
+                        </>
+                      )}
                     </dl>
                   ) : (
                     <div className='py-8 text-center'>
@@ -703,11 +1029,10 @@ const MonitoringDashboard = () => {
                 </div>
               </div>
 
-              {/* Violations list for selected student */}
+              {/* Recent violations for selected student */}
               <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
-                <div className='px-4 py-5 sm:px-6 flex justify-between items-center'>
+                <div className='px-4 py-5 sm:px-6'>
                   <h3 className='text-lg leading-6 font-medium text-gray-900'>Vi phạm gần đây</h3>
-                  <span className='text-sm text-gray-500'>{getSessionViolations(selectedSession).length} vi phạm</span>
                 </div>
                 <div className='border-t border-gray-200'>
                   {getSessionViolations(selectedSession).length > 0 ? (
@@ -726,23 +1051,12 @@ const MonitoringDashboard = () => {
                             </div>
                             <div className='text-xs text-gray-500'>{formatDate(violation.timestamp)}</div>
                           </div>
-                          {violation.details && (
-                            <div className='mt-2 text-sm text-gray-500'>
-                              <div className='overflow-hidden text-ellipsis'>
-                                {typeof violation.details === 'object'
-                                  ? JSON.stringify(violation.details).substring(0, 100) + '...'
-                                  : String(violation.details).substring(0, 100) + '...'}
-                              </div>
-                            </div>
-                          )}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <div className='py-8 text-center'>
-                      <CheckCircle className='mx-auto h-12 w-12 text-green-500' />
-                      <h3 className='mt-2 text-sm font-medium text-gray-900'>Không có vi phạm</h3>
-                      <p className='mt-1 text-sm text-gray-500'>Học sinh này chưa có vi phạm nào.</p>
+                    <div className='py-4 text-center'>
+                      <p className='text-sm text-gray-500'>Không có vi phạm nào đối với học sinh này</p>
                     </div>
                   )}
                 </div>
