@@ -485,12 +485,9 @@ const MonitoringDashboard = () => {
     }
   }
   useEffect(() => {
-    console.log('Setting up auto refresh every 3 seconds')
-
     // Function to refresh data
     const autoRefresh = () => {
       if (socketRef.current && socketRef.current.connected) {
-        console.log('Auto refreshing data')
         socketRef.current.emit('get_all_active_sessions')
         // No toast message here to avoid flooding the UI
       }
