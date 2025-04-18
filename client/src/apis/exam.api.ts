@@ -181,7 +181,7 @@ const examApi = {
     http.post<SuccessResponse<MasterExam>>('/api/exams/idea/master', body),
 
   // Get all master exams for the current teacher
-  getMasterExams: () => http.get<SuccessResponse<MasterExam[]>>('/api/idea/exams/master'),
+  getMasterExams: () => http.get<SuccessResponse<MasterExam[]>>('/api/exams/idea/master'),
 
   // Get a specific master exam by ID
   getMasterExamById: (masterExamId: string) =>
