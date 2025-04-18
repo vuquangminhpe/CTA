@@ -103,11 +103,12 @@ export const initSocketServer = (httpServer: http.Server) => {
         // Get student info for each session
         const sessionsWithStudentInfo = await Promise.all(
           activeSessions.map(async (session) => {
-            const student = await databaseService.users.findOne({ _id: session.student_id })
+            const student = await databaseService.users.findOne({ _id: new ObjectId(session.student_id) })
 
             return {
               session_id: session._id.toString(),
               student_id: session.student_id.toString(),
+              student_name: student?.name || 'Unknown',
 
               student_username: student?.username || 'Unknown',
               start_time: session.start_time,
@@ -164,13 +165,15 @@ export const initSocketServer = (httpServer: http.Server) => {
           const examId = session.exam_id.toString()
 
           // Get student info to notify teachers
-          const student = await databaseService.users.findOne({ _id: new ObjectId(socket.data.user_id) })
+          const student = await databaseService.users.findOne({ _id: new ObjectId(socket.data.user_id as string) })
+          console.log(student?.username)
 
           // Send notification to teachers monitoring this exam
           io.to(`monitor_${examId}`).emit('student_joined', {
             session_id: sessionId,
             exam_id: examId,
             student_id: socket.data.user_id,
+            student_name: student?.name || 'Unknown',
 
             student_username: student?.username || 'Unknown',
             start_time: session.start_time,
@@ -280,13 +283,13 @@ export const initSocketServer = (httpServer: http.Server) => {
           })
 
           // Find the exam ID for this session
-          const session = await databaseService.examSessions.findOne({ _id: new ObjectId(session_id) })
+          const session = await databaseService.examSessions.findOne({ _id: new ObjectId(session_id as string) })
 
           if (session) {
             const examId = session.exam_id.toString()
 
             // Get student info for teacher notifications
-            const student = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
+            const student = await databaseService.users.findOne({ _id: new ObjectId(user_id as string) })
 
             // Also send to teachers monitoring this exam
             io.to(`monitor_${examId}`).emit('violation_recorded', {
@@ -362,7 +365,7 @@ export const initSocketServer = (httpServer: http.Server) => {
               session_id,
               exam_id: examId,
               student_id: user_id,
-
+              student_name: student?.name || 'Unknown',
               student_username: student?.username || 'Unknown',
               violations: updatedSession.violations,
               score: updatedSession.score,
@@ -395,7 +398,7 @@ export const initSocketServer = (httpServer: http.Server) => {
             session_id: sessionId,
             exam_id: examId,
             student_id: socket.data.user_id,
-
+            student_name: student?.name || 'Unknown',
             student_username: student?.username || 'Unknown',
             score: session.score,
             end_time: session.end_time || new Date()
@@ -572,10 +575,11 @@ export const initSocketServer = (httpServer: http.Server) => {
         const activeStudents = []
         for (const session of sessions) {
           if (activeExams.has(session._id.toString())) {
-            const student = await databaseService.users.findOne({ _id: session.student_id })
+            const student = await databaseService.users.findOne({ _id: new ObjectId(session.student_id) })
             activeStudents.push({
               session_id: session._id.toString(),
               student_id: session.student_id.toString(),
+              student_name: student?.name || 'Unknown',
 
               student_username: student?.username || 'Unknown',
               violations: session.violations,
@@ -627,12 +631,14 @@ export const initSocketServer = (httpServer: http.Server) => {
         // Get student info for each session
         const sessionsWithInfo = await Promise.all(
           activeSessions.map(async (session) => {
-            const student = await databaseService.users.findOne({ _id: session.student_id })
+            const student = await databaseService.users.findOne({ _id: new ObjectId(session.student_id) })
             const exam = examsMap.get(session.exam_id.toString())
 
             return {
               session_id: session._id.toString(),
               student_id: session.student_id.toString(),
+              student_name: student?.name || 'Unknown',
+
               student_username: student?.username || 'Unknown',
               exam_id: session.exam_id.toString(),
               exam_title: exam?.title || 'Unknown Exam',
@@ -658,11 +664,13 @@ export const initSocketServer = (httpServer: http.Server) => {
             const session = activeSessions.find((s) => s._id.toString() === violation.session_id?.toString())
             if (!session) return null
 
-            const student = await databaseService.users.findOne({ _id: session.student_id })
+            const student = await databaseService.users.findOne({ _id: new ObjectId(session.student_id) })
             const exam = examsMap.get(session.exam_id.toString())
 
             return {
               ...violation,
+              student_name: student?.name || 'Unknown',
+
               student_username: student?.username || 'Unknown',
               exam_id: session.exam_id.toString(),
               exam_title: exam?.title || 'Unknown Exam'
@@ -728,11 +736,13 @@ export const initSocketServer = (httpServer: http.Server) => {
         // Get student info for each session
         const sessionsWithStudentInfo = await Promise.all(
           activeSessions.map(async (session) => {
-            const student = await databaseService.users.findOne({ _id: session.student_id })
+            const student = await databaseService.users.findOne({ _id: new ObjectId(session.student_id) })
 
             return {
               session_id: session._id.toString(),
               student_id: session.student_id.toString(),
+              student_name: student?.name || 'Unknown',
+
               student_username: student?.username || 'Unknown',
               start_time: session.start_time,
               violations: session.violations,
@@ -808,10 +818,11 @@ export const initSocketServer = (httpServer: http.Server) => {
           const sessionId = session._id.toString()
 
           if (activeExams.has(sessionId)) {
-            const student = await databaseService.users.findOne({ _id: session.student_id })
+            const student = await databaseService.users.findOne({ _id: new ObjectId(session.student_id) })
             activeSessions.push({
               session_id: sessionId,
               student_id: session.student_id.toString(),
+              student_name: student?.name || 'Unknown',
 
               student_username: student?.username || 'Unknown',
               violations: session.violations,
@@ -866,6 +877,7 @@ export const initSocketServer = (httpServer: http.Server) => {
                 session_id: sessionId,
                 exam_id: examId,
                 student_id: socket.data.user_id,
+                student_name: student?.name || 'Unknown',
 
                 student_username: student?.username || 'Unknown',
                 timestamp: new Date()

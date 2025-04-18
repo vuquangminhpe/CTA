@@ -29,7 +29,18 @@ const TeacherDashboard = () => {
   const [editingQuestion, setEditingQuestion] = useState<any>(null)
   const [qrCodes, setQrCodes] = useState<any>([])
   const [examTitle, setExamTitle] = useState<any>('')
+  useEffect(() => {
+    // This condition determines when to refresh - modify as needed
+    const shouldRefresh = localStorage.getItem('needsRefresh') === 'true'
 
+    if (shouldRefresh) {
+      // Clear the flag first to prevent infinite refresh
+      localStorage.removeItem('needsRefresh')
+
+      // Then reload the page
+      window.location.reload()
+    }
+  }, [])
   // Fetch questions on component mount
   useEffect(() => {
     fetchQuestions()

@@ -17,7 +17,18 @@ const StudentDashboard = () => {
   const [scanError, setScanError] = useState('')
   const { profile } = useContext(AuthContext) as any
   const navigate = useNavigate()
+  useEffect(() => {
+    // This condition determines when to refresh - modify as needed
+    const shouldRefresh = localStorage.getItem('needsRefresh') === 'true'
 
+    if (shouldRefresh) {
+      // Clear the flag first to prevent infinite refresh
+      localStorage.removeItem('needsRefresh')
+
+      // Then reload the page
+      window.location.reload()
+    }
+  }, [])
   useEffect(() => {
     if (activeTab === 'history') {
       fetchExamHistory()
@@ -187,23 +198,6 @@ const StudentDashboard = () => {
           {activeTab === 'scanner' ? (
             <>
               <h2 className='text-lg font-medium text-gray-900 mb-4'>Quét mã QR của kỳ thi</h2>
-
-              {/* Hiển thị kỳ thi gần đây nếu có */}
-              {/* {recentExam && (
-                <div className='mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md'>
-                  <h3 className='text-sm font-medium text-blue-800 flex items-center'>
-                    <AlertCircle size={16} className='mr-1' />
-                    Kỳ thi gần đây
-                  </h3>
-                  <p className='mt-1 text-sm text-blue-700'>Bạn có một kỳ thi bắt đầu vào lúc {recentExam.time}</p>
-                  <button
-                    onClick={() => navigate(`/exam/${recentExam.code}`)}
-                    className='mt-2 text-sm px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded'
-                  >
-                    Tiếp tục kỳ thi
-                  </button>
-                </div>
-              )} */}
 
               <QRScanner onScan={handleScan} />
 

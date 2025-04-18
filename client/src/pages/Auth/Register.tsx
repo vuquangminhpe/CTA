@@ -10,8 +10,10 @@ const Register = () => {
   const navigate = useNavigate()
   const [formData, setFormData] = useState<RegisterType>({
     username: '',
+    name: '',
     password: '',
-    confirm_password: ''
+    confirm_password: '',
+    class: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -92,7 +94,7 @@ const Register = () => {
             <div className='space-y-4'>
               <div>
                 <label htmlFor='username' className='block text-sm font-medium text-gray-700 mb-1'>
-                  Tên người dùng
+                  Tên tài khoản
                 </label>
                 <div className='relative'>
                   <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
@@ -107,11 +109,31 @@ const Register = () => {
                     value={formData.username}
                     onChange={handleChange}
                     className='appearance-none block w-full px-3 py-3 pl-10 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 text-sm'
-                    placeholder='Chọn tên người dùng'
+                    placeholder='Ví dụ nhập đúng: vuquangminh'
                   />
                 </div>
               </div>
-
+              <div>
+                <label htmlFor='name' className='block text-sm font-medium text-gray-700 mb-1'>
+                  Tên đầy đủ của học sinh
+                </label>
+                <div className='relative'>
+                  <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+                    <User className='h-5 w-5 text-gray-400' aria-hidden='true' />
+                  </div>
+                  <input
+                    id='name'
+                    name='name'
+                    type='text'
+                    autoComplete='name'
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    className='appearance-none block w-full px-3 py-3 pl-10 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 text-sm'
+                    placeholder='Nhập tên học sinh'
+                  />
+                </div>
+              </div>
               <div>
                 <label htmlFor='password' className='block text-sm font-medium text-gray-700 mb-1'>
                   Mật khẩu
@@ -176,6 +198,46 @@ const Register = () => {
                       <Eye className='h-5 w-5 text-gray-400 hover:text-gray-500' />
                     )}
                   </button>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor='confirm_password' className='block text-sm font-medium text-gray-700 mb-1'>
+                  Lớp học của bạn
+                </label>
+                <div className='relative'>
+                  <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+                    <svg
+                      xmlns='http://www.w3.org/2000/svg'
+                      width='24'
+                      height='24'
+                      viewBox='0 0 24 24'
+                      fill='none'
+                      stroke='currentColor'
+                      stroke-width='2'
+                      stroke-linecap='round'
+                      stroke-linejoin='round'
+                      className='lucide lucide-school-icon lucide-school'
+                    >
+                      <path d='M14 22v-4a2 2 0 1 0-4 0v4' />
+                      <path d='m18 10 3.447 1.724a1 1 0 0 1 .553.894V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7.382a1 1 0 0 1 .553-.894L6 10' />
+                      <path d='M18 5v17' />
+                      <path d='m4 6 7.106-3.553a2 2 0 0 1 1.788 0L20 6' />
+                      <path d='M6 5v17' />
+                      <circle cx='12' cy='9' r='2' />
+                    </svg>{' '}
+                  </div>
+                  <input
+                    id='class'
+                    name='class'
+                    type={'text'}
+                    autoComplete='class'
+                    required
+                    value={formData.class}
+                    onChange={handleChange}
+                    className='appearance-none block w-full rounded-xl px-3 py-3 pl-10 pr-10 border border-gray-300  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 text-sm'
+                    placeholder='Điền vào lớp học của bạn'
+                  />
                 </div>
               </div>
             </div>

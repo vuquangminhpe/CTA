@@ -39,7 +39,7 @@ const Login = () => {
       setProfile(user)
 
       toast.success('Login successful')
-
+      localStorage.setItem('needsRefresh', 'true')
       // Redirect to the appropriate dashboard based on user role
       if (user.role === 'admin') {
         navigate('/admin')

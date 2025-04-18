@@ -10,6 +10,7 @@ export interface RegisterType {
   password: string
   confirm_password: string
   name?: string
+  class: string
 }
 
 export interface LoginResponse {
