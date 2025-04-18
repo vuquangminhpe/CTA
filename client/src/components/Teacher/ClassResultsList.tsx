@@ -49,14 +49,21 @@ const ClassResultsList: React.FC = () => {
     if (!masterExamId || !className) return
     fetchResults()
   }, [masterExamId, className])
-
+  const safeRender = (value: any) => {
+    if (value === null || value === undefined) {
+      return 'N/A'
+    }
+    if (typeof value === 'object') {
+      return JSON.stringify(value)
+    }
+    return value
+  }
   // Filter results when search term or violation filters change
   useEffect(() => {
     if (!results.length) return
 
     let filtered = [...results]
 
-    // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
       filtered = filtered.filter(
@@ -65,15 +72,30 @@ const ClassResultsList: React.FC = () => {
       )
     }
 
-    // Apply violation type filters
     if (selectedViolationTypes.length > 0) {
-      // In a real implementation, we'd fetch filtered results from the server
       // But for now, we'll just filter students with any violations
       filtered = filtered.filter((student) => student.violations > 0)
     }
 
     setFilteredResults(filtered)
   }, [searchTerm, selectedViolationTypes, results])
+  useEffect(() => {
+    // Don't run on initial mount since the other useEffect handles that
+    if (masterExamId && className) {
+      fetchResults()
+    }
+  }, [searchTerm, selectedViolationTypes])
+
+  useEffect(() => {
+    // When selectedViolationTypes changes, fetch from server
+    if (masterExamId && className && selectedViolationTypes.length > 0) {
+      // Only fetch if violation types are selected
+      fetchResults()
+    } else if (masterExamId && className && searchTerm) {
+      // Fetch if search term changes
+      fetchResults()
+    }
+  }, [selectedViolationTypes, searchTerm])
 
   const fetchResults = async () => {
     try {
@@ -81,12 +103,15 @@ const ClassResultsList: React.FC = () => {
 
       const response = await examApi.getClassExamResultsForMasterExam(masterExamId!, decodeURIComponent(className!), {
         search_term: searchTerm,
-        violation_types: selectedViolationTypes.join(',') as any
+        violation_types: selectedViolationTypes.length > 0 ? selectedViolationTypes : undefined
       })
 
       const resultsData = response.data.result
       setResults(resultsData)
       setFilteredResults(resultsData)
+      console.log(results, 'filter', filteredResults)
+
+      console.log('Results data:', resultsData)
 
       // Calculate stats
       if (resultsData.length > 0) {
@@ -333,7 +358,7 @@ const ClassResultsList: React.FC = () => {
         <div className='px-4 py-5 sm:px-6 flex justify-between items-center'>
           <h3 className='text-lg leading-6 font-medium text-gray-900'>Kết quả học sinh</h3>
           <span className='text-sm text-gray-500'>
-            Hiển thị {filteredResults.length} trên {results.length} học sinh
+            Hiển thị {results.length} trên {results.length} học sinh
           </span>
         </div>
         <div className='border-t border-gray-200'>
@@ -342,7 +367,7 @@ const ClassResultsList: React.FC = () => {
               <div className='inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600'></div>
               <p className='mt-2 text-gray-500'>Đang tải dữ liệu...</p>
             </div>
-          ) : filteredResults.length > 0 ? (
+          ) : results.length > 0 ? (
             <div className='overflow-x-auto'>
               <table className='min-w-full divide-y divide-gray-200'>
                 <thead className='bg-gray-50'>
@@ -378,16 +403,16 @@ const ClassResultsList: React.FC = () => {
                       Trạng thái
                     </th>
                     <th scope='col' className='relative px-6 py-3'>
-                      <span className='sr-only'>Chi tiết</span>
+                      <span className='sr-only'>Chi tiết </span>
                     </th>
                   </tr>
                 </thead>
                 <tbody className='bg-white divide-y divide-gray-200'>
-                  {filteredResults.map((result) => (
-                    <tr key={result.session_id} className='hover:bg-gray-50'>
+                  {results.map((result, index) => (
+                    <tr key={result.session_id || index} className='hover:bg-gray-50'>
                       <td className='px-6 py-4 whitespace-nowrap'>
-                        <div className='text-sm font-medium text-gray-900'>{result.student_name}</div>
-                        <div className='text-sm text-gray-500'>{result.student_username}</div>
+                        <div className='text-sm font-medium text-gray-900'>{safeRender(result.student_name)}</div>
+                        <div className='text-sm text-gray-500'>{safeRender(result.student_username)}</div>
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap'>
                         <div
@@ -399,7 +424,7 @@ const ClassResultsList: React.FC = () => {
                                 : 'text-red-600'
                           }`}
                         >
-                          {result.completed ? `${result.score}%` : 'N/A'}
+                          {result.completed ? `${safeRender(result.score)}%` : 'N/A'}
                         </div>
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap'>
@@ -408,7 +433,7 @@ const ClassResultsList: React.FC = () => {
                             result.violations > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
                           }`}
                         >
-                          {result.violations || 'Không có'}
+                          {typeof result.violations === 'number' ? safeRender(result.violations) : 'Không có'}
                         </span>
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
@@ -420,20 +445,30 @@ const ClassResultsList: React.FC = () => {
                             result.completed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                           }`}
                         >
-                          {result.completed ? 'Đã hoàn thành' : 'Chưa hoàn thành'}
+                          {result.completed === true
+                            ? 'Đã hoàn thành'
+                            : result.completed === false
+                              ? 'Chưa hoàn thành'
+                              : 'N/A'}
                         </span>
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
                         <button
                           onClick={() =>
-                            handleViewViolations(result.student_id, result.session_id, result.student_name)
+                            handleViewViolations(
+                              safeRender(result.student_id),
+                              safeRender(result.session_id),
+                              safeRender(result.student_name)
+                            )
                           }
                           className={`text-blue-600 hover:text-blue-900 ${
-                            result.violations === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                            typeof result.violations === 'number' && result.violations === 0
+                              ? 'opacity-50 cursor-not-allowed'
+                              : ''
                           }`}
-                          disabled={result.violations === 0}
+                          disabled={typeof result.violations === 'number' && result.violations === 0}
                         >
-                          {result.violations > 0 ? (
+                          {typeof result.violations === 'number' && result.violations > 0 ? (
                             <div className='flex items-center'>
                               <Eye className='h-4 w-4 mr-1' />
                               Chi tiết

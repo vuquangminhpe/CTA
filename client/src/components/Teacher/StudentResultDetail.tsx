@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// Fix the StudentResultDetail component (client/src/components/Teacher/StudentResultDetail.tsx)
+
 import React, { useState, useEffect } from 'react'
 import { X, User, Check } from 'lucide-react'
 import examApi from '../../apis/exam.api'
 import { toast } from 'sonner'
 
 interface Violation {
+  _id: string
   session_id: string
   student_id: string
   type: string
@@ -30,7 +33,24 @@ const StudentResultDetail: React.FC<StudentResultDetailProps> = ({ examId, stude
       try {
         setIsLoading(true)
         const response = await examApi.getStudentViolations(examId, studentId)
-        setViolations(response.data.result)
+
+        // Log the full violations data to see what type is actually used
+        console.log('Violations data:', response.data.result)
+
+        // Rest of your code...
+        const formattedViolations = Array.isArray(response.data.result)
+          ? response.data.result.map((v: any) => ({
+              _id: v._id.toString ? v._id.toString() : v._id,
+              session_id: v.session_id.toString ? v.session_id.toString() : v.session_id,
+              student_id: v.student_id.toString ? v.student_id.toString() : v.student_id,
+              type: v.type,
+              severity: v.severity,
+              details: v.details,
+              timestamp: v.timestamp
+            }))
+          : []
+
+        setViolations(formattedViolations)
       } catch (error) {
         console.error('Failed to fetch violations:', error)
         toast.error('Không thể tải dữ liệu vi phạm')
@@ -79,6 +99,22 @@ const StudentResultDetail: React.FC<StudentResultDetailProps> = ({ examId, stude
     return new Date(dateString).toLocaleString()
   }
 
+  // Safe rendering of details with proper stringify
+  const renderDetails = (details: any) => {
+    if (!details) return null
+
+    try {
+      // If details is already a string, return it
+      if (typeof details === 'string') return details
+
+      // Otherwise, stringify the object
+      return JSON.stringify(details, null, 2)
+    } catch (e) {
+      console.error('Error stringifying details:', e)
+      return 'Không thể hiển thị chi tiết'
+    }
+  }
+
   return (
     <div className='fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50'>
       <div className='bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col'>
@@ -117,7 +153,7 @@ const StudentResultDetail: React.FC<StudentResultDetailProps> = ({ examId, stude
                   </div>
                   {violation.details && (
                     <div className='mt-2 text-sm text-gray-600'>
-                      <pre className='whitespace-pre-wrap'>{JSON.stringify(violation.details, null, 2)}</pre>
+                      <pre className='whitespace-pre-wrap'>{renderDetails(violation.details)}</pre>
                     </div>
                   )}
                 </div>
