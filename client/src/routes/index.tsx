@@ -19,6 +19,8 @@ import ExamResultsPage from '../pages/Teacher/ExamResultsPage'
 import ExamManagement from '../pages/Teacher/ExamManagement'
 import ExamMonitor from '../pages/Teacher/ExamMonitor'
 import MonitoringDashboard from '../pages/Teacher/MonitoringDashboard'
+import ClassExamResults from '../pages/Teacher/ClassExamResults'
+import MasterExamView from '../pages/Teacher/MasterExamView'
 
 const AppRoutes = () => {
   const { role } = useContext(AuthContext)
@@ -54,12 +56,18 @@ const AppRoutes = () => {
           {/* Teacher routes */}
           <Route element={<TeacherRoute />}>
             <Route path='/teacher' element={<TeacherDashboard />} />
+            {/* Master exam routes */}
+            <Route path='/teacher/master-exams/:masterExamId' element={<MasterExamView />} />
+            <Route
+              path='/teacher/master-exams/:masterExamId/classes/:className'
+              element={<ClassExamResultsByMasterExam />}
+            />
             {/* Exam management and results */}
             <Route path='/teacher/exams/:examId' element={<ExamManagement />} />
             <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />
-            {/* New route for exam monitoring */}
+            <Route path='/teacher/exams/:examId/class-results' element={<ClassExamResults />} />
+            {/* Existing routes */}
             <Route path='/teacher/exams/:examId/monitor' element={<ExamMonitor />} />
-            {/* Global monitoring dashboard */}
             <Route path='/teacher/monitoring' element={<MonitoringDashboard />} />
           </Route>
 

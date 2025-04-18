@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { SuccessResponse } from '../types/Utils.type'
 import http from '../utils/http'
 
@@ -94,7 +95,58 @@ interface UpdateExamStatusRequest {
   start_time?: string | null
   duration?: number
 }
+interface ClassExamResultsParams {
+  search_term?: string
+  violation_types?: string[]
+  page?: number
+  limit?: number
+}
 
+interface ClassExamResult {
+  session_id: string
+  student_id: string
+  student_name: string
+  student_username: string
+  score: number
+  violations: number
+  start_time: string
+  end_time?: string
+  completed: boolean
+  exam_duration: number
+}
+
+interface Violation {
+  session_id: string
+  student_id: string
+  type: string
+  severity: 'low' | 'medium' | 'high'
+  details?: any
+  timestamp: string
+}
+interface MasterExam {
+  _id: string
+  name: string
+  description?: string
+  exam_period?: string
+  start_time?: string
+  end_time?: string
+  teacher_id: string
+  created_at: string
+  updated_at: string
+}
+
+interface ClassInfo {
+  class_name: string
+  student_count: number
+}
+
+interface CreateMasterExamRequest {
+  name: string
+  description?: string
+  exam_period?: string
+  start_time?: string
+  end_time?: string
+}
 const examApi = {
   generateExam: (body: GenerateExamRequest) =>
     http.post<SuccessResponse<QRCodeResponse[]>>('/api/exams/generate', body),
@@ -117,7 +169,37 @@ const examApi = {
     http.get<SuccessResponse<ExamSessionWithStudentInfo[]>>(`/api/exams/${examId}/results`),
 
   getExamResultsStatistics: (examId: string) =>
-    http.get<SuccessResponse<ExamResultsStatistics>>(`/api/exams/${examId}/statistics`)
+    http.get<SuccessResponse<ExamResultsStatistics>>(`/api/exams/${examId}/statistics`),
+  getClassExamResults: (examId: string, params?: ClassExamResultsParams) =>
+    http.get<SuccessResponse<ClassExamResult[]>>(`/api/exams/${examId}/class-results`, { params }),
+
+  // Get student violations
+  getStudentViolations: (examId: string, studentId: string) =>
+    http.get<SuccessResponse<Violation[]>>(`/api/exams/${examId}/students/${studentId}/violations`),
+  createMasterExam: (body: CreateMasterExamRequest) =>
+    http.post<SuccessResponse<MasterExam>>('/api/exams/master', body),
+
+  // Get all master exams for the current teacher
+  getMasterExams: () => http.get<SuccessResponse<MasterExam[]>>('/api/exams/master'),
+
+  // Get a specific master exam by ID
+  getMasterExamById: (masterExamId: string) =>
+    http.get<SuccessResponse<MasterExam>>(`/api/exams/master/${masterExamId}`),
+
+  // Get all exams associated with a master exam
+  getExamsByMasterExamId: (masterExamId: string) =>
+    http.get<SuccessResponse<Exam[]>>(`/api/exams/master/${masterExamId}/exams`),
+
+  // Get all classes that participated in a master exam
+  getClassesForMasterExam: (masterExamId: string) =>
+    http.get<SuccessResponse<ClassInfo[]>>(`/api/exams/master/${masterExamId}/classes`),
+
+  // Get class results for a master exam
+  getClassExamResultsForMasterExam: (masterExamId: string, className: string, params?: ClassExamResultsParams) =>
+    http.get<SuccessResponse<ClassExamResult[]>>(
+      `/api/exams/master/${masterExamId}/classes/${encodeURIComponent(className)}/results`,
+      { params }
+    )
 }
 
 export default examApi
