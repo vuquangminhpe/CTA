@@ -7,7 +7,7 @@ import databaseService from '~/services/database.services'
 import { ObjectId } from 'mongodb'
 
 export const generateExamController = async (req: Request, res: Response) => {
-  const { title, quantity, question_count, duration, start_time } = req.body
+  const { title, quantity, question_count, duration, start_time, master_exam_id } = req.body
   const { user_id } = req.decode_authorization as TokenPayload
 
   try {
@@ -20,7 +20,8 @@ export const generateExamController = async (req: Request, res: Response) => {
       quantity,
       question_count,
       duration,
-      start_time: parsedStartTime
+      start_time: parsedStartTime,
+      master_exam_id
     })
 
     res.json({
@@ -79,7 +80,7 @@ export const getExamByIdController = async (req: Request, res: Response) => {
       result: exam
     })
   } catch (error) {
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       message: 'Failed to retrieve exam',
       error: error
     })

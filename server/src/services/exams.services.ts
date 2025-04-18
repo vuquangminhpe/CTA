@@ -27,13 +27,15 @@ class ExamService {
     teacher_id,
     question_count,
     duration,
-    start_time = null // New optional parameter
+    start_time = null, // New optional parameter
+    master_exam_id
   }: {
     title: string
     teacher_id: string
     question_count: number
     duration: number
     start_time?: Date | null
+    master_exam_id: string
   }) {
     // Get random questions from this teacher's question bank
     const questions = await questionService.getRandomQuestions(teacher_id, question_count)
@@ -51,7 +53,8 @@ class ExamService {
       question_ids: questions.map((q) => q._id),
       duration,
       start_time: start_time || undefined, // Use undefined to avoid setting null in MongoDB
-      active: true
+      active: true,
+      master_exam_id: new ObjectId(master_exam_id)
     })
 
     await databaseService.exams.insertOne(exam)
@@ -127,7 +130,8 @@ class ExamService {
     quantity,
     question_count,
     duration,
-    start_time = null // New optional parameter
+    start_time = null, // New optional parameter
+    master_exam_id
   }: {
     title: string
     teacher_id: string
@@ -135,6 +139,7 @@ class ExamService {
     question_count: number
     duration: number
     start_time?: Date | null
+    master_exam_id: string
   }) {
     const qrCodes = []
 
@@ -144,7 +149,8 @@ class ExamService {
         teacher_id,
         question_count,
         duration,
-        start_time
+        start_time,
+        master_exam_id: master_exam_id
       })
 
       qrCodes.push({
@@ -444,6 +450,8 @@ class ExamService {
   }
 
   async getMasterExams(teacher_id: string) {
+    console.log(teacher_id)
+
     const masterExams = await databaseService.masterExams
       .find({ teacher_id: new ObjectId(teacher_id) })
       .sort({ created_at: -1 })

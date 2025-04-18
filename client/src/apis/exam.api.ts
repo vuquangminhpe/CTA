@@ -178,27 +178,27 @@ const examApi = {
   getStudentViolations: (examId: string, studentId: string) =>
     http.get<SuccessResponse<Violation[]>>(`/api/exams/${examId}/students/${studentId}/violations`),
   createMasterExam: (body: CreateMasterExamRequest) =>
-    http.post<SuccessResponse<MasterExam>>('/api/exams/master', body),
+    http.post<SuccessResponse<MasterExam>>('/api/exams/idea/master', body),
 
   // Get all master exams for the current teacher
-  getMasterExams: () => http.get<SuccessResponse<MasterExam[]>>('/api/exams/master'),
+  getMasterExams: () => http.get<SuccessResponse<MasterExam[]>>('/api/idea/exams/master'),
 
   // Get a specific master exam by ID
   getMasterExamById: (masterExamId: string) =>
-    http.get<SuccessResponse<MasterExam>>(`/api/exams/master/${masterExamId}`),
+    http.get<SuccessResponse<MasterExam>>(`/api/exams/idea/master/${masterExamId}`),
 
   // Get all exams associated with a master exam
   getExamsByMasterExamId: (masterExamId: string) =>
-    http.get<SuccessResponse<Exam[]>>(`/api/exams/master/${masterExamId}/exams`),
+    http.get<SuccessResponse<Exam[]>>(`/api/exams/idea/master/${masterExamId}/exams`),
 
   // Get all classes that participated in a master exam
   getClassesForMasterExam: (masterExamId: string) =>
-    http.get<SuccessResponse<ClassInfo[]>>(`/api/exams/master/${masterExamId}/classes`),
+    http.get<SuccessResponse<ClassInfo[]>>(`/api/exams/idea/master/${masterExamId}/classes`),
 
   // Get class results for a master exam
   getClassExamResultsForMasterExam: (masterExamId: string, className: string, params?: ClassExamResultsParams) =>
     http.get<SuccessResponse<ClassExamResult[]>>(
-      `/api/exams/master/${masterExamId}/classes/${encodeURIComponent(className)}/results`,
+      `/api/exams/idea/master/${masterExamId}/classes/${encodeURIComponent(className)}/results`,
       { params }
     )
 }
