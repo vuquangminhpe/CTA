@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useContext } from 'react'
 import { Tab } from '@headlessui/react'
-import { Plus, HelpCircle, Book, QrCode, FileText, Eye } from 'lucide-react'
+import { Plus, HelpCircle, Book, QrCode, FileText, Eye, BookOpen } from 'lucide-react'
 import QuestionForm from '../../components/Teacher/QuestionForm'
 import QuestionList from '../../components/Teacher/QuestionList'
 import ExamGenerator from '../../components/Teacher/ExamGenerator'
@@ -13,6 +13,7 @@ import { AuthContext } from '../../Contexts/auth.context'
 import { toast } from 'sonner'
 import ExamList from '../../components/Teacher/ExamList'
 import { useNavigate } from 'react-router-dom'
+import MasterExamForm from '../../components/Teacher/MasterExamForm'
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
@@ -29,6 +30,8 @@ const TeacherDashboard = () => {
   const [editingQuestion, setEditingQuestion] = useState<any>(null)
   const [qrCodes, setQrCodes] = useState<any>([])
   const [examTitle, setExamTitle] = useState<any>('')
+  const [isMasterExamFormOpen, setIsMasterExamFormOpen] = useState(false)
+
   useEffect(() => {
     // This condition determines when to refresh - modify as needed
     const shouldRefresh = localStorage.getItem('needsRefresh') === 'true'
@@ -153,6 +156,11 @@ const TeacherDashboard = () => {
     }
   }
 
+  const handleMasterExamSuccess = () => {
+    setIsMasterExamFormOpen(false)
+    toast.success('Kỳ thi chính được tạo thành công')
+  }
+
   return (
     <div className='max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8'>
       <div className='sm:flex sm:items-center sm:justify-between'>
@@ -214,6 +222,20 @@ const TeacherDashboard = () => {
           >
             <FileText className='w-5 h-5 mr-2' />
             Danh sách bài thi
+          </Tab>
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                'w-full rounded-lg py-2.5 text-sm font-medium leading-5 flex items-center justify-center',
+                'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                selected
+                  ? 'bg-white text-blue-700 shadow'
+                  : 'text-blue-700/70 hover:bg-white/[0.12] hover:text-blue-700'
+              )
+            }
+          >
+            <BookOpen className='w-5 h-5 mr-2' />
+            Kỳ thi chính
           </Tab>
           <Tab
             className={({ selected }) =>
@@ -312,6 +334,52 @@ const TeacherDashboard = () => {
           {/* Exams List Panel */}
           <Tab.Panel className='rounded-xl bg-white p-4'>
             <ExamList />
+          </Tab.Panel>
+
+          {/* Master Exams Panel */}
+          <Tab.Panel className='rounded-xl bg-white p-4'>
+            <div className='space-y-6'>
+              <div className='flex justify-between items-center'>
+                <h2 className='text-lg font-medium text-gray-900'>Kỳ thi chính</h2>
+                <div className='flex space-x-3'>
+                  <button
+                    onClick={() => setIsMasterExamFormOpen(true)}
+                    className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  >
+                    <Plus className='mr-2 -ml-1 h-5 w-5' />
+                    Tạo kỳ thi chính mới
+                  </button>
+                  <button
+                    onClick={() => navigate('/teacher/master-exams')}
+                    className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  >
+                    <BookOpen className='mr-2 -ml-1 h-5 w-5' />
+                    Xem tất cả kỳ thi
+                  </button>
+                </div>
+              </div>
+
+              {isMasterExamFormOpen ? (
+                <MasterExamForm onSuccess={handleMasterExamSuccess} onCancel={() => setIsMasterExamFormOpen(false)} />
+              ) : (
+                <div className='text-center py-12 bg-gray-50 rounded-lg'>
+                  <BookOpen className='mx-auto h-12 w-12 text-gray-400' />
+                  <h3 className='mt-2 text-sm font-medium text-gray-900'>Quản lý kỳ thi chính</h3>
+                  <p className='mt-1 text-sm text-gray-500'>
+                    Kỳ thi chính giúp bạn nhóm các bài kiểm tra riêng lẻ theo học kỳ hoặc mục đích.
+                  </p>
+                  <div className='mt-6'>
+                    <button
+                      type='button'
+                      onClick={() => navigate('/teacher/master-exams')}
+                      className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                    >
+                      Xem tất cả kỳ thi
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </Tab.Panel>
         </Tab.Panels>
       </Tab.Group>

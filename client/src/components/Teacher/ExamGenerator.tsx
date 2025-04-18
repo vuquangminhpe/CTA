@@ -1,8 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
-import { Clock, Calendar, Book } from 'lucide-react'
+import { Clock, Calendar, Book, BookOpen } from 'lucide-react'
+import examApi from '../../apis/exam.api'
+
+interface MasterExam {
+  _id: string
+  name: string
+  exam_period?: string
+}
 
 const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
   const [formData, setFormData] = useState({
@@ -10,14 +17,42 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
     quantity: 10,
     question_count: Math.min(5, questionCount),
     duration: 30, // minutes
-    start_time: null // New field for scheduled start time
+    start_time: null, // New field for scheduled start time
+    master_exam_id: '' // New field for selecting master exam
   })
+  const [masterExams, setMasterExams] = useState<MasterExam[]>([])
+  const [isLoadingMasterExams, setIsLoadingMasterExams] = useState(false)
+
+  // Fetch master exams when component mounts
+  useEffect(() => {
+    const fetchMasterExams = async () => {
+      try {
+        setIsLoadingMasterExams(true)
+        const response = await examApi.getMasterExams()
+        setMasterExams(response.data.result)
+      } catch (error) {
+        console.error('Failed to fetch master exams:', error)
+      } finally {
+        setIsLoadingMasterExams(false)
+      }
+    }
+
+    fetchMasterExams()
+  }, [])
 
   const handleChange = (e: any) => {
     const { name, value } = e.target
     setFormData({
       ...formData,
       [name]: name === 'title' ? value : parseInt(value, 10)
+    })
+  }
+
+  const handleStringChange = (e: any) => {
+    const { name, value } = e.target
+    setFormData({
+      ...formData,
+      [name]: value
     })
   }
 
@@ -76,6 +111,34 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
               placeholder='Kỳ thi giữa kỳ'
               required
             />
+          </div>
+
+          <div>
+            <label htmlFor='master_exam_id' className='block text-sm font-medium text-gray-700 flex items-center'>
+              <BookOpen className='w-4 h-4 mr-1 text-gray-500' />
+              Thuộc kỳ thi chính
+            </label>
+            <select
+              id='master_exam_id'
+              name='master_exam_id'
+              value={formData.master_exam_id}
+              onChange={handleStringChange}
+              className='mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md'
+            >
+              <option value=''>-- Chọn kỳ thi chính --</option>
+              {isLoadingMasterExams ? (
+                <option disabled>Đang tải...</option>
+              ) : (
+                masterExams.map((exam) => (
+                  <option key={exam._id} value={exam._id}>
+                    {exam.name} {exam.exam_period ? `(${exam.exam_period})` : ''}
+                  </option>
+                ))
+              )}
+            </select>
+            <p className='mt-1 text-xs text-gray-500'>
+              Liên kết bài thi này với một kỳ thi chính để quản lý và xem kết quả theo lớp
+            </p>
           </div>
 
           <div className='grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2'>

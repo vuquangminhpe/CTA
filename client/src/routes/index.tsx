@@ -21,6 +21,8 @@ import ExamMonitor from '../pages/Teacher/ExamMonitor'
 import MonitoringDashboard from '../pages/Teacher/MonitoringDashboard'
 import ClassExamResults from '../pages/Teacher/ClassExamResults'
 import MasterExamView from '../pages/Teacher/MasterExamView'
+import MasterExamsList from '../pages/Teacher/MasterExamsList'
+import ClassResultsList from '../components/Teacher/ClassResultsList'
 
 const AppRoutes = () => {
   const { role } = useContext(AuthContext)
@@ -57,11 +59,9 @@ const AppRoutes = () => {
           <Route element={<TeacherRoute />}>
             <Route path='/teacher' element={<TeacherDashboard />} />
             {/* Master exam routes */}
+            <Route path='/teacher/master-exams' element={<MasterExamsList />} />
             <Route path='/teacher/master-exams/:masterExamId' element={<MasterExamView />} />
-            <Route
-              path='/teacher/master-exams/:masterExamId/classes/:className'
-              element={<ClassExamResultsByMasterExam />}
-            />
+            <Route path='/teacher/master-exams/:masterExamId/classes/:className' element={<ClassResultsList />} />
             {/* Exam management and results */}
             <Route path='/teacher/exams/:examId' element={<ExamManagement />} />
             <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />

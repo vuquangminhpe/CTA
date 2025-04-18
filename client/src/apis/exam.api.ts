@@ -57,6 +57,7 @@ interface GenerateExamRequest {
   question_count: number
   duration: number
   start_time?: string
+  master_exam_id?: string
 }
 
 interface QRCodeResponse {
