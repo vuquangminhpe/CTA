@@ -5,7 +5,7 @@ import { ArrowLeft, Filter, Search, Eye, AlertTriangle, Clock, Download, User, F
 import { toast } from 'sonner'
 import examApi from '../../apis/exam.api'
 import StudentResultDetail from '../../components/Teacher/StudentResultDetail'
-
+import Papa from 'papaparse'
 interface ClassExamResult {
   session_id: string
   student_id: string
@@ -169,44 +169,37 @@ const ClassResultsList: React.FC = () => {
 
   // Export to CSV
   const exportToCSV = () => {
-    const headers = [
-      'Tên học sinh',
-      'Tên người dùng',
-      'Điểm',
-      'Lỗi vi phạm',
-      'Thời gian làm bài',
-      'Hoàn thành',
-      'Thời gian bắt đầu',
-      'Thời gian kết thúc'
-    ]
+    // Prepare data in the format PapaParse expects
+    const csvData = filteredResults.map((student) => ({
+      'Tên học sinh': student.student_name,
+      'Tên người dùng': student.student_username,
+      Điểm: student.completed ? student.score : 'N/A',
+      'Lỗi vi phạm': student.violations,
+      'Thời gian làm bài': calculateTimeSpent(student.start_time, student.end_time, student.exam_duration),
+      'Hoàn thành': student.completed ? 'Đã hoàn thành' : 'Chưa hoàn thành',
+      'Thời gian bắt đầu': formatDate(student.start_time),
+      'Thời gian kết thúc': formatDate(student.end_time)
+    }))
 
-    const csvRows = [
-      headers.join(','),
-      ...filteredResults.map((student) =>
-        [
-          `"${student.student_name}"`,
-          `"${student.student_username}"`,
-          student.score,
-          student.violations,
-          calculateTimeSpent(student.start_time, student.end_time, student.exam_duration),
-          student.completed ? 'Đã hoàn thành' : 'Chưa hoàn thành',
-          formatDate(student.start_time),
-          formatDate(student.end_time)
-        ].join(',')
-      )
-    ]
+    // Use PapaParse to convert to CSV
+    const csv = Papa.unparse(csvData, {
+      header: true
+    })
 
-    const csvContent = csvRows.join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    // Add UTF-8 BOM for Excel
+    const BOM = '\uFEFF'
+    const csvContentWithBOM = BOM + csv
+
+    // Create and download file
+    const blob = new Blob([csvContentWithBOM], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
-
     const link = document.createElement('a')
-    link.setAttribute('href', url)
+    link.href = url
     link.setAttribute('download', `ket-qua-lop-${decodeURIComponent(className || '')}.csv`)
-    link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   return (
