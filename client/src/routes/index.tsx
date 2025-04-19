@@ -23,6 +23,8 @@ import ClassExamResults from '../pages/Teacher/ClassExamResults'
 import MasterExamView from '../pages/Teacher/MasterExamView'
 import MasterExamsList from '../pages/Teacher/MasterExamsList'
 import ClassResultsList from '../components/Teacher/ClassResultsList'
+import MasterExamMonitor from '../components/Teacher/MasterExamMonitor'
+import MasterExamResults from '../components/Teacher/MasterExamResults'
 
 const AppRoutes = () => {
   const { role } = useContext(AuthContext)
@@ -58,15 +60,20 @@ const AppRoutes = () => {
           {/* Teacher routes */}
           <Route element={<TeacherRoute />}>
             <Route path='/teacher' element={<TeacherDashboard />} />
+
             {/* Master exam routes */}
             <Route path='/teacher/master-exams' element={<MasterExamsList />} />
             <Route path='/teacher/master-exams/:masterExamId' element={<MasterExamView />} />
+
+            <Route path='/teacher/master-exams/:masterExamId/monitor' element={<MasterExamMonitor />} />
+            <Route path='/teacher/master-exams/:masterExamId/results' element={<MasterExamResults />} />
+
             <Route path='/teacher/master-exams/:masterExamId/classes/:className' element={<ClassResultsList />} />
-            {/* Exam management and results */}
+
+            {/* Individual exam routes */}
             <Route path='/teacher/exams/:examId' element={<ExamManagement />} />
             <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />
             <Route path='/teacher/exams/:examId/class-results' element={<ClassExamResults />} />
-            {/* Existing routes */}
             <Route path='/teacher/exams/:examId/monitor' element={<ExamMonitor />} />
             <Route path='/teacher/monitoring' element={<MonitoringDashboard />} />
           </Route>

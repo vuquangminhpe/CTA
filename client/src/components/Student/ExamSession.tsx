@@ -13,6 +13,7 @@ import { Save, ChevronLeft, ChevronRight, AlertTriangle, MessageSquare, XCircle 
 import { toast } from 'sonner'
 import MobileTabDetector from './MobileTabDetector'
 import ConfirmDialog from '../helper/ConfirmDialog'
+import RemoteAccessDetector from './RemoteAccessDetector'
 
 interface ExamSessionProps {
   session: { _id: string }
@@ -305,6 +306,22 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
         onViolation={handleViolation}
         socket={socket}
         requireWebcam={securityLevel === 'high'}
+      />
+
+      <RemoteAccessDetector
+        sessionId={session._id}
+        socket={socket}
+        onViolation={() => {
+          setHasViolation(true)
+          setViolations((prev) => [
+            ...prev,
+            {
+              type: 'remote_access',
+              timestamp: new Date().toISOString()
+            }
+          ])
+        }}
+        enabled={true}
       />
       <MobileTabDetector
         sessionId={session._id}

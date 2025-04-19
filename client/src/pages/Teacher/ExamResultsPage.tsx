@@ -56,16 +56,16 @@ const ExamResultsPage = () => {
       <div className='max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8'>
         <div className='bg-white shadow overflow-hidden sm:rounded-lg p-6 text-center'>
           <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-4' />
-          <h3 className='text-lg font-medium text-gray-900'>Exam Not Found</h3>
+          <h3 className='text-lg font-medium text-gray-900'>Không tìm thấy bài kiểm tra</h3>
           <p className='mt-2 text-gray-500'>
-            The exam you're looking for doesn't exist or you don't have permission to view it.
+            Kỳ thi bạn đang tìm kiếm không tồn tại hoặc bạn không có quyền xem kỳ thi đó.
           </p>
           <button
             onClick={handleBack}
             className='mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700'
           >
             <ArrowLeft className='mr-2 -ml-1 h-5 w-5' />
-            Back to Dashboard
+            Quay lại Bảng điều khiển
           </button>
         </div>
       </div>
@@ -87,27 +87,27 @@ const ExamResultsPage = () => {
           </div>
           <div className='mt-1 flex items-center text-sm text-gray-500'>
             <FileText className='mr-1 h-4 w-4' />
-            <span>Exam Code: {exam.exam_code}</span>
+            <span>Mã bài thi: {exam.exam_code}</span>
           </div>
         </div>
 
         <div className='flex items-center space-x-4'>
           <div className='flex items-center text-sm text-gray-500'>
             <User className='mr-1 h-4 w-4' />
-            <span>Created: {new Date(exam.created_at).toLocaleDateString()}</span>
+            <span>Tạo: {new Date(exam.created_at).toLocaleDateString()}</span>
           </div>
           <div className='flex items-center text-sm text-gray-500'>
             <BarChart className='mr-1 h-4 w-4' />
-            <span>Duration: {exam.duration} minutes</span>
+            <span>Khoảng thời gian: {exam.duration} phút</span>
           </div>
         </div>
       </div>
 
       <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
         <div className='px-4 py-5 border-b border-gray-200 sm:px-6'>
-          <h3 className='text-lg leading-6 font-medium text-gray-900'>Exam Results</h3>
+          <h3 className='text-lg leading-6 font-medium text-gray-900'>Kết quả thi</h3>
           <p className='mt-1 max-w-2xl text-sm text-gray-500'>
-            View student performances and statistics for this exam.
+            Xem thành tích và số liệu thống kê của học sinh trong kỳ thi này.
           </p>
         </div>
         <div className='px-4 py-5 sm:px-6'>

@@ -231,7 +231,11 @@ const examApi = {
     http.put<SuccessResponse<any>>(`/api/exams/idea/master/${masterExamId}/toggle-status`, { active }),
 
   deleteMasterExam: (masterExamId: string) =>
-    http.delete<SuccessResponse<{ message: string }>>(`/api/exams/idea/master/${masterExamId}`)
+    http.delete<SuccessResponse<{ message: string }>>(`/api/exams/idea/master/${masterExamId}`),
+  // Thêm những API này vào exam.api.ts nếu chưa có
+
+  // API để lấy thống kê của một bài thi
+  getExamStatistics: (examId: string) => http.get<SuccessResponse<any>>(`/api/exams/${examId}/statistics`)
 }
 
 export default examApi

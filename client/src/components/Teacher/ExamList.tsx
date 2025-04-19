@@ -15,10 +15,10 @@ const ExamList = () => {
     isLoading: isMasterExamsLoading,
     refetch
   } = useQuery({
-    queryKey: ['masterExams'],
+    queryKey: ['dataMasterExamsList'],
     queryFn: async () => {
       const response = await examApi.getMasterExams()
-      return response.data.data
+      return response.data.result
     }
   })
 
@@ -29,7 +29,7 @@ const ExamList = () => {
     },
     onSuccess: () => {
       refetch()
-      toast.success('Master exam status updated successfully')
+      toast.success('Cập nhật kỳ thi thành công')
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || 'Failed to update master exam status')
@@ -43,7 +43,7 @@ const ExamList = () => {
     },
     onSuccess: () => {
       refetch()
-      toast.success('Master exam deleted successfully')
+      toast.success('Đã xóa kỳ thi thành công')
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || 'Failed to delete master exam')
@@ -61,8 +61,8 @@ const ExamList = () => {
         active: !currentStatus
       })
     } catch (error) {
-      console.error('Error updating master exam status:', error)
-      toast.error('Failed to update master exam status')
+      console.error('Lỗi khi cập nhật trạng thái kỳ thi:', error)
+      toast.error('Lỗi khi cập nhật trạng thái kỳ thi')
     }
   }
 
@@ -70,18 +70,18 @@ const ExamList = () => {
     try {
       // Check if exam has already started
       if (startTime && new Date(startTime) <= new Date()) {
-        toast.error('Cannot delete: Exam has already started')
+        toast.error('Không thể xóa: Kỳ thi đã bắt đầu')
         return
       }
 
       // Check if exam is active
       if (isActive) {
-        toast.error('Cannot delete: Master exam is active. Please deactivate it first.')
+        toast.error('Không thể xóa: Kỳ thi đang hoạt động. Vui lòng hủy kích hoạt trước.')
         return
       }
 
-      if (window.confirm('Are you sure you want to delete this master exam? This cannot be undone.')) {
-        deleteMasterExam.mutate(masterExamId)
+      if (window.confirm('Bạn có chắc chắn muốn xóa bài kiểm tra này không? Không thể hoàn tác thao tác này.')) {
+        deleteMasterExam.mutateAsync(masterExamId)
       }
     } catch (error) {
       console.error('Error deleting master exam:', error)
@@ -98,7 +98,7 @@ const ExamList = () => {
     const hasExpired = masterExam.end_time && new Date(masterExam.end_time) < new Date()
 
     if (hasExpired) {
-      return <span className='px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800'>Expired</span>
+      return <span className='px-2 py-1 text-xs font-medium rounded-full bg-red-600 text-white'>Không hoạt động</span>
     }
 
     // Check child exams status
@@ -107,7 +107,7 @@ const ExamList = () => {
       if (total === 0) {
         return (
           <span className='px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800'>
-            No exams created
+            Không có kỳ thi nào được tạo
           </span>
         )
       }
@@ -122,30 +122,30 @@ const ExamList = () => {
                 : 'bg-yellow-100 text-yellow-800'
           }`}
         >
-          {active}/{total} active
+          {active}/{total} hoạt động
         </span>
       )
     }
 
-    return <span className='px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800'>Unknown</span>
+    return <span className='px-2 py-1 text-xs font-medium rounded-full bg-lime-400 text-black'>Đang hoạt động</span>
   }
 
   return (
     <div className='space-y-6'>
       <div className='flex justify-between items-center'>
-        <h2 className='text-lg font-medium text-gray-900'>Master Exam List</h2>
+        <h2 className='text-lg font-medium text-gray-900'></h2>
       </div>
 
       {isLoading ? (
         <div className='py-8 text-center text-gray-500'>
           <div className='inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600'></div>
-          <p className='mt-2'>Loading master exams, please wait a moment...</p>
+          <p className='mt-2'>Đang tải bài kiểm tra, vui lòng đợi trong giây lát...</p>
         </div>
       ) : !masterExams || masterExams.length === 0 ? (
         <div className='bg-white shadow rounded-lg p-6 text-center'>
           <Calendar className='h-12 w-12 text-gray-400 mx-auto' />
-          <h3 className='mt-2 text-sm font-medium text-gray-900'>No master exams created yet</h3>
-          <p className='mt-1 text-sm text-gray-500'>No master exams are available at this time.</p>
+          <h3 className='mt-2 text-sm font-medium text-gray-900'>Chưa có kỳ thi nào được tạo</h3>
+          <p className='mt-1 text-sm text-gray-500'>Hiện tại không có kỳ thi nào được tổ chức.</p>
         </div>
       ) : (
         <div className='overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg'>
@@ -153,19 +153,19 @@ const ExamList = () => {
             <thead className='bg-gray-50'>
               <tr>
                 <th scope='col' className='px-3 py-3.5 text-left text-sm font-semibold text-gray-900'>
-                  Master Exam Name
+                  Tên kỳ thi
                 </th>
                 <th scope='col' className='px-3 py-3.5 text-left text-sm font-semibold text-gray-900'>
-                  Description
+                  Sự miêu tả
                 </th>
                 <th scope='col' className='px-3 py-3.5 text-left text-sm font-semibold text-gray-900'>
-                  Status
+                  Trạng thái
                 </th>
                 <th scope='col' className='px-3 py-3.5 text-left text-sm font-semibold text-gray-900'>
-                  Period
+                  Giai đoạn
                 </th>
                 <th scope='col' className='px-3 py-3.5 text-left text-sm font-semibold text-gray-900'>
-                  Start/End Time
+                  Thời gian bắt đầu/kết thúc
                 </th>
                 <th scope='col' className='relative py-3.5 px-3'>
                   <span className='sr-only'>Actions</span>
@@ -229,9 +229,6 @@ const ExamList = () => {
                         onClick={() => handleDeleteMasterExam(masterExam._id, masterExam.active, masterExam.start_time)}
                         className='p-1.5 rounded-full bg-red-100 text-red-600 hover:bg-red-200'
                         title='Delete master exam'
-                        disabled={
-                          masterExam.active || (masterExam.start_time && new Date(masterExam.start_time) <= new Date())
-                        }
                       >
                         <Trash2 className='h-4 w-4' />
                       </button>

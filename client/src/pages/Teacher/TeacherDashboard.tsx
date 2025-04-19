@@ -144,33 +144,33 @@ const TeacherDashboard = () => {
     try {
       // Validate that start_time is in the future if provided
       if (formData.start_time && new Date(formData.start_time) <= new Date()) {
-        toast.error('Start time must be in the future')
+        toast.error('Thời gian bắt đầu phải ở tương lai')
         return
       }
 
       setQrCodes([])
       setExamTitle(formData.title)
 
-      toast.loading('Generating QR codes...')
+      toast.loading('Tạo mã QR...')
 
       const response = await examApi.generateExam(formData)
       const generatedQRCodes = response.data.result
 
       toast.dismiss()
-      toast.success(`${generatedQRCodes.length} QR codes generated successfully`)
+      toast.success(`${generatedQRCodes.length} mã QR đã được tạo thành công`)
 
       setQrCodes(generatedQRCodes)
     } catch (error) {
       toast.dismiss()
       console.error('Error generating exam:', error)
-      toast.error('Failed to generate QR codes')
+      toast.error('Không tạo được mã QR')
     }
   }
 
   const handleBulkImport = async (questions: any[]) => {
     try {
       // Create a loading toast
-      toast.loading(`Importing ${questions.length} questions...`)
+      toast.loading(`Bắt đầu tạo ${questions.length} câu hỏi...`)
 
       // Save all questions using Promise.all for parallel processing
       await Promise.all(questions.map((question) => questionApi.createQuestion(question)))
@@ -180,7 +180,7 @@ const TeacherDashboard = () => {
 
       // Show success message and refresh question list
       toast.dismiss()
-      toast.success(`Successfully imported ${questions.length} questions`)
+      toast.success(`Đã tạo thành công ${questions.length} câu hỏi`)
       fetchQuestions()
     } catch (error) {
       toast.dismiss()

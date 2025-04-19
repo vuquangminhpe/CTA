@@ -125,19 +125,19 @@ const ExamResults = ({ selectedExamId }: ExamResultsProps) => {
   return (
     <div className='space-y-6'>
       <div className='flex justify-between items-center'>
-        <h2 className='text-xl font-semibold text-gray-900'>Exam Results</h2>
+        <h2 className='text-xl font-semibold text-gray-900'>Kết quả thi</h2>
       </div>
 
       {/* Exam Selector - Only show in dashboard view, not in detailed view */}
       {!selectedExamId && (
         <div className='bg-white rounded-lg shadow p-4'>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>Select an exam to view results</label>
+          <label className='block text-sm font-medium text-gray-700 mb-2'>Chọn một kỳ thi để xem kết quả</label>
           <select
             className='mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md'
             value={selectedExam || ''}
             onChange={(e) => setSelectedExam(e.target.value)}
           >
-            <option value=''>-- Select an exam --</option>
+            <option value=''>-- Chọn một kỳ thi --</option>
             {exams.map((exam: any) => (
               <option key={exam._id} value={exam._id}>
                 {exam.title} - {exam.exam_code}
@@ -159,7 +159,7 @@ const ExamResults = ({ selectedExamId }: ExamResultsProps) => {
                   </div>
                   <div className='ml-5 w-0 flex-1'>
                     <dl>
-                      <dt className='text-sm font-medium text-gray-500 truncate'>Average Score</dt>
+                      <dt className='text-sm font-medium text-gray-500 truncate'>Điểm trung bình</dt>
                       <dd>
                         <div className='text-lg font-medium text-gray-900'>{stats.averageScore}%</div>
                       </dd>
@@ -177,7 +177,7 @@ const ExamResults = ({ selectedExamId }: ExamResultsProps) => {
                   </div>
                   <div className='ml-5 w-0 flex-1'>
                     <dl>
-                      <dt className='text-sm font-medium text-gray-500 truncate'>Completion Rate</dt>
+                      <dt className='text-sm font-medium text-gray-500 truncate'>Tỷ lệ hoàn thành</dt>
                       <dd>
                         <div className='text-lg font-medium text-gray-900'>{stats.completionRate}%</div>
                       </dd>
@@ -195,7 +195,7 @@ const ExamResults = ({ selectedExamId }: ExamResultsProps) => {
                   </div>
                   <div className='ml-5 w-0 flex-1'>
                     <dl>
-                      <dt className='text-sm font-medium text-gray-500 truncate'>Total Sessions</dt>
+                      <dt className='text-sm font-medium text-gray-500 truncate'>Tổng số phiên</dt>
                       <dd>
                         <div className='text-lg font-medium text-gray-900'>{stats.totalSessions}</div>
                       </dd>
@@ -213,7 +213,7 @@ const ExamResults = ({ selectedExamId }: ExamResultsProps) => {
                   </div>
                   <div className='ml-5 w-0 flex-1'>
                     <dl>
-                      <dt className='text-sm font-medium text-gray-500 truncate'>Violations</dt>
+                      <dt className='text-sm font-medium text-gray-500 truncate'>Lỗi vi phạm</dt>
                       <dd>
                         <div className='text-lg font-medium text-gray-900'>{stats.violationCount}</div>
                       </dd>
@@ -231,7 +231,7 @@ const ExamResults = ({ selectedExamId }: ExamResultsProps) => {
               type='text'
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder='Search by student name or username...'
+              placeholder='Tìm kiếm theo tên học sinh hoặc tên người dùng...'
               className='ml-2 flex-1 bg-transparent outline-none text-sm text-gray-700'
             />
           </div>

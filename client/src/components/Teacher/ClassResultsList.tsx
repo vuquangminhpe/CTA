@@ -285,7 +285,7 @@ const ClassResultsList: React.FC = () => {
               <div className='ml-5 w-0 flex-1'>
                 <dl>
                   <dt className='text-sm font-medium text-gray-500 truncate'>Tổng số vi phạm</dt>
-                  <dd className='text-lg font-medium text-gray-900'>{stats.totalViolations}</dd>
+                  <dd className='text-lg font-medium text-gray-900'>{String(stats.totalViolations).split('[')[0]}</dd>
                 </dl>
               </div>
             </div>
