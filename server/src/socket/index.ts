@@ -261,47 +261,57 @@ export const initSocketServer = (httpServer: http.Server) => {
           activeExams.get(session_id).last_activity = new Date()
         }
 
-        // Record as violation
-        const violation = await examSecurityService.recordViolation(
-          session_id,
-          user_id,
-          'tab_switch',
-          { timestamp: new Date() },
-          'medium'
-        )
+        // Check for recent tab switch violations to avoid duplicates
+        const existingViolation = await databaseService.db.collection('exam_violations').findOne({
+          session_id: new ObjectId(session_id),
+          type: 'tab_switch',
+          // Check for violations within the last 5 seconds
+          timestamp: { $gte: new Date(Date.now() - 5000) }
+        })
 
-        // Update session in database
-        const updatedSession = await examSessionService.recordViolation(session_id)
-
-        if (updatedSession) {
-          // Broadcast violation to the exam room
-          io.to(`exam_${session_id}`).emit('violation_recorded', {
+        // Only proceed if no recent duplicate exists
+        if (!existingViolation) {
+          // Record as violation
+          const violation = await examSecurityService.recordViolation(
             session_id,
-            violations: updatedSession.violations,
-            score: updatedSession.score,
-            type: 'tab_switch'
-          })
+            user_id,
+            'tab_switch',
+            { timestamp: new Date() },
+            'medium'
+          )
 
-          // Find the exam ID for this session
-          const session = await databaseService.examSessions.findOne({ _id: new ObjectId(session_id as string) })
+          // Update session in database
+          const updatedSession = await examSessionService.recordViolation(session_id)
 
-          if (session) {
-            const examId = session.exam_id.toString()
-
-            // Get student info for teacher notifications
-            const student = await databaseService.users.findOne({ _id: new ObjectId(user_id as string) })
-
-            // Also send to teachers monitoring this exam
-            io.to(`monitor_${examId}`).emit('violation_recorded', {
+          if (updatedSession) {
+            // Broadcast violation to the exam room
+            io.to(`exam_${session_id}`).emit('violation_recorded', {
               session_id,
-              exam_id: examId,
-              student_id: user_id,
-
               violations: updatedSession.violations,
               score: updatedSession.score,
-              type: 'tab_switch',
-              timestamp: new Date()
+              type: 'tab_switch'
             })
+
+            // Find the exam ID for this session
+            const session = await databaseService.examSessions.findOne({ _id: new ObjectId(session_id as string) })
+
+            if (session) {
+              const examId = session.exam_id.toString()
+
+              // Get student info for teacher notifications
+              const student = await databaseService.users.findOne({ _id: new ObjectId(user_id as string) })
+
+              // Also send to teachers monitoring this exam
+              io.to(`monitor_${examId}`).emit('violation_recorded', {
+                session_id,
+                exam_id: examId,
+                student_id: user_id,
+                violations: updatedSession.violations,
+                score: updatedSession.score,
+                type: 'tab_switch',
+                timestamp: new Date()
+              })
+            }
           }
         }
       } catch (error) {
@@ -335,45 +345,56 @@ export const initSocketServer = (httpServer: http.Server) => {
           severity = 'low'
         }
 
-        // Record the violation
-        const violation = await examSecurityService.recordViolation(session_id, user_id, type, details, severity)
+        // First, check if this violation was already recorded from the client side
+        const existingViolation = await databaseService.db.collection('exam_violations').findOne({
+          session_id: new ObjectId(session_id),
+          type: type,
+          // Check for violations within the last 5 seconds to avoid duplicates
+          timestamp: { $gte: new Date(Date.now() - 5000) }
+        })
 
-        // Get updated session
-        const updatedSession = await examSessionService.recordViolation(session_id)
+        // Only record if no recent duplicate exists
+        if (!existingViolation) {
+          // Record the violation
+          const violation = await examSecurityService.recordViolation(session_id, user_id, type, details, severity)
 
-        if (updatedSession) {
-          // Broadcast violation to the exam room
-          io.to(`exam_${session_id}`).emit('violation_recorded', {
-            session_id,
-            violations: updatedSession.violations,
-            score: updatedSession.score,
-            type,
-            severity
-          })
+          // Get updated session
+          const updatedSession = await examSessionService.recordViolation(session_id)
 
-          // Find the exam ID for this session
-          const session = await databaseService.examSessions.findOne({ _id: new ObjectId(session_id) })
-
-          if (session) {
-            const examId = session.exam_id.toString()
-
-            // Get student info for teacher notifications
-            const student = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
-
-            // Also send to teachers monitoring this exam
-            io.to(`monitor_${examId}`).emit('violation_recorded', {
+          if (updatedSession) {
+            // Broadcast violation to the exam room
+            io.to(`exam_${session_id}`).emit('violation_recorded', {
               session_id,
-              exam_id: examId,
-              student_id: user_id,
-              student_name: student?.name || 'Unknown',
-              student_username: student?.username || 'Unknown',
               violations: updatedSession.violations,
               score: updatedSession.score,
               type,
-              severity,
-              details,
-              timestamp: new Date()
+              severity
             })
+
+            // Find the exam ID for this session
+            const session = await databaseService.examSessions.findOne({ _id: new ObjectId(session_id) })
+
+            if (session) {
+              const examId = session.exam_id.toString()
+
+              // Get student info for teacher notifications
+              const student = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
+
+              // Also send to teachers monitoring this exam
+              io.to(`monitor_${examId}`).emit('violation_recorded', {
+                session_id,
+                exam_id: examId,
+                student_id: user_id,
+                student_name: student?.name || 'Unknown',
+                student_username: student?.username || 'Unknown',
+                violations: updatedSession.violations,
+                score: updatedSession.score,
+                type,
+                severity,
+                details,
+                timestamp: new Date()
+              })
+            }
           }
         }
       } catch (error) {
@@ -499,13 +520,32 @@ export const initSocketServer = (httpServer: http.Server) => {
           return
         }
 
-        // Send message to student
-        io.to(`exam_${session_id}`).emit('teacher_message', {
+        // Send message to student with timestamp and additional metadata
+        const messageData = {
           session_id,
           message,
           teacher_id: socket.data.user_id,
-          timestamp: new Date()
-        })
+          timestamp: new Date(),
+          // Add metadata to make message more reliable
+          exam_id: exam._id.toString(),
+          messageId: new ObjectId().toString()
+        }
+
+        // Log the message being sent (for debugging)
+        console.log(`Teacher ${socket.data.user_id} sending message to session ${session_id}:`, messageData)
+
+        // Store message in database for reliability
+        try {
+          await databaseService.db.collection('exam_messages').insertOne({
+            ...messageData,
+            _id: new ObjectId(messageData.messageId)
+          })
+        } catch (err) {
+          console.error('Error storing teacher message:', err)
+        }
+
+        // Emit to all clients in the room (not just the sender)
+        io.to(`exam_${session_id}`).emit('teacher_message', messageData)
 
         console.log(`Teacher ${socket.data.user_id} sent message to session ${session_id}`)
       } catch (error) {

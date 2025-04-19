@@ -9,7 +9,7 @@ import ScreenCaptureDetector from '../../components/Student/ScreenCaptureDetecto
 import useSocketExam from '../../hooks/useSocketExam'
 import examApi from '../../apis/exam.api'
 import { toast } from 'sonner'
-import { ChevronLeft, ChevronRight, Save, AlertTriangle, CheckCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Save, AlertTriangle, CheckCircle, MessageSquare, XCircle } from 'lucide-react'
 import { AuthContext } from '../../Contexts/auth.context'
 import './AntiScreenshot.css'
 import useExamProtection from '../../components/helper/ExamProtection'
@@ -36,9 +36,9 @@ const ExamPage = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [confirmMessage, setConfirmMessage] = useState<string>('')
   const [confirmAction, setConfirmAction] = useState<() => void>(() => () => {})
-
+  const [showMessages, setShowMessages] = useState(false)
   // Socket connection
-  const { resetViolations, socket } = useSocketExam(session?._id)
+  const { resetViolations, socket, teacherMessages, hasNewMessage, setHasNewMessage } = useSocketExam(session?._id)
   const [violations, setViolations] = useState(0)
 
   // Enable exam protection
@@ -73,6 +73,31 @@ const ExamPage = () => {
       }
     }
   }, [violations])
+
+  // Listen for exam ended by teacher event
+  useEffect(() => {
+    if (!socket) return
+
+    const handleExamEndedByTeacher = (data: any) => {
+      if (data.session_id === session?._id) {
+        toast.error(
+          'Bạn đã bị giáo viên kết thúc bài thi (để biết rõ hơn về lí do hãy trao đổi trực tiếp với giáo viên)',
+          {
+            duration: 5000
+          }
+        )
+
+        // Submit exam and redirect to home
+        handleSubmitAndRedirect()
+      }
+    }
+
+    socket.on('exam_ended_by_teacher', handleExamEndedByTeacher)
+
+    return () => {
+      socket.off('exam_ended_by_teacher', handleExamEndedByTeacher)
+    }
+  }, [socket, session])
 
   const loadExam = async () => {
     try {
@@ -206,6 +231,68 @@ const ExamPage = () => {
       })
   }
 
+  // Submit and redirect immediately (for teacher termination)
+  const handleSubmitAndRedirect = () => {
+    if (isSubmitting || completed) return
+
+    setIsSubmitting(true)
+
+    // Format answers for API
+    const formattedAnswers = Object.entries(answers).map(([questionId, selectedIndex]) => ({
+      question_id: questionId,
+      selected_index: selectedIndex
+    }))
+
+    // Notify server that exam is being submitted
+    if (socket) {
+      socket.emit('exam_submitted', session._id)
+    }
+
+    examApi
+      .submitExam({
+        session_id: session._id,
+        answers: formattedAnswers as any
+      })
+      .then(() => {
+        setCompleted(true)
+        // Immediate redirect
+        navigate('/student', { replace: true })
+      })
+      .catch((error: any) => {
+        console.error('Failed to submit exam:', error)
+        // Still redirect even on error
+        navigate('/student', { replace: true })
+      })
+  }
+  function playBeep() {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioContext) return
+
+      const context = new AudioContext()
+      const oscillator = context.createOscillator()
+      const gainNode = context.createGain()
+
+      oscillator.type = 'sine'
+      oscillator.frequency.value = 800 // Tần số
+      gainNode.gain.value = 0.3 // Âm lượng
+
+      oscillator.connect(gainNode)
+      gainNode.connect(context.destination)
+
+      oscillator.start()
+      setTimeout(() => oscillator.stop(), 200)
+    } catch (error) {
+      console.log('Audio API error:', error)
+    }
+  }
+
+  // Sử dụng trong useEffect
+  useEffect(() => {
+    if (hasNewMessage) {
+      playBeep()
+    }
+  }, [hasNewMessage])
   const handleSubmitClick = () => {
     // Check if all questions have been answered
     const answeredCount = Object.keys(answers).length
@@ -335,14 +422,101 @@ const ExamPage = () => {
             onAnswerSelect={handleAnswerSelect}
           />
         </div>
+        {teacherMessages && teacherMessages.length > 0 && (
+          <div className='fixed top-4 left-24 z-50'>
+            <button
+              onClick={() => setShowMessages(!showMessages)}
+              className={`flex items-center rounded-md px-3 py-2 text-sm font-medium ${
+                hasNewMessage
+                  ? 'bg-blue-600 text-white  animate-bounce shadow-lg border-2 border-blue-300'
+                  : showMessages
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-white text-gray-700 border border-gray-300'
+              } shadow-sm hover:bg-blue-50`}
+            >
+              <MessageSquare className={`${hasNewMessage ? 'h-5 w-5 mr-2' : 'h-4 w-4 mr-2'}`} />
+              {hasNewMessage ? (
+                <span className='font-bold hover:text-black'>
+                  Tin nhắn mới! {teacherMessages.length > 0 && `(${teacherMessages.length})`}
+                </span>
+              ) : (
+                <span>Tin nhắn {teacherMessages.length > 0 && `(${teacherMessages.length})`}</span>
+              )}
+            </button>
+          </div>
+        )}
+        {teacherMessages && teacherMessages.length > 0 && (
+          <div className='fixed top-4 left-24 z-50'>
+            <button
+              onClick={() => setShowMessages(!showMessages)}
+              className={`flex items-center rounded-md px-3 py-2 text-sm font-medium ${
+                hasNewMessage
+                  ? 'bg-blue-600 hover:text-black text-white animate-bounce shadow-lg border-2 border-blue-300'
+                  : showMessages
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-white text-gray-700 border border-gray-300'
+              } shadow-sm hover:bg-blue-50`}
+            >
+              <MessageSquare className={`text-black ${hasNewMessage ? 'h-5 w-5 mr-2' : 'h-4 w-4 mr-2'}`} />
+              {hasNewMessage ? (
+                <span className='font-bold'>
+                  Tin nhắn mới! {teacherMessages.length > 0 && `(${teacherMessages.length})`}
+                </span>
+              ) : (
+                <span>Tin nhắn {teacherMessages.length > 0 && `(${teacherMessages.length})`}</span>
+              )}
+            </button>
+          </div>
+        )}
 
+        {/* Teacher Messages panel */}
+        {showMessages && teacherMessages && teacherMessages.length > 0 && (
+          <div className='fixed top-16 left-4 z-50 bg-white shadow-lg rounded-lg w-80 max-h-96 overflow-y-auto'>
+            <div className='p-3 border-b border-gray-200 flex justify-between items-center'>
+              <h3 className='font-medium text-gray-900'>Tin nhắn từ giáo viên</h3>
+              <button
+                onClick={() => {
+                  setShowMessages(false)
+                  setHasNewMessage(false)
+                }}
+                className='text-gray-400 hover:text-gray-500'
+              >
+                <XCircle className='h-4 w-4' />
+              </button>
+            </div>
+            <div className='p-3'>
+              {teacherMessages.length > 0 ? (
+                <ul className='space-y-3'>
+                  {teacherMessages.map((msg, index) => (
+                    <li key={index} className='bg-blue-50 p-3 rounded-lg'>
+                      <p className='text-sm text-gray-800'>{msg.message}</p>
+                      <p className='text-xs text-gray-500 mt-1'>{new Date(msg.timestamp).toLocaleTimeString()}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className='text-sm text-gray-500 text-center py-4'>Không có tin nhắn</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Floating notification for new messages */}
+        {hasNewMessage && !showMessages && (
+          <div className='fixed top-16 left-24 z-50 bg-blue-100 shadow-lg rounded-lg p-3 border-l-4 border-blue-500 max-w-xs animate-fade-in'>
+            <div className='flex'>
+              <MessageSquare className='h-5 w-5 text-blue-500 mr-2' />
+              <p className='text-sm text-blue-800'>Bạn có tin nhắn mới từ giáo viên! Nhấp vào nút "Tin nhắn" để xem.</p>
+            </div>
+          </div>
+        )}
         {/* Navigation and Submit */}
         <div className='flex items-center justify-between pb-12'>
           <button
             type='button'
             onClick={handlePrevious}
             disabled={currentQuestionIndex === 0}
-            className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
+            className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-200 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
           >
             <ChevronLeft className='-ml-1 mr-2 h-5 w-5' />
             Trước
@@ -367,7 +541,7 @@ const ExamPage = () => {
             type='button'
             onClick={handleNext}
             disabled={currentQuestionIndex === exam.questions.length - 1}
-            className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
+            className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-200 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
           >
             Kế tiếp
             <ChevronRight className='-mr-1 ml-2 h-5 w-5' />

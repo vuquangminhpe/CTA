@@ -468,13 +468,16 @@ const MonitoringDashboard = () => {
   const handleEndExam = (sessionId: string, studentName: string) => {
     if (!socketRef.current) return
 
-    if (
-      window.confirm(`Bạn có chắc chắn muốn kết thúc kỳ thi không? ${studentName}? Không thể hoàn tác hành động này.`)
-    ) {
-      socketRef.current.emit('end_student_exam', { session_id: sessionId, reason: 'Bị giáo viên chấm dứt' })
+    if (window.confirm(`Bạn có chắc chắn muốn kết thúc kỳ thi của ${studentName}? Không thể hoàn tác hành động này.`)) {
+      // Send termination event to student with reason
+      socketRef.current.emit('end_student_exam', {
+        session_id: sessionId,
+        reason: 'Bị giáo viên chấm dứt'
+      })
+
       toast.success(`Kỳ thi đã kết thúc cho ${studentName}`)
 
-      // Remove from active sessions
+      // Remove from active sessions immediately in the UI
       const updatedSessions = activeSessionsRef.current.filter((s) => s.session_id !== sessionId)
       activeSessionsRef.current = updatedSessions
       setActiveSessions(updatedSessions)

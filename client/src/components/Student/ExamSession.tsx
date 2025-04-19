@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import MobileTabDetector from './MobileTabDetector'
 import ConfirmDialog from '../helper/ConfirmDialog'
 import RemoteAccessDetector from './RemoteAccessDetector'
+import { useNavigate } from 'react-router-dom'
 
 interface ExamSessionProps {
   session: { _id: string }
@@ -26,6 +27,7 @@ interface ExamSessionProps {
 }
 
 const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime, onSubmit }) => {
+  const navigate = useNavigate()
   const { profile } = useContext(AuthContext) as any
   const [answers, setAnswers] = useState<Record<string, number>>({})
   const [timeLeft, setTimeLeft] = useState(remainingTime)
@@ -88,17 +90,44 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
         setTeacherMessages((prev) => [...prev, newMessage])
         setHasNewMessage(true)
 
-        // Show toast notification for new message
-        toast.info(`Message from teacher: ${data.message}`)
+        // Show more prominent toast notification
+        toast.info(`Tin nhắn từ giáo viên: ${data.message}`, {
+          duration: 8000, // Show for longer (8 seconds)
+          style: {
+            backgroundColor: '#EBF5FF', // Light blue background
+            color: '#1E40AF', // Dark blue text
+            border: '1px solid #93C5FD', // Blue border
+            padding: '16px',
+            fontWeight: 'bold'
+          },
+          icon: '📢' // Add an icon
+        })
+
+        // Also automatically show the messages panel for important notifications
+        setShowMessages(true)
+
+        // Play a notification sound if available
+        try {
+          const notificationSound = new Audio('/notification.mp3')
+          notificationSound.play().catch((e) => console.error('Could not play notification sound', e))
+        } catch (error) {
+          console.log('Audio notification not supported')
+        }
       }
     })
 
     // Handle exam being ended by teacher
     newSocket.on('exam_ended_by_teacher', (data) => {
       if (data.session_id === session._id) {
-        toast.error(`Your exam has been ended: ${data.reason}`)
-        // Force submit
-        handleSubmit()
+        toast.error(
+          'Bạn đã bị giáo viên kết thúc bài thi (để biết rõ hơn về lí do hãy trao đổi trực tiếp với giáo viên)',
+          {
+            duration: 5000
+          }
+        )
+
+        // Force submit and redirect to home
+        handleSubmitAndRedirect()
       }
     })
 
@@ -110,7 +139,40 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
       }
     }
   }, [session._id])
+  useEffect(() => {
+    if (!socket) return
 
+    const handleTeacherMessage = (data: any) => {
+      if (data.session_id === session?._id) {
+        // Show more prominent toast notification
+        toast.info(`Tin nhắn từ giáo viên: ${data.message}`, {
+          duration: 8000, // Show for longer (8 seconds)
+          style: {
+            backgroundColor: '#EBF5FF', // Light blue background
+            color: '#1E40AF', // Dark blue text
+            border: '1px solid #93C5FD', // Blue border
+            padding: '16px',
+            fontWeight: 'bold'
+          },
+          icon: '📢' // Add an icon
+        })
+
+        // Play a notification sound if available
+        try {
+          const notificationSound = new Audio('./notification.mp3')
+          notificationSound.play().catch((e) => console.error('Could not play notification sound', e))
+        } catch (error) {
+          console.log('Audio notification not supported')
+        }
+      }
+    }
+
+    socket.on('teacher_message', handleTeacherMessage)
+
+    return () => {
+      socket.off('teacher_message', handleTeacherMessage)
+    }
+  }, [socket, session])
   // Set up visibility change detection (tab switching)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -224,6 +286,30 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
     onSubmit(session._id, formattedAnswers)
   }
 
+  // Submit exam and redirect to home
+  const handleSubmitAndRedirect = () => {
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+    const formattedAnswers = Object.entries(answers).map(([questionId, selectedIndex]) => ({
+      question_id: questionId,
+      selected_index: selectedIndex
+    }))
+
+    // Notify server that exam is being submitted
+    if (socket && socket.connected) {
+      socket.emit('exam_submitted', session._id)
+    }
+
+    // Submit and then redirect
+    onSubmit(session._id, formattedAnswers)
+
+    // Redirect to home after a short delay
+    setTimeout(() => {
+      navigate('/student', { replace: true })
+    }, 1500)
+  }
+
   const handleSubmitClick = () => {
     // Check if all questions have been answered
     const answeredCount = Object.keys(answers).length
@@ -307,7 +393,6 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
         socket={socket}
         requireWebcam={securityLevel === 'high'}
       />
-
       <RemoteAccessDetector
         sessionId={session._id}
         socket={socket}
@@ -349,10 +434,8 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
       />
       {/* Timer */}
       <ExamTimer remainingTime={timeLeft} onTimeUp={handleTimeUp} enabled={true} />
-
       {/* Violation Warning */}
       {hasViolation && <ViolationWarning count={violations.length} onDismiss={() => setHasViolation(false)} />}
-
       {/* Teacher Messages button */}
       <div className='fixed top-4 left-24 z-50'>
         <button
@@ -369,7 +452,31 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
           Messages {teacherMessages.length > 0 && `(${teacherMessages.length})`}
         </button>
       </div>
-
+      // Replace with enhanced version:
+      <div className='fixed top-4 left-24 z-50'>
+        <button
+          onClick={toggleMessages}
+          className={`flex items-center rounded-md px-3 py-2 text-sm font-medium ${
+            hasNewMessage
+              ? 'bg-blue-600 text-white animate-bounce shadow-lg border-2 border-blue-300'
+              : showMessages
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-white text-gray-700 border border-gray-300'
+          } shadow-sm hover:bg-blue-50`}
+        >
+          <MessageSquare className={`${hasNewMessage ? 'h-5 w-5 mr-2' : 'h-4 w-4 mr-2'}`} />
+          {hasNewMessage && !showMessages && (
+            <div className='fixed top-16 left-24 z-50 bg-blue-100 shadow-lg rounded-lg p-3 border-l-4 border-blue-500 max-w-xs animate-fade-in'>
+              <div className='flex'>
+                <MessageSquare className='h-5 w-5 text-blue-500 mr-2' />
+                <p className='text-sm text-blue-800'>
+                  Bạn có tin nhắn mới từ giáo viên! Nhấp vào nút "Tin nhắn" để xem.
+                </p>
+              </div>
+            </div>
+          )}
+        </button>
+      </div>
       {/* Teacher Messages panel */}
       {showMessages && (
         <div className='fixed top-16 left-4 z-50 bg-white shadow-lg rounded-lg w-80 max-h-96 overflow-y-auto'>
@@ -395,7 +502,6 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
           </div>
         </div>
       )}
-
       {/* Main Content */}
       <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16'>
         <div className='mb-8'>
