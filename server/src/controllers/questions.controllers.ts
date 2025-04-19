@@ -122,3 +122,20 @@ export const deleteQuestionController = async (req: Request, res: Response) => {
     })
   }
 }
+export const DeleteAllQuestionWithTeacher = async (req: Request, res: Response) => {
+  const { user_id } = req.decode_authorization as TokenPayload
+
+  try {
+    const result = await questionService.DeleteAllQuestions(user_id)
+
+    res.json({
+      message: 'All questions deleted successfully',
+      result: result
+    })
+  } catch (error) {
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      message: 'Failed to delete all questions',
+      error: error
+    })
+  }
+}

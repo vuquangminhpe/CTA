@@ -3,7 +3,8 @@ import {
   createQuestionController,
   getQuestionsController,
   updateQuestionController,
-  deleteQuestionController
+  deleteQuestionController,
+  DeleteAllQuestionWithTeacher
 } from '../controllers/questions.controllers'
 import { AccessTokenValidator, verifiedUserValidator } from '../middlewares/users.middlewares'
 import { teacherRoleValidator } from '../middlewares/role.middlewares'
@@ -23,5 +24,5 @@ questionsRouter.post('/', createQuestionValidator, wrapAsync(createQuestionContr
 questionsRouter.get('/', wrapAsync(getQuestionsController))
 questionsRouter.put('/:id', createQuestionValidator, wrapAsync(updateQuestionController))
 questionsRouter.delete('/:id', wrapAsync(deleteQuestionController))
-
+questionsRouter.delete('/all/delete_questions', wrapAsync(DeleteAllQuestionWithTeacher))
 export default questionsRouter

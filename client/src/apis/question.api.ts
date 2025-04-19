@@ -25,7 +25,8 @@ const questionApi = {
   updateQuestion: (id: string, body: CreateQuestionRequest) =>
     http.put<SuccessResponse<Question>>(`/api/questions/${id}`, body),
 
-  deleteQuestion: (id: string) => http.delete<SuccessResponse<{ message: string }>>(`/api/questions/${id}`)
+  deleteQuestion: (id: string) => http.delete<SuccessResponse<{ message: string }>>(`/api/questions/${id}`),
+  delete_all_questions: () => http.delete<SuccessResponse<{ message: string }>>(`/api/questions/all/delete_questions`)
 }
 
 export default questionApi

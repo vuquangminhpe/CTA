@@ -73,6 +73,14 @@ class QuestionService {
 
     return questions
   }
+  async DeleteAllQuestions(teacher_id: string) {
+    // Delete all questions for a specific teacher
+    const result = await databaseService.questions.deleteMany({
+      teacher_id: new ObjectId(teacher_id)
+    })
+
+    return result.deletedCount > 0
+  }
 }
 
 const questionService = new QuestionService()
