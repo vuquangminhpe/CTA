@@ -12,6 +12,7 @@ interface Exam {
   start_time?: string
   created_at: string
   active: boolean
+  expired?: boolean
 }
 
 interface Question {
@@ -148,6 +149,30 @@ interface CreateMasterExamRequest {
   start_time?: string
   end_time?: string
 }
+interface MasterExam {
+  _id: string
+  name: string
+  description?: string
+  exam_period?: string
+  start_time?: string
+  end_time?: string
+  teacher_id: string
+  created_at: string
+  updated_at: string
+  active: boolean
+  examStatus?: {
+    total: number
+    active: number
+  }
+}
+
+interface UpdateExamStatusRequest {
+  active?: boolean
+  start_time?: string | null
+  duration?: number
+  expired?: boolean
+}
+
 const examApi = {
   generateExam: (body: GenerateExamRequest) =>
     http.post<SuccessResponse<QRCodeResponse[]>>('/api/exams/generate', body),
@@ -184,8 +209,7 @@ const examApi = {
   getMasterExams: () => http.get<SuccessResponse<MasterExam[]>>('/api/exams/idea/master'),
 
   // Get a specific master exam by ID
-  getMasterExamById: (masterExamId: string) =>
-    http.get<SuccessResponse<MasterExam>>(`/api/exams/idea/master/${masterExamId}`),
+  getMasterExamById: (masterExamId: string) => http.get<SuccessResponse<any>>(`/api/exams/idea/master/${masterExamId}`),
 
   // Get all exams associated with a master exam
   getExamsByMasterExamId: (masterExamId: string) =>
@@ -200,7 +224,14 @@ const examApi = {
     http.get<SuccessResponse<ClassExamResult[]>>(
       `/api/exams/idea/master/${masterExamId}/classes/${encodeURIComponent(className)}/results`,
       { params }
-    )
+    ),
+
+  // New methods for our requirements
+  toggleMasterExamStatus: (masterExamId: string, active: boolean) =>
+    http.put<SuccessResponse<any>>(`/api/exams/idea/master/${masterExamId}/toggle-status`, { active }),
+
+  deleteMasterExam: (masterExamId: string) =>
+    http.delete<SuccessResponse<{ message: string }>>(`/api/exams/idea/master/${masterExamId}`)
 }
 
 export default examApi
