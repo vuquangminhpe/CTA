@@ -1,10 +1,8 @@
 import './App.css'
-import { ToastContainer } from 'react-toastify'
 import { useContext, useEffect } from 'react'
 import { HelmetProvider } from 'react-helmet-async'
 import { AppContext } from './Contexts/app.context'
 import { getProfileFormLS, localStorageEventTarget } from './utils/auth'
-import { Toaster } from 'sonner'
 import socket from './utils/socket'
 import AppRouter from './routes'
 
@@ -29,8 +27,6 @@ function App() {
   return (
     <HelmetProvider>
       <AppRouter />
-      <ToastContainer />
-      <Toaster />
     </HelmetProvider>
   )
 }

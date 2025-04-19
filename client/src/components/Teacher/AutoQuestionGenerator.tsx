@@ -7,6 +7,7 @@ import http from '../../utils/http'
 interface AutoQuestionGeneratorProps {
   onGenerate: (formattedQuestions: string, correctAnswers: Record<number, number>) => void
   onCancel: () => void
+  exam_id?: string
 }
 
 interface GeminiResponse {
@@ -21,12 +22,16 @@ interface GeminiResponse {
   }
 }
 
-const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerate, onCancel }) => {
+const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerate, onCancel, exam_id }) => {
   const [count, setCount] = useState(5)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleGenerate = async () => {
     try {
+      if (!exam_id && exam_id === '') {
+        toast.error('Vui lòng chọn một bài kiểm tra để tạo câu hỏi.')
+        return
+      }
       setIsLoading(true)
       toast.loading('Đang tạo câu hỏi...')
 
@@ -188,7 +193,7 @@ const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerat
       <div className='px-6 py-4 bg-blue-600 text-white flex justify-between items-center'>
         <h3 className='text-lg font-medium'>Tự động tạo câu hỏi</h3>
         <button onClick={onCancel} className='text-white hover:text-white/60 focus:outline-none'>
-          <X className='h-5 w-5' />
+          <X className='h-5 w-5 text-black' />
         </button>
       </div>
 

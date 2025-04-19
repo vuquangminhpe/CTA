@@ -96,6 +96,10 @@ const TeacherDashboard = () => {
       toast.success('Câu hỏi được tạo thành công')
       fetchQuestions()
     } catch (error) {
+      if (!master_examId && master_examId === '') {
+        toast.error('Vui lòng chọn kỳ thi trước khi tạo câu hỏi')
+        return
+      }
       console.error('Error creating question:', error)
       toast.error('Failed to create question')
     }

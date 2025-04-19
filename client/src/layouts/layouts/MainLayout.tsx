@@ -9,7 +9,7 @@ const MainLayout = () => {
       <main>
         <Outlet />
       </main>
-      <Toaster position='top-right' closeButton />
+      <Toaster position='top-right' />
     </div>
   )
 }
