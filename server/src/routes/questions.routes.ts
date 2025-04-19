@@ -21,7 +21,7 @@ questionsRouter.use(teacherRoleValidator)
 
 // Routes
 questionsRouter.post('/', createQuestionValidator, wrapAsync(createQuestionController))
-questionsRouter.get('/', wrapAsync(getQuestionsController))
+questionsRouter.post('/all/getQuestions', wrapAsync(getQuestionsController))
 questionsRouter.put('/:id', createQuestionValidator, wrapAsync(updateQuestionController))
 questionsRouter.delete('/:id', wrapAsync(deleteQuestionController))
 questionsRouter.delete('/all/delete_questions', wrapAsync(DeleteAllQuestionWithTeacher))

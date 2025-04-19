@@ -1,14 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import examApi from '../../apis/exam.api'
 
 const QuestionForm = ({ onSubmit, initialData = null, onCancel }: any) => {
   const [question, setQuestion] = useState({
     content: initialData?.content || '',
     answers: initialData?.answers || ['', ''],
-    correct_index: initialData?.correct_index || 0
+    correct_index: initialData?.correct_index || 0,
+    master_exam_id: initialData?.master_exam_id || ''
   })
-
+  const { data: dataExams } = useQuery({
+    queryKey: ['dataExams'],
+    queryFn: () => examApi.getMasterExams()
+  })
+  const dataExam = dataExams?.data?.result || []
+  const handleSelectMasterId = (master_exams_id: string) => {
+    setQuestion({ ...question, master_exam_id: master_exams_id })
+  }
   const handleContentChange = (e: any) => {
     setQuestion({ ...question, content: e.target.value })
   }
@@ -58,12 +68,12 @@ const QuestionForm = ({ onSubmit, initialData = null, onCancel }: any) => {
 
     // Validate
     if (!question.content.trim()) {
-      alert('Please enter a question')
+      alert('Vui lòng nhập câu hỏi')
       return
     }
 
     if (question.answers.some((answer: any) => !answer.trim())) {
-      alert('All answers must have content')
+      alert('Tất cả các câu trả lời phải có nội dung')
       return
     }
 
@@ -73,14 +83,33 @@ const QuestionForm = ({ onSubmit, initialData = null, onCancel }: any) => {
   return (
     <div className='bg-white shadow sm:rounded-lg'>
       <div className='px-4 py-5 sm:p-6'>
+        <div className='flex items-center justify-between'>
+          <label htmlFor='master_exam_id' className='block text-sm font-medium text-gray-700'>
+            Hãy chọn xem câu hỏi này thuộc kỳ thi nào
+          </label>
+          <select
+            id='master_exam_id'
+            name='master_exam_id'
+            value={question.master_exam_id}
+            onChange={(e) => handleSelectMasterId(e.target.value)}
+            className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
+          >
+            <option value=''>Chọn kỳ thi</option>
+            {dataExam.map((exam: any) => (
+              <option key={exam._id} value={exam._id}>
+                {exam.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <h3 className='text-lg font-medium leading-6 text-gray-900'>
-          {initialData ? 'Edit Question' : 'Create New Question'}
+          {initialData ? 'Chỉnh sửa câu hỏi' : 'Tạo câu hỏi mới'}
         </h3>
 
         <form onSubmit={handleSubmit} className='mt-5 space-y-6'>
           <div>
             <label htmlFor='content' className='block text-sm font-medium text-gray-700'>
-              Question
+              Câu hỏi
             </label>
             <textarea
               id='content'
@@ -89,14 +118,14 @@ const QuestionForm = ({ onSubmit, initialData = null, onCancel }: any) => {
               value={question.content}
               onChange={handleContentChange}
               className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-              placeholder='Enter your question here'
+              placeholder='Nhập câu hỏi của bạn vào đây'
               required
             />
           </div>
 
           <div className='space-y-4'>
             <div className='flex items-center justify-between'>
-              <label className='block text-sm font-medium text-gray-700'>Answers</label>
+              <label className='block text-sm font-medium text-gray-700'>Câu trả lời</label>
               <button
                 type='button'
                 onClick={addAnswer}
@@ -124,7 +153,7 @@ const QuestionForm = ({ onSubmit, initialData = null, onCancel }: any) => {
                     value={answer}
                     onChange={(e) => handleAnswerChange(index, e.target.value)}
                     className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-                    placeholder={`Answer ${index + 1}`}
+                    placeholder={`Trả lời ${index + 1}`}
                     required
                   />
                 </div>
@@ -137,7 +166,7 @@ const QuestionForm = ({ onSubmit, initialData = null, onCancel }: any) => {
                 </button>
               </div>
             ))}
-            <p className='mt-2 text-sm text-gray-500'>Select the radio button next to the correct answer.</p>
+            <p className='mt-2 text-sm text-gray-500'>Chọn nút radio bên cạnh câu trả lời đúng.</p>
           </div>
 
           <div className='flex justify-end space-x-3'>
@@ -146,13 +175,13 @@ const QuestionForm = ({ onSubmit, initialData = null, onCancel }: any) => {
               onClick={onCancel}
               className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
             >
-              Cancel
+              Hủy bỏ
             </button>
             <button
               type='submit'
               className='inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
             >
-              {initialData ? 'Save Changes' : 'Create Question'}
+              {initialData ? 'Lưu thay đổi' : 'Tạo câu hỏi'}
             </button>
           </div>
         </form>

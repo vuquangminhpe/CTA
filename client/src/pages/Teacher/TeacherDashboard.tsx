@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
 }
@@ -42,6 +42,7 @@ const TeacherDashboard = () => {
   const [qrCodes, setQrCodes] = useState<any>([])
   const [examTitle, setExamTitle] = useState<any>('')
   const [isMasterExamFormOpen, setIsMasterExamFormOpen] = useState(false)
+  const [master_examId, setMasterExamId] = useState<string>('')
 
   useEffect(() => {
     // This condition determines when to refresh - modify as needed
@@ -59,12 +60,17 @@ const TeacherDashboard = () => {
   useEffect(() => {
     fetchQuestions()
   }, [])
-
+  const { data: dataExams } = useQuery({
+    queryKey: ['dataExams'],
+    queryFn: () => examApi.getMasterExams()
+  })
+  const dataExam = dataExams?.data?.result || []
   const fetchQuestions = async () => {
     try {
       setIsLoading(true)
-      const response = await questionApi.getQuestions()
+      const response = await questionApi.getQuestions(master_examId)
       setQuestions(response.data.result as any)
+      console.log(questions)
     } catch (error) {
       console.error('Error fetching questions:', error)
       toast.error('Failed to load questions')
@@ -295,6 +301,27 @@ const TeacherDashboard = () => {
               <div className='space-y-6'>
                 <div className='flex justify-between items-center'>
                   <h2 className='text-lg font-medium text-gray-900'>Ngân hàng câu hỏi</h2>
+                  <div className='relative'>
+                    <select
+                      id='master_exam_id'
+                      name='master_exam_id'
+                      value={master_examId}
+                      onChange={(e) => {
+                        setMasterExamId(e.target.value)
+                        fetchQuestions()
+                      }}
+                      className='block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm transition-colors bg-white'
+                    >
+                      <option value=''>-- Chọn kỳ thi --</option>
+
+                      {dataExam.map((exam: any) => (
+                        <option key={exam._id} value={exam._id}>
+                          {exam.name} {exam.exam_period ? `(${exam.exam_period})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className='flex space-x-3 w-full justify-end'>
                     <AlertDialog>
                       <AlertDialogTrigger className='bg-white border border-red-100'>
@@ -346,6 +373,7 @@ const TeacherDashboard = () => {
                       <FileText className='mr-2 -ml-1 h-5 w-5' />
                       Nhập số lượng lớn câu hỏi
                     </button>
+
                     <button
                       onClick={() => {
                         setIsFormOpen(true)

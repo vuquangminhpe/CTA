@@ -1,15 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-useless-escape */
 import React, { useState, useEffect, useContext } from 'react'
-import { FileText, Check, AlertTriangle, HelpCircle, X, Wand2 } from 'lucide-react'
+import { FileText, Check, AlertTriangle, HelpCircle, X, Wand2, BookOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import AutoQuestionGenerator from './AutoQuestionGenerator'
 import { AppContext } from '../../Contexts/app.context'
+import examApi from '../../apis/exam.api'
+import { useQuery } from '@tanstack/react-query'
 
 interface Question {
   content: string
   answers: string[]
   correct_index: number
+  master_exam_id: string
 }
 
 interface BulkQuestionImportProps {
@@ -25,8 +28,8 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
   const [parseError, setParseError] = useState<string | null>(null)
   const [selectedCorrectAnswers, setSelectedCorrectAnswers] = useState<Record<number, number>>({})
   const [isAutoGeneratorOpen, setIsAutoGeneratorOpen] = useState(false)
+  const [master_exam_id, setMasterExamId] = useState('')
 
-  // Parse the raw text into questions whenever it changes
   useEffect(() => {
     if (!rawText.trim()) {
       setParsedQuestions([])
@@ -77,7 +80,8 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
         questions[currentQuestionIndex] = {
           content: line.replace(/^(câu|question)\s*\d+[\.\:]?\s*/i, '').trim(),
           answers: [],
-          correct_index: 1 // Default to first answer
+          correct_index: 1,
+          master_exam_id
         }
 
         // If the question content is empty, use the entire line
@@ -108,6 +112,11 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
 
     return questions
   }
+  const { data: dataExams } = useQuery({
+    queryKey: ['dataExams'],
+    queryFn: () => examApi.getMasterExams()
+  })
+  const dataExam = dataExams?.data?.result || []
 
   // Handle correct answer selection
   const handleCorrectAnswerChange = (questionIndex: number, answerIndex: number) => {
@@ -201,6 +210,35 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
                     <HelpCircle className='h-4 w-4 mr-1' />
                     Xem ví dụ
                   </button>
+                  <div className='mb-4'>
+                    <div className='flex items-center mb-1.5'>
+                      <BookOpen className='h-4 w-4 text-gray-500 mr-2' />
+                      <label htmlFor='master_exam_id' className='block text-sm font-medium text-gray-700'>
+                        Kỳ thi áp dụng
+                      </label>
+                    </div>
+
+                    <div className='relative'>
+                      <select
+                        id='master_exam_id'
+                        name='master_exam_id'
+                        value={master_exam_id}
+                        onChange={(e) => setMasterExamId(e.target.value)}
+                        className='block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm transition-colors bg-white'
+                      >
+                        <option value=''>-- Chọn kỳ thi --</option>
+                        {dataExam.map((exam: any) => (
+                          <option key={exam._id} value={exam._id}>
+                            {exam.name} {exam.exam_period ? `(${exam.exam_period})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <p className='mt-1 text-xs text-gray-500'>
+                      Câu hỏi này sẽ được áp dụng cho kỳ thi được chọn và các báo cáo liên quan
+                    </p>
+                  </div>
                   {profile?.username === 'nguyentuananh' && (
                     <button
                       type='button'

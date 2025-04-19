@@ -15,10 +15,12 @@ interface CreateQuestionRequest {
   content: string
   answers: string[]
   correct_index: number
+  master_exam_id: string
 }
 
 const questionApi = {
-  getQuestions: () => http.get<SuccessResponse<Question[]>>('/api/questions'),
+  getQuestions: (master_exam_id?: string) =>
+    http.post<SuccessResponse<Question[]>>(`/api/questions/all/getQuestions`, { master_exam_id }),
 
   createQuestion: (body: CreateQuestionRequest) => http.post<SuccessResponse<Question>>('/api/questions', body),
 

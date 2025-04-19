@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Edit, Trash2, Check } from 'lucide-react'
+import { Edit, Trash2, Check, BookOpen, Calendar } from 'lucide-react'
 
 const QuestionList = ({ questions, onEdit, onDelete }: any) => {
   if (!questions || questions.length === 0) {
@@ -33,6 +33,22 @@ const QuestionList = ({ questions, onEdit, onDelete }: any) => {
             <div className='px-4 py-5 sm:px-6'>
               <div className='flex items-start justify-between'>
                 <div className='flex-1'>
+                  <div className='flex items-center text-xs text-gray-500 mb-2'>
+                    <BookOpen className='h-3.5 w-3.5 text-blue-500 mr-1.5' />
+                    <span className='font-medium text-gray-600'>Thuộc:</span>
+                    <span className='ml-1 mr-2'>{question.exam_name || 'Chưa phân loại'}</span>
+
+                    {question.exam_period && (
+                      <>
+                        <span className='h-1 w-1 rounded-full bg-gray-300 mx-2'></span>
+                        <Calendar className='h-3.5 w-3.5 text-blue-500 mr-1.5' />
+                        <span className='font-medium text-gray-600'>Mùa thi:</span>
+                        <span className='ml-1 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-full'>
+                          {question.exam_period}
+                        </span>
+                      </>
+                    )}
+                  </div>
                   <h4 className='text-lg font-medium text-gray-900'>{question.content}</h4>
                   <ul className='mt-3 space-y-2'>
                     {question.answers.map((answer: any, index: any) => (
