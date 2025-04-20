@@ -173,7 +173,7 @@ const ClassResultsList: React.FC = () => {
     const csvData = filteredResults.map((student) => ({
       'Tên học sinh': student.student_name,
       'Tên người dùng': student.student_username,
-      Điểm: student.completed ? student.score : 'N/A',
+      Điểm: student.completed ? student.score / 10 : '',
       'Lỗi vi phạm': student.violations,
       'Thời gian làm bài': calculateTimeSpent(student.start_time, student.end_time, student.exam_duration),
       'Hoàn thành': student.completed ? 'Đã hoàn thành' : 'Chưa hoàn thành',
@@ -269,7 +269,7 @@ const ClassResultsList: React.FC = () => {
               <div className='ml-5 w-0 flex-1'>
                 <dl>
                   <dt className='text-sm font-medium text-gray-500 truncate'>Điểm trung bình</dt>
-                  <dd className='text-lg font-medium text-gray-900'>{stats.averageScore}%</dd>
+                  <dd className='text-lg font-medium text-gray-900'>{stats.averageScore / 10}</dd>
                 </dl>
               </div>
             </div>
@@ -417,7 +417,7 @@ const ClassResultsList: React.FC = () => {
                                 : 'text-red-600'
                           }`}
                         >
-                          {result.completed ? `${safeRender(result.score)}%` : 'N/A'}
+                          {result.completed ? `${safeRender(result.score) / 10}` : 'Học sinh chưa hoàn thành'}
                         </div>
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap'>
