@@ -220,7 +220,7 @@ const ClassExamResults = () => {
         [
           `"${student.student_name}"`,
           `"${student.student_username}"`,
-          student.score,
+          student.score / 10,
           student.violations,
           calculateTimeSpent(student.start_time, student.end_time),
           student.completed ? 'Đã hoàn thành' : 'Chưa hoàn thành',
@@ -323,7 +323,7 @@ const ClassExamResults = () => {
               <div className='ml-5 w-0 flex-1'>
                 <dl>
                   <dt className='text-sm font-medium text-gray-500 truncate'>Điểm trung bình</dt>
-                  <dd className='text-lg font-medium text-gray-900'>{stats.averageScore}%</dd>
+                  <dd className='text-lg font-medium text-gray-900'>{stats.averageScore / 10}</dd>
                 </dl>
               </div>
             </div>
@@ -468,7 +468,7 @@ const ClassExamResults = () => {
                                 : 'text-red-600'
                           }`}
                         >
-                          {student.completed ? `${student.score}%` : 'N/A'}
+                          {student.completed ? `${student.score / 10}` : 'Chưa có điểm của học sinh'}
                         </div>
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap'>
