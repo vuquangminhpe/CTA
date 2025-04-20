@@ -62,7 +62,6 @@ export const useExamProtection = (enabled: boolean = true, userData?: { name?: s
     let devToolsOpened = false
     const checkDevTools = () => {
       const startTime = performance.now()
-      console.log('%c', 'font-size:0;')
       const endTime = performance.now()
 
       // If console is open, the time difference will be significant

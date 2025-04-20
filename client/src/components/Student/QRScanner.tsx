@@ -73,7 +73,6 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan }) => {
             config,
             (decodedText) => {
               // Thành công
-              console.log(`QR code detected: ${decodedText}`)
               setDebug((prev) => `${prev}\nĐã quét được: ${decodedText}`)
               try {
                 // Cố gắng parse dưới dạng JSON
@@ -86,8 +85,6 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan }) => {
                     setError('Định dạng mã QR không hợp lệ (JSON thiếu exam_code)')
                   }
                 } catch (e: any) {
-                  console.log(e)
-
                   // Nếu không phải JSON, thử sử dụng trực tiếp chuỗi
                   if (decodedText && typeof decodedText === 'string' && decodedText.length > 3) {
                     stopScanner()
@@ -103,7 +100,6 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan }) => {
             },
             (errorMessage) => {
               // Xử lý lỗi quét nhưng không dừng scanner
-              console.log(`QR code scan error: ${errorMessage}`)
             }
           )
           .catch((err: any) => {

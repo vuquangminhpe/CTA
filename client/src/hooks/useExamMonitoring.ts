@@ -80,7 +80,6 @@ const useExamMonitoring = (examId: string) => {
 
     // Set up event handlers
     socket.on('connect', () => {
-      console.log('Socket connected for monitoring')
       setData((prev) => ({ ...prev, isConnected: true, error: null }))
 
       // Join monitoring room for this exam
@@ -91,7 +90,6 @@ const useExamMonitoring = (examId: string) => {
     })
 
     socket.on('disconnect', () => {
-      console.log('Socket disconnected')
       setData((prev) => ({ ...prev, isConnected: false }))
     })
 

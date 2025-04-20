@@ -33,15 +33,6 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
     const userAgent = navigator.userAgent.toLowerCase()
     const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
     setIsMobile(isMobileDevice)
-
-    // Log device information
-    console.log('Device detection:', {
-      userAgent,
-      isMobile: isMobileDevice,
-      platform: navigator.platform,
-      screenWidth: window.screen.width,
-      screenHeight: window.screen.height
-    })
   }, [enabled])
 
   // DESKTOP-SPECIFIC IMPLEMENTATION
@@ -263,8 +254,6 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
 
     // DETECTION METHOD 5: Direct keyboard monitoring for advanced screenshot tools
     const monitorKeyboard = () => {
-      console.log('Screenshot keyboard monitoring activated')
-
       // Các phím tắt chụp màn hình thường dùng
       const screenshotShortcuts = [
         { ctrl: true, shift: true, key: 's' }, // Ctrl+Shift+S (Windows Snipping Tool)
@@ -275,21 +264,7 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
         { meta: true, shift: true, key: '5' } // Cmd+Shift+5 (macOS)
       ]
 
-      const debugMode = true // Enable for troubleshooting
-
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (debugMode) {
-          console.log('Key detected:', {
-            key: e.key,
-            keyCode: e.keyCode,
-            code: e.code,
-            ctrl: e.ctrlKey,
-            shift: e.shiftKey,
-            meta: e.metaKey,
-            alt: e.altKey
-          })
-        }
-
         // Kiểm tra từng phím tắt chụp màn hình
         for (const shortcut of screenshotShortcuts) {
           if (
@@ -299,7 +274,6 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
             ((shortcut as any).alt === undefined || (shortcut as any).alt === e.altKey) &&
             e.key.toLowerCase() === shortcut.key.toLowerCase()
           ) {
-            console.log('Screenshot shortcut detected:', shortcut)
             e.preventDefault()
             e.stopPropagation()
             triggerDetection('keyboard_shortcut')
@@ -316,7 +290,6 @@ const ScreenCaptureDetector: React.FC<Props> = ({ onScreenCaptureDetected, enabl
           // Firefox Screenshots
           (e.ctrlKey && e.shiftKey && (e.key === 'y' || e.key === 'Y'))
         ) {
-          console.log('Alternative screen capture shortcut detected')
           e.preventDefault()
           e.stopPropagation()
           triggerDetection('keyboard_shortcut')

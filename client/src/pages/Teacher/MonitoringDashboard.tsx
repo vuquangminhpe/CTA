@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -112,7 +113,6 @@ const MonitoringDashboard = () => {
 
   // Initialize socket connection - Este useEffect se ejecuta solo una vez
   useEffect(() => {
-    console.log('Initializing socket connection')
     const token = localStorage.getItem('access_token')
 
     // Función para crear y configurar el socket
@@ -136,7 +136,6 @@ const MonitoringDashboard = () => {
 
       // Configurar eventos
       newSocket.on('connect', () => {
-        console.log('Socket connected for global monitoring')
         setIsConnected(true)
         setIsLoading(false)
         // Solicitar datos iniciales
@@ -144,18 +143,15 @@ const MonitoringDashboard = () => {
       })
 
       newSocket.on('disconnect', () => {
-        console.log('Socket disconnected')
         setIsConnected(false)
       })
 
       newSocket.on('connect_error', (error: any) => {
-        console.error('Socket connection error:', error)
         setIsLoading(false)
       })
 
       // Manejar datos de todas las sesiones activas
       newSocket.on('all_active_sessions', (data: { sessions: StudentSession[]; violations: Violation[] }) => {
-        console.log('Received all_active_sessions event:', data)
 
         if (!data) return
 
@@ -185,7 +181,6 @@ const MonitoringDashboard = () => {
 
       // Manejar nuevo estudiante uniéndose a un examen
       newSocket.on('student_joined', (data: any) => {
-        console.log('Received student_joined event:', data)
 
         if (!data || !data.session_id) return
 
@@ -221,7 +216,6 @@ const MonitoringDashboard = () => {
 
       // Manejar desconexión de estudiante
       newSocket.on('student_disconnected', (data: any) => {
-        console.log('Received student_disconnected event:', data)
 
         if (!data || !data.session_id) return
 
@@ -236,7 +230,6 @@ const MonitoringDashboard = () => {
 
       // Manejar envío de examen
       newSocket.on('student_submitted', (data: any) => {
-        console.log('Received student_submitted event:', data)
 
         if (!data || !data.session_id) return
 
@@ -274,7 +267,6 @@ const MonitoringDashboard = () => {
 
       // Manejar nuevas violaciones
       newSocket.on('violation_recorded', (data: any) => {
-        console.log('Received violation_recorded event:', data)
 
         if (!data || !data.session_id) return
 
@@ -328,7 +320,6 @@ const MonitoringDashboard = () => {
 
     // Limpiar al desmontar
     return () => {
-      console.log('Cleaning up socket connection')
       if (socket) {
         // Eliminar todos los listeners
         socket.off('connect')
@@ -348,12 +339,10 @@ const MonitoringDashboard = () => {
 
   // Configurar actualización periódica cada 15 segundos
   useEffect(() => {
-    console.log('Setting up periodic refresh')
 
     // Función para solicitar datos
     const refreshData = () => {
       if (socketRef.current && socketRef.current.connected) {
-        console.log('Requesting fresh data from server')
         socketRef.current.emit('get_all_active_sessions')
       }
     }
@@ -363,7 +352,6 @@ const MonitoringDashboard = () => {
 
     // Limpiar al desmontar
     return () => {
-      console.log('Clearing periodic refresh')
       clearInterval(intervalId)
     }
   }, [])
@@ -517,7 +505,6 @@ const MonitoringDashboard = () => {
 
     // Clean up on unmount
     return () => {
-      console.log('Clearing auto refresh')
       clearTimeout(timeoutId)
       clearTimeout(recursiveTimeoutId)
     }

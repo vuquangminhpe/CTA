@@ -31,7 +31,6 @@ export const createQuestionController = async (req: Request, res: Response) => {
 export const getQuestionsController = async (req: Request, res: Response) => {
   const { user_id } = req.decode_authorization as TokenPayload
   const { master_exam_id } = req.body
-  console.log('getQuestionsController', user_id, master_exam_id)
 
   try {
     const questions = await questionService.getQuestionsByTeacher(user_id, master_exam_id?.toString())

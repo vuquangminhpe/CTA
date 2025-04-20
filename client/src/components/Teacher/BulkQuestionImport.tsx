@@ -167,9 +167,6 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
 
             // Now we can enter preview mode
             setIsPreviewMode(true)
-
-            console.log('Applying correct answers:', correctAnswers)
-            console.log('Parsed questions count:', questions.length)
           } else {
             toast.error('Không thể phân tích câu hỏi. Vui lòng kiểm tra lại định dạng.')
           }

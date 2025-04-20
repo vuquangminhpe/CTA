@@ -55,7 +55,6 @@ const StudentDashboard = () => {
       toast.loading('Đang bắt đầu kỳ thi...')
 
       // Ghi log để debug
-      console.log('QR Code scanned:', examCode)
 
       // Clean up exam code (remove whitespace, etc)
       const cleanedCode = examCode.trim()
@@ -79,7 +78,7 @@ const StudentDashboard = () => {
         localStorage.setItem('last_exam_code', cleanedCode)
         localStorage.setItem('last_exam_time', new Date().toISOString())
       } catch (e) {
-        console.log('Could not save to localStorage', e)
+        // console.log('Could not save to localStorage', e)
       }
 
       // Chuyển hướng đến trang thi
@@ -129,7 +128,7 @@ const StudentDashboard = () => {
         }
       }
     } catch (e) {
-      console.log('Could not read from localStorage', e)
+      // console.error('Could not read from localStorage', e)
     }
   }, [])
 

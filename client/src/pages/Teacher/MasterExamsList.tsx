@@ -51,8 +51,6 @@ const MasterExamsList: React.FC = () => {
     try {
       setIsLoading(true)
       const response = await examApi.getMasterExams()
-      console.log(response)
-
       setMasterExams(response.data.result)
       setFilteredExams(response.data.result)
     } catch (error) {

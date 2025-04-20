@@ -55,7 +55,6 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
     })
 
     newSocket.on('connect', () => {
-      console.log('Socket connected')
       newSocket.emit('join_exam', session._id)
     })
 

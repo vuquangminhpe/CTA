@@ -45,18 +45,15 @@ const useSocketExam = (sessionId: unknown) => {
     if (!socket) return
 
     const handleConnect = () => {
-      console.log('Socket connected')
       setIsConnected(true)
       socket.emit('join_exam', sessionId)
     }
 
     const handleDisconnect = () => {
-      console.log('Socket disconnected')
       setIsConnected(false)
     }
 
     const handleConnectError = (err: any) => {
-      console.error('Socket connection error:', err)
       setIsConnected(false)
     }
 
@@ -74,7 +71,6 @@ const useSocketExam = (sessionId: unknown) => {
 
     // Add or update the teacher message handler
     const handleTeacherMessage = (data: any) => {
-      console.log('Teacher message received:', data)
       if (data.session_id === sessionId) {
         const newMessage = {
           message: data.message,

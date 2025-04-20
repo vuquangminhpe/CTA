@@ -387,7 +387,6 @@ const MobileScreenshotDetector: React.FC<MobileScreenshotDetectorProps> = ({
 
   // Handler for potential screenshots
   const handlePotentialScreenshot = (detectionMethod: string) => {
-    console.log(`Potential screenshot detected via ${detectionMethod}`)
 
     // Notify server about the detection
     if (socket && sessionId) {

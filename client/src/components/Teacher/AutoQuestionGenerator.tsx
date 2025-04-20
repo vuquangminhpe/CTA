@@ -184,7 +184,6 @@ const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerat
       mapping[index] = answerIndex
     })
 
-    console.log('Mapped answers:', mapping)
     return mapping
   }
 

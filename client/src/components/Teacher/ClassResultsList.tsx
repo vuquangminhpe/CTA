@@ -112,9 +112,6 @@ const ClassResultsList: React.FC = () => {
       const resultsData = response.data.result
       setResults(resultsData)
       setFilteredResults(resultsData)
-      console.log(results, 'filter', filteredResults)
-
-      console.log('Results data:', resultsData)
 
       // Calculate stats
       if (resultsData.length > 0) {
