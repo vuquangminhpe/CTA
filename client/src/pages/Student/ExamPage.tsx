@@ -1,6 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Cập nhật ExamPage.tsx để sử dụng ExamSessionContext
-
 import { useState, useEffect, useRef, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import ExamTimer from '../../components/Student/ExamTimer'
@@ -17,15 +16,11 @@ import './AntiScreenshot.css'
 import useExamProtection from '../../components/helper/ExamProtection'
 import MobileTabDetector from '../../components/Student/MobileTabDetector'
 import ConfirmDialog from '../../components/helper/ConfirmDialog'
-import { useExamSession } from '@/Contexts/exam-session.context'
 
 const ExamPage = () => {
   const { examCode } = useParams()
   const navigate = useNavigate()
   const { profile } = useContext(AuthContext) as any
-
-  // Sử dụng ExamSession context
-  const { markSessionActive, checkRefresh } = useExamSession()
 
   // Exam state
   const [session, setSession] = useState<any>(null)
@@ -43,13 +38,9 @@ const ExamPage = () => {
   const [confirmMessage, setConfirmMessage] = useState<string>('')
   const [confirmAction, setConfirmAction] = useState<() => void>(() => () => {})
   const [showMessages, setShowMessages] = useState(false)
-  const [violations, setViolations] = useState(0)
-
-  // Flag để kiểm soát refresh check
-  const hasCheckedRefreshRef = useRef(false)
-
   // Socket connection
   const { resetViolations, socket, teacherMessages, hasNewMessage, setHasNewMessage } = useSocketExam(session?._id)
+  const [violations, setViolations] = useState(0)
 
   // Enable exam protection
   useExamProtection(true, {
@@ -70,29 +61,6 @@ const ExamPage = () => {
       }
     }
   }, [examCode])
-
-  // Kiểm tra refresh sau khi session được tải
-  useEffect(() => {
-    if (session && !hasCheckedRefreshRef.current && !isLoading && !completed) {
-      // Đánh dấu là đã kiểm tra để không kiểm tra lại
-      hasCheckedRefreshRef.current = true
-
-      // Kiểm tra xem có phải trang đã bị làm mới không
-      const isRefreshed = checkRefresh(session._id)
-
-      if (isRefreshed) {
-        // Nếu trang đã bị làm mới, tự động nộp bài
-        handleSubmit()
-
-        // Tăng số lượng vi phạm
-        setViolations((prev) => prev + 1)
-        setShowViolationWarning(true)
-      } else {
-        // Nếu không phải làm mới, đánh dấu phiên này là đang hoạt động
-        markSessionActive(session._id)
-      }
-    }
-  }, [session, isLoading, completed, checkRefresh, markSessionActive])
 
   // Watch for violations
   useEffect(() => {
@@ -297,7 +265,6 @@ const ExamPage = () => {
         navigate('/student', { replace: true })
       })
   }
-
   function playBeep() {
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext
@@ -327,7 +294,6 @@ const ExamPage = () => {
       playBeep()
     }
   }, [hasNewMessage])
-
   const handleSubmitClick = () => {
     // Check if all questions have been answered
     const answeredCount = Object.keys(answers).length
@@ -382,7 +348,6 @@ const ExamPage = () => {
   // Main exam UI
   return (
     <div className='min-h-screen bg-gray-50 pb-16 exam-protected'>
-      {/* Screen Capture Detection */}
       <ScreenCaptureDetector
         onScreenCaptureDetected={handleScreenCaptureDetected}
         enabled={!completed}
