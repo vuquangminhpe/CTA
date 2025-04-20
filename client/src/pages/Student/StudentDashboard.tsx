@@ -201,7 +201,6 @@ const StudentDashboard = () => {
 
               <QRScanner onScan={handleScan} />
 
-              {/* Form nhập mã thủ công */}
               <div className='mt-8 border-t border-gray-200 pt-4'>
                 <h3 className='text-sm font-medium text-gray-700 mb-3'>Hoặc nhập mã kỳ thi thủ công:</h3>
                 <form onSubmit={handleManualCode} className='flex items-center space-x-2'>
