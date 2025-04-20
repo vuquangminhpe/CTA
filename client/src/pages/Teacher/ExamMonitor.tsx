@@ -11,7 +11,8 @@ import {
   RefreshCw,
   ArrowLeft,
   MessageSquare,
-  Shield
+  Shield,
+  ArrowRight
 } from 'lucide-react'
 import useExamMonitoring from '../../hooks/useExamMonitoring'
 import { formatDistance } from 'date-fns'
@@ -176,6 +177,13 @@ const ExamMonitor = () => {
         <div className='mt-4 flex md:mt-0 md:ml-4 space-x-3'>
           <button
             type='button'
+            onClick={() => window.history.back()}
+            className='inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+          >
+            <ArrowLeft className='h-4 w-4 mr-2' /> Quay lại kì thi chính
+          </button>
+          <button
+            type='button'
             onClick={handleRefresh}
             className='inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           >
@@ -186,7 +194,7 @@ const ExamMonitor = () => {
             onClick={() => navigate(`/teacher/exams/${examId}`)}
             className='inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           >
-            <ArrowLeft className='h-4 w-4 mr-2' /> Quay lại bài kiểm tra
+            <ArrowRight className='h-4 w-4 mr-2' /> Xem bài kiểm tra chi tiết
           </button>
         </div>
       </div>

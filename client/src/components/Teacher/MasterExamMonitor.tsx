@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import examApi from '../../apis/exam.api'
 import { useQuery } from '@tanstack/react-query'
+import { ArrowLeft } from 'lucide-react'
 
 const MasterExamMonitor = () => {
   const { masterExamId } = useParams()
@@ -86,8 +87,9 @@ const MasterExamMonitor = () => {
         <h2 className='text-lg font-medium text-gray-900'>Giám sát kỳ thi chính: {masterExam.name}</h2>
         <button
           onClick={() => navigate(`/teacher/master-exams/${masterExamId}`)}
-          className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+          className='inline-flex rounded-xl items-center px-4 py-2 bg-white border border-gray-300 shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200'
         >
+          <ArrowLeft className='mr-2 h-4 w-4 text-gray-500' />
           Trở về kỳ thi chính
         </button>
       </div>

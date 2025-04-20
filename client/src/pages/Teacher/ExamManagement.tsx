@@ -136,6 +136,12 @@ const ExamManagement = () => {
 
   return (
     <div className='max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8'>
+      <button
+        onClick={() => window.history.back()}
+        className=' right-0 mb-4 flex items-center text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors'
+      >
+        <ArrowLeft className='h-4 w-4 mr-1' /> Quay Lại
+      </button>
       <div className='bg-white shadow rounded-lg overflow-hidden'>
         <div className='px-4 py-5 sm:px-6 flex justify-between items-center'>
           <div>
@@ -151,7 +157,7 @@ const ExamManagement = () => {
               } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
             >
               <Power className='h-4 w-4 mr-1' />
-              {active ? 'Disable' : 'Enable'}
+              {active ? 'Đã tắt' : 'Đã bật'}
             </button>
             <button
               onClick={() => setShowSettings(!showSettings)}

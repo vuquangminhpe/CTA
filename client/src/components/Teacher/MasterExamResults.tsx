@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner'
 import examApi from '../../apis/exam.api'
 import { useQuery } from '@tanstack/react-query'
+import { ArrowLeft } from 'lucide-react'
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
@@ -199,8 +200,9 @@ const MasterExamResults = () => {
         <h2 className='text-lg font-medium text-gray-900'>Kết quả kỳ thi chính: {masterExam.name}</h2>
         <button
           onClick={() => navigate(`/teacher/master-exams/${masterExamId}`)}
-          className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+          className='inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200'
         >
+          <ArrowLeft className='mr-2 h-4 w-4 text-gray-500' />
           Trở về kỳ thi chính
         </button>
       </div>

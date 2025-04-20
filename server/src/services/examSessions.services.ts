@@ -14,23 +14,18 @@ class ExamSessionService {
       student_id: new ObjectId(student_id),
       completed: true
     })
+
     // Check if the exam is active
     if (!exam.active) {
       throw new Error('Bài kiểm tra này hiện đã bị vô hiệu hóa')
     }
-    if (exam._id.toString() === exams_session_student?.exam_id.toString()) {
-      throw new Error('Bạn đã làm bài kiểm tra này, nếu có sai sót hãy liên hệ với giáo viên')
-    }
 
     // Kiểm tra nếu kỳ thi đã kết thúc
-    if (exam.start_time && exam.duration) {
-      const examEndTime = new Date(exam.start_time.getTime() + exam.duration * 60 * 1000)
-      if (exams_session_student && new Date() > examEndTime) {
-        throw new ErrorWithStatus({
-          message: `Bạn đã làm bài kiểm tra trong kì thi ${exam.title.split('#')[0]}, nếu có sai sót hãy liên hệ với giáo viên`,
-          status: HTTP_STATUS.BAD_REQUEST
-        })
-      }
+    if (exams_session_student) {
+      throw new ErrorWithStatus({
+        message: `Bạn đã làm bài kiểm tra trong kì thi ${exam.title.split('#')[0]}. Nếu có sai sót hãy liên hệ với giáo viên`,
+        status: HTTP_STATUS.BAD_REQUEST
+      })
     }
 
     // Check if the current time is after the scheduled start time
