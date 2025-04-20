@@ -42,7 +42,10 @@ const ClassResultsList: React.FC = () => {
     tab_switch: 'Chuyển tab/ứng dụng',
     screen_capture: 'Chụp màn hình',
     sudden_disconnect: 'Mất kết nối đột ngột',
-    window_blur: 'Thoát khỏi cửa sổ thi'
+    window_blur: 'Thoát khỏi cửa sổ thi',
+    page_hide: 'Chụp ảnh trong quá trình thi',
+    extended_absence: 'Vắng mặt kéo dài',
+    other: 'Lỗi khác'
   }
 
   useEffect(() => {

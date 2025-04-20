@@ -33,11 +33,6 @@ const StudentResultDetail: React.FC<StudentResultDetailProps> = ({ examId, stude
       try {
         setIsLoading(true)
         const response = await examApi.getStudentViolations(examId, studentId)
-
-        // Log the full violations data to see what type is actually used
-        console.log('Violations data:', response.data.result)
-
-        // Rest of your code...
         const formattedViolations = Array.isArray(response.data.result)
           ? response.data.result.map((v: any) => ({
               _id: v._id.toString ? v._id.toString() : v._id,
@@ -88,7 +83,9 @@ const StudentResultDetail: React.FC<StudentResultDetailProps> = ({ examId, stude
       webcam_manipulation: 'Can thiệp webcam',
       high_risk_device: 'Thiết bị rủi ro cao',
       inactivity: 'Không hoạt động',
-      unusual_activity: 'Hoạt động bất thường'
+      unusual_activity: 'Hoạt động bất thường',
+      extended_absence: 'Vắng mặt kéo dài',
+      other: 'Lỗi khác'
     }
 
     return violationTypeMap[type] || type

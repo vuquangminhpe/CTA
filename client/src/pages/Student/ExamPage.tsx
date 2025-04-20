@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -15,6 +16,7 @@ import './AntiScreenshot.css'
 import useExamProtection from '../../components/helper/ExamProtection'
 import MobileTabDetector from '../../components/Student/MobileTabDetector'
 import ConfirmDialog from '../../components/helper/ConfirmDialog'
+import ExamCriticalViolationHandler from '../../components/helper/ExamCriticalViolationHandler'
 
 const ExamPage = () => {
   const { examCode } = useParams()
@@ -348,6 +350,16 @@ const ExamPage = () => {
   return (
     <div className='min-h-screen bg-gray-50 pb-16 exam-protected'>
       {/* Screen Capture Detection */}
+      <ExamCriticalViolationHandler
+        socket={socket}
+        session={session}
+        onViolation={(type, details) => {
+          setShowViolationWarning(true)
+          setViolations((prev) => prev + 1)
+        }}
+        handleSubmit={handleSubmit}
+        isCompleted={completed}
+      />
       <ScreenCaptureDetector
         onScreenCaptureDetected={handleScreenCaptureDetected}
         enabled={!completed}

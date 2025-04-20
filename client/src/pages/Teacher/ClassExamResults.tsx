@@ -48,7 +48,9 @@ const violationTypeMap: Record<string, string> = {
   webcam_manipulation: 'Can thiệp webcam',
   high_risk_device: 'Thiết bị rủi ro cao',
   inactivity: 'Không hoạt động',
-  unusual_activity: 'Hoạt động bất thường'
+  unusual_activity: 'Hoạt động bất thường',
+  extended_absence: 'Vắng mặt kéo dài',
+  other: 'Lỗi khác'
 }
 
 // Severity to Vietnamese
