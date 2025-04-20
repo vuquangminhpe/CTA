@@ -5,6 +5,7 @@ import { AppContext } from './Contexts/app.context'
 import { getProfileFormLS, localStorageEventTarget } from './utils/auth'
 import socket from './utils/socket'
 import AppRouter from './routes'
+import { ExamSessionProvider } from './Contexts/exam-session.context'
 
 function App() {
   const { reset } = useContext(AppContext)
@@ -25,9 +26,11 @@ function App() {
   }, [])
 
   return (
-    <HelmetProvider>
-      <AppRouter />
-    </HelmetProvider>
+    <ExamSessionProvider>
+      <HelmetProvider>
+        <AppRouter />
+      </HelmetProvider>
+    </ExamSessionProvider>
   )
 }
 

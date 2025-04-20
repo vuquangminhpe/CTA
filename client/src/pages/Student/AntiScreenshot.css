@@ -94,7 +94,33 @@
   transform: rotate(-45deg);
   z-index: 100;
 }
+.violation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 0, 0, 0.9);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  font-weight: bold;
+  text-align: center;
+  padding: 20px;
+}
 
+.violation-overlay h2 {
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.violation-overlay p {
+  font-size: 18px;
+  margin: 8px 0;
+}
 @media (min-width: 992px) {
   .exam-watermark {
     color: rgba(255, 0, 0, 0.15); /* Higher opacity on desktop */
@@ -109,7 +135,7 @@
   }
 
   body:after {
-    content: 'Printing exam content is not allowed.';
+    content: 'Không được phép chụp nội dung bài thi.';
     display: block;
     font-size: 24px;
     font-weight: bold;
@@ -117,7 +143,19 @@
     margin-top: 100px;
   }
 }
+@media print {
+  body.exam-active {
+    display: none !important;
+  }
 
+  body.exam-active::after {
+    content: 'Không được phép làm mới trang trong quá trình thi.';
+    font-size: 24px;
+    text-align: center;
+    display: block;
+    margin-top: 40vh;
+  }
+}
 /* Mobile-specific feedback for screenshot detection */
 .screenshot-feedback {
   position: fixed;
@@ -168,154 +206,5 @@
       padding-bottom: constant(safe-area-inset-bottom);
       padding-bottom: env(safe-area-inset-bottom);
     }
-  }
-}
-
-html:not(.no-js) {
-  /* Create a CSS variable to observe */
-  --devtools-detection: 0;
-}
-
-@media (min-width: 0px) {
-  html:not(.no-js) body:not(.force-show) {
-    /* Will change when devtools is opened on many browsers */
-    --devtools-detection: 1;
-  }
-}
-
-html:not(.no-js) body:not(.force-show)[devtools-detection='1'] {
-  /* When devtools is detected, hide content */
-  filter: blur(20px);
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-/* More aggressive anti-inspection protection */
-.exam-protected {
-  /* Prevent selection and right-click */
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none; /* Safari */
-  -khtml-user-select: none; /* Konqueror HTML */
-  -moz-user-select: none; /* Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
-  user-select: none; /* Chrome/Opera/Standard */
-}
-
-/* Make debugging harder */
-.exam-protected {
-  contain: strict;
-  content-visibility: auto;
-}
-
-/* Make text harder to copy and inject script */
-.exam-protected * {
-  text-shadow: 0px 0px 1px rgba(0, 0, 0, 0.3);
-}
-
-/* Detect right-clicks attempted via custom trigger */
-.exam-protected {
-  position: relative;
-}
-
-.exam-protected::after {
-  content: attr(data-violation);
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 0, 0, 0.9);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  text-align: center;
-  padding: 20px;
-  z-index: 9999;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s;
-}
-
-.exam-protected[data-violation-detected='true']::after {
-  opacity: 1;
-  pointer-events: all;
-}
-
-/* Critical violation overlay */
-.critical-violation-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 0, 0, 0.9);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  font-weight: bold;
-  text-align: center;
-  z-index: 999999;
-  padding: 20px;
-}
-
-.critical-violation-overlay p {
-  margin: 10px 0;
-}
-
-.critical-violation-overlay .title {
-  font-size: 32px;
-  margin-bottom: 20px;
-}
-
-/* Disable element investigation */
-body.exam-active * {
-  /* Make element selection harder */
-  outline: none !important;
-}
-
-/* Devtools detection using transitions */
-.devtools-detector {
-  position: absolute;
-  height: 0;
-  width: 0;
-  opacity: 0;
-  z-index: -1;
-  transform: translateZ(0);
-
-  /* Property that changes when DevTools inspects it */
-  transition: all 0.1s;
-}
-
-/* Additional protection against DevTools */
-@keyframes detectDevTools {
-  0% {
-    transform: scale(1);
-  }
-  100% {
-    transform: scale(1.001);
-  }
-}
-
-.exam-protected {
-  animation: detectDevTools 0.001s infinite;
-}
-
-/* Block printing */
-@media print {
-  body {
-    display: none !important;
-  }
-
-  html::before {
-    content: 'Printing is not allowed during exams';
-    font-size: 48px;
-    text-align: center;
-    display: block;
-    margin-top: 40vh;
   }
 }

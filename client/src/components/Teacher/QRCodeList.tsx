@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Download, Printer } from 'lucide-react'
+import { Printer } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 
 const QRCodeList = ({ qrCodes, examTitle = 'Exam' }: any) => {
@@ -78,12 +78,21 @@ const QRCodeList = ({ qrCodes, examTitle = 'Exam' }: any) => {
               <p className='mt-2 text-xs font-medium text-gray-700'>Mã: {qrCode.exam_code}</p>
             </div>
             <div className='px-2 py-2 bg-gray-50 flex justify-center'>
-              <button
-                onClick={() => handleDownloadQR(qrCode)}
-                className='inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 focus:outline-none'
-                title='Download'
-              >
-                <Download className='h-4 w-4' />
+              <button className='border border-cyan-200' onClick={() => handleDownloadQR(qrCode)} title='Download'>
+                <svg
+                  xmlns='http://www.w3.org/2000/svg'
+                  fill='#fff'
+                  viewBox='0 0 24 24'
+                  strokeWidth={1.5}
+                  stroke='#000'
+                  className='size-6'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    d='M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3'
+                  />
+                </svg>
               </button>
             </div>
           </div>
