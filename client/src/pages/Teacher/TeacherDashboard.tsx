@@ -70,7 +70,6 @@ const TeacherDashboard = () => {
       setIsLoading(true)
       const response = await questionApi.getQuestions(master_examId)
       setQuestions(response.data.result as any)
-      console.log(questions)
     } catch (error) {
       console.error('Error fetching questions:', error)
       toast.error('Failed to load questions')
@@ -78,6 +77,7 @@ const TeacherDashboard = () => {
       setIsLoading(false)
     }
   }
+
   const deleteAllQuestionMutation = useMutation({
     mutationFn: () => questionApi.delete_all_questions(),
     onSuccess: () => {
@@ -160,10 +160,10 @@ const TeacherDashboard = () => {
       toast.success(`${generatedQRCodes.length} mã QR đã được tạo thành công`)
 
       setQrCodes(generatedQRCodes)
-    } catch (error) {
+    } catch (error: any) {
       toast.dismiss()
       console.error('Error generating exam:', error)
-      toast.error('Không tạo được mã QR')
+      toast.error(`${error?.data?.error?.message || 'Failed to generate exam'}`)
     }
   }
 
@@ -423,7 +423,13 @@ const TeacherDashboard = () => {
                 </span>
               </div>
 
-              <ExamGenerator onSubmit={handleGenerateExam} questionCount={questions.length} />
+              <ExamGenerator
+                master_examId={master_examId}
+                setMasterExamId={setMasterExamId}
+                fetchQuestions={fetchQuestions}
+                onSubmit={handleGenerateExam}
+                questionCount={questions.length}
+              />
 
               {qrCodes.length > 0 && <QRCodeList qrCodes={qrCodes} examTitle={examTitle} />}
             </div>

@@ -9,9 +9,12 @@ interface MasterExam {
   _id: string
   name: string
   exam_period?: string
+  fetchQuestions?: () => Promise<any>
+  setMasterExamId?: (id: string) => void
+  master_examId?: string
 }
 
-const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
+const ExamGenerator = ({ onSubmit, questionCount = 0, fetchQuestions, setMasterExamId, master_examId }: any) => {
   const [formData, setFormData] = useState({
     title: '',
     quantity: 10,
@@ -50,6 +53,8 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
 
   const handleStringChange = (e: any) => {
     const { name, value } = e.target
+    fetchQuestions()
+    setMasterExamId(value)
     setFormData({
       ...formData,
       [name]: value
@@ -202,9 +207,13 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
                   required
                 />
               </div>
-              <p className='mt-2 text-sm text-gray-500'>
+              <p className='mt-2 text-sm text-gray-500 translate-y-2'>
                 {questionCount === 0 ? (
-                  <span className='text-red-500'>Bạn cần tạo câu hỏi trước</span>
+                  <span className='text-red-500 bg-white border font-bold  border-red-700 rounded-xl p-1'>
+                    {!master_examId
+                      ? 'Hãy chọn một kỳ thi chính để lấy câu hỏi'
+                      : 'Bạn chưa có câu hỏi nào trong ngân hàng của bạn'}
+                  </span>
                 ) : (
                   `Các câu hỏi sẽ được chọn ngẫu nhiên từ ngân hàng có ${questionCount} câu hỏi của bạn`
                 )}
@@ -212,7 +221,7 @@ const ExamGenerator = ({ onSubmit, questionCount = 0 }: any) => {
             </div>
 
             <div>
-              <label htmlFor='duration' className='block text-sm font-medium text-gray-700 flex items-center'>
+              <label htmlFor='duration' className=' text-sm font-medium text-gray-700 flex items-center'>
                 <Clock className='w-4 h-4 mr-1 text-gray-500' />
                 Thời lượng (phút)
               </label>
