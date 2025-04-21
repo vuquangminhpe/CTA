@@ -25,6 +25,10 @@ import MasterExamsList from '../pages/Teacher/MasterExamsList'
 import ClassResultsList from '../components/Teacher/ClassResultsList'
 import MasterExamMonitor from '../components/Teacher/MasterExamMonitor'
 import MasterExamResults from '../components/Teacher/MasterExamResults'
+import UserManagement from '@/pages/Admin/UserManagement'
+import MasterExamManagement from '@/components/Admin/MasterExamManagement'
+import ExamStatistics from '@/pages/Admin/ExamStatistics'
+import TeacherManagement from '@/components/Admin/TeacherManagement'
 
 const AppRoutes = () => {
   const { role } = useContext(AuthContext)
@@ -87,6 +91,11 @@ const AppRoutes = () => {
           {/* Admin routes */}
           <Route element={<AdminRoute />}>
             <Route path='/admin' element={<AdminDashboard />} />
+            <Route path='/admin/teacher-management' element={<TeacherManagement />} />
+            <Route path='/admin/admin-master-exams/:masterExamId' element={<MasterExamView />} />
+            <Route path='/admin/master-exams-management' element={<MasterExamManagement />} />
+            <Route path='/admin/statistics' element={<ExamStatistics />} />
+            <Route path='/admin/student-management' element={<UserManagement />} />
           </Route>
         </Route>
       </Route>
