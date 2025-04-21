@@ -172,9 +172,8 @@ const ClassResultsList: React.FC = () => {
     // Prepare data in the format PapaParse expects
     const csvData = filteredResults.map((student) => ({
       'Tên học sinh': student.student_name,
-      'Tên người dùng': student.student_username,
       Điểm: student.completed ? student.score / 10 : '',
-      'Lỗi vi phạm': student.violations,
+      'Lỗi vi phạm': Number(student.violations),
       'Thời gian làm bài': calculateTimeSpent(student.start_time, student.end_time, student.exam_duration),
       'Hoàn thành': student.completed ? 'Đã hoàn thành' : 'Chưa hoàn thành',
       'Thời gian bắt đầu': formatDate(student.start_time),
