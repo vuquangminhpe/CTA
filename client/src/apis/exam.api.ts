@@ -164,6 +164,7 @@ interface MasterExam {
     total: number
     active: number
   }
+  questionLink: string
 }
 
 interface UpdateExamStatusRequest {

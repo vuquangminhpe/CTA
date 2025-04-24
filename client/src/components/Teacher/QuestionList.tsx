@@ -49,7 +49,22 @@ const QuestionList = ({ questions, onEdit, onDelete }: any) => {
                       </>
                     )}
                   </div>
-                  <h4 className='text-lg font-medium text-gray-900'>{question.content}</h4>
+                  <div className='flex flex-col gap-2 mb-3'>
+                    {question.content && (
+                      <h4 className='text-lg font-medium text-gray-900 break-words'>{question.content}</h4>
+                    )}
+
+                    {question.questionLink && (
+                      <div className='mt-2 max-w-full overflow-hidden'>
+                        <img
+                          src={question.questionLink}
+                          alt='Hình ảnh câu hỏi'
+                          className='object-contain h-auto max-h-[300px] max-w-full rounded-md border border-gray-200'
+                          loading='lazy'
+                        />
+                      </div>
+                    )}
+                  </div>
                   <ul className='mt-3 space-y-2'>
                     {question.answers.map((answer: any, index: any) => (
                       <li key={index} className='flex items-start'>

@@ -16,6 +16,7 @@ interface CreateQuestionRequest {
   answers: string[]
   correct_index: number
   master_exam_id: string
+  questionLink?: string
 }
 
 const questionApi = {

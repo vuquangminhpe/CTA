@@ -65,6 +65,7 @@ const TeacherDashboard = () => {
     queryFn: () => examApi.getMasterExams()
   })
   const dataExam = dataExams?.data?.result || []
+
   const fetchQuestions = async () => {
     try {
       setIsLoading(true)
