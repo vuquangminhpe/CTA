@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-useless-escape */
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useEffect } from 'react'
 import { FileText, Check, AlertTriangle, HelpCircle, X, Wand2, BookOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import AutoQuestionGenerator from './AutoQuestionGenerator'
-import { AppContext } from '../../Contexts/app.context'
 import examApi from '../../apis/exam.api'
 import { useQuery } from '@tanstack/react-query'
 
@@ -21,7 +20,6 @@ interface BulkQuestionImportProps {
 }
 
 const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCancel }) => {
-  const profile = useContext(AppContext).profile as any
   const [rawText, setRawText] = useState('')
   const [parsedQuestions, setParsedQuestions] = useState<Question[]>([])
   const [isPreviewMode, setIsPreviewMode] = useState(false)
@@ -241,16 +239,15 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
                       Câu hỏi này sẽ được áp dụng cho kỳ thi được chọn và các báo cáo liên quan
                     </p>
                   </div>
-                  {profile?.username === 'nguyentuananh' && (
-                    <button
-                      type='button'
-                      onClick={() => setIsAutoGeneratorOpen(true)}
-                      className='text-sm text-purple-600 hover:text-purple-800 flex items-center'
-                    >
-                      <Wand2 className='h-4 w-4 mr-1' />
-                      Tự động tạo câu hỏi
-                    </button>
-                  )}
+
+                  <button
+                    type='button'
+                    onClick={() => setIsAutoGeneratorOpen(true)}
+                    className='text-sm text-purple-600 hover:text-purple-800 flex items-center'
+                  >
+                    <Wand2 className='h-4 w-4 mr-1' />
+                    Tự động tạo câu hỏi
+                  </button>
                 </div>
               </div>
               <textarea
