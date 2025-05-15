@@ -10,9 +10,10 @@ import ScreenCaptureDetector from '../../components/Student/ScreenCaptureDetecto
 import useSocketExam from '../../hooks/useSocketExam'
 import examApi from '../../apis/exam.api'
 import { toast } from 'sonner'
-import { ChevronLeft, ChevronRight, Save, AlertTriangle, CheckCircle, MessageSquare, XCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Save, AlertTriangle, CheckCircle, MessageSquare, XCircle, Bell } from 'lucide-react'
 import { AuthContext } from '../../Contexts/auth.context'
 import './AntiScreenshot.css'
+import './Notification.css'
 import useExamProtection from '../../components/helper/ExamProtection'
 import MobileTabDetector from '../../components/Student/MobileTabDetector'
 import ConfirmDialog from '../../components/helper/ConfirmDialog'
@@ -40,6 +41,7 @@ const ExamPage = () => {
   const [showMessages, setShowMessages] = useState(false)
   // Socket connection
   const { resetViolations, socket, teacherMessages, hasNewMessage, setHasNewMessage } = useSocketExam(session?._id)
+  const [notificationSound] = useState(new Audio('/notification.mp3'))
   const [violations, setViolations] = useState(0)
 
   // Enable exam protection
@@ -61,6 +63,17 @@ const ExamPage = () => {
       }
     }
   }, [examCode])
+  
+  // Play sound when new message arrives
+  useEffect(() => {
+    if (hasNewMessage) {
+      try {
+        notificationSound.play().catch(err => console.error('Error playing notification sound:', err))
+      } catch (error) {
+        console.error('Error playing notification sound:', error)
+      }
+    }
+  }, [hasNewMessage])
 
   // Watch for violations
   useEffect(() => {
@@ -331,13 +344,20 @@ const ExamPage = () => {
           </div>
           <h2 className='mt-4 text-xl font-medium text-gray-900'>Đã hoàn thành bài thi</h2>
           <p className='mt-2 text-sm text-gray-500'>Bài kiểm tra của bạn đã được nộp thành công.</p>
-          <div className='mt-6'>
+          <div className='flex space-x-2'>
             <button
               type='button'
-              onClick={() => navigate('/student', { replace: true })}
-              className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+              onClick={() => setShowMessages(!showMessages)}
+              className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-sm font-medium rounded-md ${hasNewMessage ? 'text-white bg-blue-600 hover:bg-blue-700 border-blue-600' : 'text-gray-700 bg-white hover:bg-gray-100 border-gray-300'} transition-colors duration-200`}
             >
-              Quay lại Bảng điều khiển
+              <MessageSquare className={`h-4 w-4 ${hasNewMessage ? 'mr-1.5' : 'mr-1.5'}`} />
+              Tin nhắn
+              {hasNewMessage && (
+                <span className='relative flex ml-2'>
+                  <span className='animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75'></span>
+                  <span className='relative inline-flex rounded-full h-2 w-2 bg-red-500'></span>
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -387,9 +407,9 @@ const ExamPage = () => {
       )}
 
       {/* Main Content */}
-      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16'>
-        <div className='mb-8'>
-          <h1 className='text-2xl font-bold text-gray-900'>{exam.title}</h1>
+      <div className='py-4 px-8 bg-white shadow'>
+        <div className='flex justify-between items-center'>
+          <h2 className='text-2xl font-semibold text-gray-800'>{exam.title}</h2>
           <p className='mt-2 text-sm text-gray-500'>
             Mã bài thi: {examCode} • {exam.questions.length} câu hỏi
           </p>
@@ -470,16 +490,25 @@ const ExamPage = () => {
         )}
 
         {/* Teacher Messages panel */}
-        {showMessages && teacherMessages && teacherMessages.length > 0 && (
-          <div className='fixed top-16 left-4 z-50 bg-white shadow-lg rounded-lg w-80 max-h-96 overflow-y-auto'>
-            <div className='p-3 border-b border-gray-200 flex justify-between items-center'>
-              <h3 className='font-medium text-gray-900'>Tin nhắn từ giáo viên</h3>
+        {showMessages && teacherMessages && (
+          <div className='fixed top-16 left-4 z-50 bg-white shadow-lg rounded-lg w-80 max-h-96 overflow-y-auto animate-fade-in-scale transition-all duration-300'>
+            <div className='p-3 bg-blue-600 text-white border-b rounded-t-lg flex justify-between items-center'>
+              <h3 className='font-medium flex items-center'>
+                <MessageSquare className='h-4 w-4 mr-2' />
+                Tin nhắn từ giáo viên
+                {teacherMessages.length > 0 && (
+                  <span className='ml-2 bg-white text-blue-600 text-xs font-semibold px-2 py-0.5 rounded-full'>
+                    {teacherMessages.length}
+                  </span>
+                )}
+              </h3>
               <button
                 onClick={() => {
                   setShowMessages(false)
                   setHasNewMessage(false)
                 }}
-                className='text-gray-400 hover:text-gray-500'
+                className='text-white hover:text-red-100 transition-colors'
+                aria-label="Đóng thông báo"
               >
                 <XCircle className='h-4 w-4' />
               </button>
@@ -488,14 +517,25 @@ const ExamPage = () => {
               {teacherMessages.length > 0 ? (
                 <ul className='space-y-3'>
                   {teacherMessages.map((msg, index) => (
-                    <li key={index} className='bg-blue-50 p-3 rounded-lg'>
-                      <p className='text-sm text-gray-800'>{msg.message}</p>
-                      <p className='text-xs text-gray-500 mt-1'>{new Date(msg.timestamp).toLocaleTimeString()}</p>
+                    <li 
+                      key={index} 
+                      className='bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400 shadow-sm hover:shadow-md transition-shadow'
+                    >
+                      <p className='text-sm text-gray-800 font-medium'>{msg.message}</p>
+                      <div className='flex justify-between items-center mt-2'>
+                        <p className='text-xs text-gray-500'>{new Date(msg.timestamp).toLocaleTimeString()}</p>
+                        <span className='inline-flex items-center text-xs text-blue-600'>
+                          <CheckCircle className='h-3 w-3 mr-1' /> Đã nhận
+                        </span>
+                      </div>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className='text-sm text-gray-500 text-center py-4'>Không có tin nhắn</p>
+                <div className='text-center py-6 text-gray-500'>
+                  <MessageSquare className='h-8 w-8 mx-auto mb-2 opacity-50' />
+                  <p className='text-sm'>Không có tin nhắn</p>
+                </div>
               )}
             </div>
           </div>
@@ -503,10 +543,27 @@ const ExamPage = () => {
 
         {/* Floating notification for new messages */}
         {hasNewMessage && !showMessages && (
-          <div className='fixed top-16 left-24 z-50 bg-blue-100 shadow-lg rounded-lg p-3 border-l-4 border-blue-500 max-w-xs animate-fade-in'>
-            <div className='flex'>
-              <MessageSquare className='h-5 w-5 text-blue-500 mr-2' />
-              <p className='text-sm text-blue-800'>Bạn có tin nhắn mới từ giáo viên! Nhấp vào nút "Tin nhắn" để xem.</p>
+          <div 
+            className='fixed top-16 left-4 z-50 bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg rounded-lg p-4 max-w-xs animate-bounce-in transform transition-all duration-300 cursor-pointer text-white'
+            onClick={() => {
+              setShowMessages(true);
+              setHasNewMessage(false);
+            }}
+            role="button"
+            aria-label="Xem tin nhắn mới"
+          >
+            <div className='flex items-center'>
+              <div className='relative mr-3'>
+                <MessageSquare className='h-6 w-6 text-white' />
+                <span className='absolute -top-1 -right-1 flex h-3 w-3'>
+                  <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75'></span>
+                  <span className='relative inline-flex rounded-full h-3 w-3 bg-red-500'></span>
+                </span>
+              </div>
+              <div>
+                <h4 className='font-medium text-sm'>Tin nhắn mới từ giáo viên!</h4>
+                <p className='text-xs text-blue-100 mt-0.5'>Nhấp để xem ngay</p>
+              </div>
             </div>
           </div>
         )}
