@@ -32,6 +32,7 @@ export const startExamController = async (req: Request, res: Response) => {
   try {
     const { user_id } = req.decode_authorization as TokenPayload
     const { exam_code, has_camera = false, require_face_verification = true, device_info } = req.body
+    console.log('req.body:', req.body)
 
     if (!exam_code) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({

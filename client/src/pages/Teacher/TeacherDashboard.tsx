@@ -1,12 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useContext } from 'react'
 import { Tab } from '@headlessui/react'
-import { Plus, HelpCircle, Book, QrCode, FileText, Eye, BookOpen } from 'lucide-react'
+import {
+  Plus,
+  HelpCircle,
+  Book,
+  QrCode,
+  FileText,
+  Eye,
+  BookOpen,
+  UserPlus,
+  Search,
+  Users,
+  GraduationCap
+} from 'lucide-react'
 import QuestionForm from '../../components/Teacher/QuestionForm'
 import QuestionList from '../../components/Teacher/QuestionList'
 import ExamGenerator from '../../components/Teacher/ExamGenerator'
 import QRCodeList from '../../components/Teacher/QRCodeList'
 import BulkQuestionImport from '../../components/Teacher/BulkQuestionImport'
+import StudentRegistrationForm from '../../components/Teacher/StudentRegistrationForm'
 import questionApi from '../../apis/question.api'
 import examApi from '../../apis/exam.api'
 import { AuthContext } from '../../Contexts/auth.context'
@@ -26,14 +39,27 @@ import {
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import StudentSearchComponent from '@/components/Teacher/StudentSearchComponent'
+
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
+}
+
+interface StudentData {
+  name: string
+  age: number
+  gender: 'nam' | 'nữ'
+  phone: string
+  class: string
+  username: string
+  password: string
 }
 
 const TeacherDashboard = () => {
   const { profile } = useContext(AuthContext) as any
   const navigate = useNavigate()
-  // State
+
+  // Existing states
   const [questions, setQuestions] = useState<any>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -44,22 +70,23 @@ const TeacherDashboard = () => {
   const [isMasterExamFormOpen, setIsMasterExamFormOpen] = useState(false)
   const [master_examId, setMasterExamId] = useState<string>('')
 
+  // New states for student management
+  const [showStudentRegistration, setShowStudentRegistration] = useState(false)
+  const [registeredStudents, setRegisteredStudents] = useState<StudentData[]>([])
+
   useEffect(() => {
-    // This condition determines when to refresh - modify as needed
+    // Refresh check
     const shouldRefresh = localStorage.getItem('needsRefresh') === 'true'
-
     if (shouldRefresh) {
-      // Clear the flag first to prevent infinite refresh
       localStorage.removeItem('needsRefresh')
-
-      // Then reload the page
       window.location.reload()
     }
   }, [])
-  // Fetch questions on component mount
+
   useEffect(() => {
     fetchQuestions()
   }, [])
+
   const { data: dataExams } = useQuery({
     queryKey: ['dataExams'],
     queryFn: () => examApi.getMasterExams()
@@ -90,6 +117,7 @@ const TeacherDashboard = () => {
       toast.error('Failed to delete all questions')
     }
   })
+
   const handleCreateQuestion = async (questionData: any) => {
     try {
       await questionApi.createQuestion(questionData)
@@ -118,9 +146,11 @@ const TeacherDashboard = () => {
       toast.error('Không cập nhật được câu hỏi')
     }
   }
+
   const handleDeleteAllQuestions = async () => {
     deleteAllQuestionMutation.mutateAsync()
   }
+
   const handleDeleteQuestion = async (questionId: any) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa câu hỏi này không?')) {
       return
@@ -143,7 +173,6 @@ const TeacherDashboard = () => {
 
   const handleGenerateExam = async (formData: any) => {
     try {
-      // Validate that start_time is in the future if provided
       if (formData.start_time && new Date(formData.start_time) <= new Date()) {
         toast.error('Thời gian bắt đầu phải ở tương lai')
         return
@@ -170,16 +199,12 @@ const TeacherDashboard = () => {
 
   const handleBulkImport = async (questions: any[]) => {
     try {
-      // Create a loading toast
       toast.loading(`Bắt đầu tạo ${questions.length} câu hỏi...`)
 
-      // Save all questions using Promise.all for parallel processing
       await Promise.all(questions.map((question) => questionApi.createQuestion(question)))
 
-      // Close the bulk import dialog
       setIsBulkImportOpen(false)
 
-      // Show success message and refresh question list
       toast.dismiss()
       toast.success(`Đã tạo thành công ${questions.length} câu hỏi`)
       fetchQuestions()
@@ -195,14 +220,42 @@ const TeacherDashboard = () => {
     toast.success('Kỳ thi chính được tạo thành công')
   }
 
+  // New student management handlers
+  const handleStudentRegistrationSuccess = (studentData: StudentData) => {
+    setRegisteredStudents((prev) => [...prev, studentData])
+    setShowStudentRegistration(false)
+    toast.success(`Học sinh ${studentData.name} đã được đăng ký thành công!`)
+  }
+
+  const getTeacherLevelLabel = (level: string) => {
+    switch (level) {
+      case 'elementary':
+        return 'Tiểu học'
+      case 'middle_school':
+        return 'THCS'
+      case 'high_school':
+        return 'THPT'
+      case 'university':
+        return 'Đại học'
+      default:
+        return 'Chưa xác định'
+    }
+  }
+
   return (
     <div className='max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8'>
       <div className='sm:flex sm:items-center sm:justify-between'>
         <div>
           <h1 className='text-2xl font-bold text-gray-900'>Bảng điều khiển của giáo viên</h1>
-          <p className='mt-1 text-sm text-gray-500'>
-            Quản lý ngân hàng câu hỏi và tạo bài kiểm tra cho học sinh của bạn
-          </p>
+          <p className='mt-1 text-sm text-gray-500'>Quản lý ngân hàng câu hỏi, tạo bài kiểm tra và quản lý học sinh</p>
+          {profile?.teacher_level && (
+            <div className='mt-2 flex items-center'>
+              <GraduationCap className='w-4 h-4 text-blue-600 mr-1' />
+              <span className='text-sm text-blue-600 font-medium'>
+                Cấp: {getTeacherLevelLabel(profile.teacher_level)}
+              </span>
+            </div>
+          )}
         </div>
         {profile && (
           <div className='mt-4 flex items-center text-sm text-gray-500 sm:mt-0'>
@@ -282,8 +335,37 @@ const TeacherDashboard = () => {
               )
             }
           >
+            <UserPlus className='w-5 h-5 mr-2' />
+            Đăng ký học sinh
+          </Tab>
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                'w-full rounded-lg py-2.5 text-sm font-medium leading-5 flex items-center justify-center',
+                'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                selected
+                  ? 'bg-white text-blue-700 shadow'
+                  : 'text-blue-700/70 hover:bg-white/[0.12] hover:text-blue-700'
+              )
+            }
+          >
+            <Search className='w-5 h-5 mr-2' />
+            Tìm kiếm học sinh
+          </Tab>
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                'w-full rounded-lg py-2.5 text-sm font-medium leading-5 flex items-center justify-center',
+                'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                selected
+                  ? 'bg-white text-blue-700 shadow'
+                  : 'text-blue-700/70 hover:bg-white/[0.12] hover:text-blue-700'
+              )
+            }
+          >
             <div className='flex gap-3 items-center' onClick={() => navigate(`/teacher/monitoring`)}>
-              <Eye className='w-5 h-5 mr-2' /> <div className='w-full'>Giám sát toàn cục</div>
+              <Eye className='w-5 h-5 mr-2' />
+              <div className='w-full'>Giám sát toàn cục</div>
             </div>
           </Tab>
         </Tab.List>
@@ -318,7 +400,6 @@ const TeacherDashboard = () => {
                       className='block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm transition-colors bg-white'
                     >
                       <option value=''>-- Chọn kỳ thi --</option>
-
                       {dataExam.map((exam: any) => (
                         <option key={exam._id} value={exam._id}>
                           {exam.name} {exam.exam_period ? `(${exam.exam_period})` : ''}
@@ -417,7 +498,6 @@ const TeacherDashboard = () => {
             <div className='space-y-6'>
               <div className='flex justify-between items-center'>
                 <h2 className='text-lg font-medium text-gray-900'>Tạo mã QR cho bài kiểm tra</h2>
-
                 <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
                   <HelpCircle className='mr-1 h-4 w-4' />
                   Mỗi mã QR tạo ra một kỳ thi ngẫu nhiên duy nhất
@@ -485,6 +565,81 @@ const TeacherDashboard = () => {
                 </div>
               )}
             </div>
+          </Tab.Panel>
+
+          {/* Student Registration Panel */}
+          <Tab.Panel className='rounded-xl bg-white p-4'>
+            <div className='space-y-6'>
+              <div className='flex justify-between items-center'>
+                <div>
+                  <h2 className='text-lg font-medium text-gray-900'>Đăng ký tài khoản học sinh</h2>
+                  <p className='text-sm text-gray-600 mt-1'>
+                    Tạo tài khoản và đăng ký khuôn mặt cho học sinh để tham gia thi
+                  </p>
+                </div>
+                {registeredStudents.length > 0 && (
+                  <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
+                    <Users className='mr-1 h-4 w-4' />
+                    Đã đăng ký: {registeredStudents.length} học sinh
+                  </span>
+                )}
+              </div>
+
+              {showStudentRegistration ? (
+                <StudentRegistrationForm
+                  onSuccess={handleStudentRegistrationSuccess}
+                  onCancel={() => setShowStudentRegistration(false)}
+                />
+              ) : (
+                <div className='text-center py-12 bg-gray-50 rounded-lg'>
+                  <UserPlus className='mx-auto h-12 w-12 text-gray-400' />
+                  <h3 className='mt-2 text-sm font-medium text-gray-900'>Đăng ký học sinh mới</h3>
+                  <p className='mt-1 text-sm text-gray-500'>
+                    Tạo tài khoản học sinh với thông tin cá nhân và đăng ký khuôn mặt để tăng tính bảo mật.
+                  </p>
+                  <div className='mt-6'>
+                    <button
+                      type='button'
+                      onClick={() => setShowStudentRegistration(true)}
+                      className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                    >
+                      <UserPlus className='mr-2 -ml-1 h-5 w-5' />
+                      Đăng ký học sinh mới
+                    </button>
+                  </div>
+
+                  {/* Recent registrations */}
+                  {registeredStudents.length > 0 && (
+                    <div className='mt-8'>
+                      <h4 className='text-sm font-medium text-gray-900 mb-3'>Học sinh đã đăng ký gần đây</h4>
+                      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                        {registeredStudents.slice(-6).map((student, index) => (
+                          <div key={index} className='bg-white border border-gray-200 rounded-lg p-3 text-left'>
+                            <div className='flex justify-between items-start'>
+                              <div>
+                                <h5 className='font-medium text-gray-900 text-sm'>{student.name}</h5>
+                                <p className='text-xs text-gray-600'>@{student.username}</p>
+                                <p className='text-xs text-gray-500 mt-1'>
+                                  {student.gender} • {student.age} tuổi • Lớp {student.class}
+                                </p>
+                              </div>
+                              <div className='w-6 h-6 bg-green-100 rounded-full flex items-center justify-center'>
+                                <UserPlus className='w-3 h-3 text-green-600' />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </Tab.Panel>
+
+          {/* Student Search Panel */}
+          <Tab.Panel className='rounded-xl bg-white p-4'>
+            <StudentSearchComponent />
           </Tab.Panel>
         </Tab.Panels>
       </Tab.Group>

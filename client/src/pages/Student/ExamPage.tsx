@@ -39,6 +39,12 @@ const ExamPage = () => {
   const [confirmMessage, setConfirmMessage] = useState<string>('')
   const [confirmAction, setConfirmAction] = useState<() => void>(() => () => {})
   const [showMessages, setShowMessages] = useState(false)
+
+  // Face verification and camera state
+  const [faceVerificationStatus, setFaceVerificationStatus] = useState<any>(null)
+  const [hasCamera, setHasCamera] = useState(false)
+  const [deviceInfo, setDeviceInfo] = useState<any>(null)
+
   // Socket connection
   const { resetViolations, socket, teacherMessages, hasNewMessage, setHasNewMessage } = useSocketExam(session?._id)
   const [notificationSound] = useState(new Audio('/notification.mp3'))
@@ -53,6 +59,41 @@ const ExamPage = () => {
   // Time check ref
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Detect camera availability
+  const detectCamera = async (): Promise<boolean> => {
+    try {
+      // Try to access camera
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+      // If successful, stop the stream and return true
+      stream.getTracks().forEach((track) => track.stop())
+      return true
+    } catch (error) {
+      console.log('Camera not available:', error)
+      return false
+    }
+  }
+
+  // Get device info
+  const getDeviceInfo = () => {
+    const userAgent = navigator.userAgent
+    const screenResolution = `${window.screen.width}x${window.screen.height}`
+
+    let deviceType: 'desktop' | 'mobile' | 'tablet' = 'desktop'
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+      if (/iPad|Tablet/i.test(userAgent)) {
+        deviceType = 'tablet'
+      } else {
+        deviceType = 'mobile'
+      }
+    }
+
+    return {
+      user_agent: userAgent,
+      screen_resolution: screenResolution,
+      device_type: deviceType
+    }
+  }
+
   // Load exam on mount
   useEffect(() => {
     loadExam()
@@ -63,12 +104,12 @@ const ExamPage = () => {
       }
     }
   }, [examCode])
-  
+
   // Play sound when new message arrives
   useEffect(() => {
     if (hasNewMessage) {
       try {
-        notificationSound.play().catch(err => console.error('Error playing notification sound:', err))
+        notificationSound.play().catch((err) => console.error('Error playing notification sound:', err))
       } catch (error) {
         console.error('Error playing notification sound:', error)
       }
@@ -116,30 +157,70 @@ const ExamPage = () => {
   const loadExam = async () => {
     try {
       setIsLoading(true)
-      const response = await examApi.startExam({ exam_code: examCode as string })
 
-      const { session: examSession, exam: examData, remaining_time } = response.data.result
+      // Detect camera and get device info
+      const cameraAvailable = await detectCamera()
+      const deviceInfo = getDeviceInfo()
 
-      setSession(examSession as any)
-      setExam(examData as any)
-      setRemainingTime(remaining_time)
+      setHasCamera(cameraAvailable)
+      setDeviceInfo(deviceInfo)
 
-      // Set initial answers from session if they exist
-      if (examSession.answers && examSession.answers.length > 0) {
-        const sessionAnswers: Record<string, number> = {}
-        examSession.answers.forEach((answer: any) => {
-          sessionAnswers[answer.question_id] = answer.selected_index
-        })
-        setAnswers(sessionAnswers)
+      const response = await examApi.startExam({
+        exam_code: examCode as string
+      })
+      const result = response.data.result as any
+
+      // Extract data from response structure
+      const sessionData = {
+        _id: result.session_id
+        // Add other session fields if needed
       }
 
+      const examData = {
+        title: result.exam_title,
+        duration: result.exam_duration,
+        questions: result.questions
+      }
+
+      setSession(sessionData)
+      setExam(examData)
+      setRemainingTime(result.remaining_time)
+      setFaceVerificationStatus(result.face_verification_status)
+
+      // Set device info from response if available
+      if (result.device_info) {
+        setDeviceInfo(result.device_info)
+      }
+
+      // Set initial answers from session if they exist
+      // This would need to be implemented if the API returns existing answers
+
       // Check if the exam is already completed
-      if (examSession.completed) {
-        setCompleted(true)
+      // This would need to be implemented if the API returns completion status
+
+      // Display face verification status
+      if (result.face_verification_status) {
+        const faceStatus = result.face_verification_status
+        if (faceStatus.required && faceStatus.verified) {
+          const similarityText = faceStatus.similarity
+            ? ` Độ tương đồng: ${(faceStatus.similarity * 100).toFixed(1)}%`
+            : ''
+          toast.success(`Xác thực khuôn mặt thành công!${similarityText}`)
+        } else if (faceStatus.required && !faceStatus.verified) {
+          toast.warning('Xác thực khuôn mặt không thành công, nhưng bài thi vẫn có thể tiếp tục.')
+        } else if (!faceStatus.has_camera) {
+          toast.info('Không phát hiện camera. Bài thi sẽ tiếp tục mà không có xác thực khuôn mặt.')
+        }
       }
     } catch (error: any) {
       console.error('Failed to load exam:', error)
-      toast.error(error.response?.data?.message || 'Không tải được bài kiểm tra, hãy liên hệ với giá giáo viên!')
+
+      if (error.response?.data?.error_type === 'FACE_VERIFICATION_FAILED') {
+        toast.error('Xác thực khuôn mặt thất bại: ' + error.response.data.message)
+      } else {
+        toast.error(error.response?.data?.message || 'Không tải được bài kiểm tra, hãy liên hệ với giá giáo viên!')
+      }
+
       navigate('/student', { replace: true })
     } finally {
       setIsLoading(false)
@@ -187,13 +268,7 @@ const ExamPage = () => {
         details: {
           detection_method: 'ui_detector',
           timestamp: new Date().toISOString(),
-          device_info: {
-            userAgent: navigator.userAgent,
-            platform: navigator.platform,
-            screenWidth: window.screen.width,
-            screenHeight: window.screen.height,
-            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-          }
+          device_info: deviceInfo
         }
       })
 
@@ -225,9 +300,15 @@ const ExamPage = () => {
         session_id: session._id,
         answers: formattedAnswers as any
       })
-      .then(() => {
+      .then((response) => {
+        const result = response.data.result
         toast.success('Đã gửi bài kiểm tra thành công')
         setCompleted(true)
+
+        // Show final score if available
+        if (result?.score !== undefined) {
+          toast.info(`Điểm số: ${result.score.toFixed(1)}/100`)
+        }
 
         // Redirect after a short delay
         setTimeout(() => {
@@ -278,6 +359,7 @@ const ExamPage = () => {
         navigate('/student', { replace: true })
       })
   }
+
   function playBeep() {
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext
@@ -307,6 +389,7 @@ const ExamPage = () => {
       playBeep()
     }
   }, [hasNewMessage])
+
   const handleSubmitClick = () => {
     // Check if all questions have been answered
     const answeredCount = Object.keys(answers).length
@@ -344,7 +427,18 @@ const ExamPage = () => {
           </div>
           <h2 className='mt-4 text-xl font-medium text-gray-900'>Đã hoàn thành bài thi</h2>
           <p className='mt-2 text-sm text-gray-500'>Bài kiểm tra của bạn đã được nộp thành công.</p>
-          <div className='flex space-x-2'>
+
+          {/* Display face verification status */}
+          {faceVerificationStatus && (
+            <div className='mt-4 p-3 bg-blue-50 rounded-md'>
+              <p className='text-xs text-blue-700'>
+                Xác thực khuôn mặt: {faceVerificationStatus.verified ? 'Thành công' : 'Không yêu cầu'}
+                {faceVerificationStatus.has_camera ? ' (Có camera)' : ' (Không có camera)'}
+              </p>
+            </div>
+          )}
+
+          <div className='flex space-x-2 mt-4'>
             <button
               type='button'
               onClick={() => setShowMessages(!showMessages)}
@@ -392,6 +486,7 @@ const ExamPage = () => {
         }}
         onCancel={() => setShowConfirmDialog(false)}
       />
+
       {/* Timer */}
       <ExamTimer remainingTime={remainingTime} onTimeUp={handleTimeUp} enabled={!completed} />
 
@@ -410,20 +505,29 @@ const ExamPage = () => {
       <div className='py-4 px-8 bg-white shadow'>
         <div className='flex justify-between items-center'>
           <h2 className='text-2xl font-semibold text-gray-800'>{exam.title}</h2>
-          <p className='mt-2 text-sm text-gray-500'>
-            Mã bài thi: {examCode} • {exam.questions.length} câu hỏi
-          </p>
-
-          {violations > 0 && (
-            <div className='mt-4 p-3 bg-yellow-50 border border-yellow-100 rounded-md flex items-start'>
-              <AlertTriangle className='h-5 w-5 text-yellow-400 flex-shrink-0 mr-2' />
-              <p className='text-sm text-yellow-700'>
-                bạn có {violations} lỗi vi phạm {violations !== 1 ? '' : ''}. Việc chụp màn hình và chuyển đổi tab trong
-                khi làm bài kiểm tra là không được phép và sẽ bị phạt.
+          <div className='text-right'>
+            <p className='text-sm text-gray-500'>
+              Mã bài thi: {examCode} • {exam.questions.length} câu hỏi
+            </p>
+            {/* Display device and camera info */}
+            {faceVerificationStatus && (
+              <p className='text-xs text-gray-400 mt-1'>
+                {deviceInfo?.device_type || 'unknown'} •{' '}
+                {faceVerificationStatus.has_camera ? 'Có camera' : 'Không có camera'}
               </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+
+        {violations > 0 && (
+          <div className='mt-4 p-3 bg-yellow-50 border border-yellow-100 rounded-md flex items-start'>
+            <AlertTriangle className='h-5 w-5 text-yellow-400 flex-shrink-0 mr-2' />
+            <p className='text-sm text-yellow-700'>
+              bạn có {violations} lỗi vi phạm {violations !== 1 ? '' : ''}. Việc chụp màn hình và chuyển đổi tab trong
+              khi làm bài kiểm tra là không được phép và sẽ bị phạt.
+            </p>
+          </div>
+        )}
 
         {/* Progress indicator (for desktop) */}
         <ExamProgress
@@ -442,6 +546,8 @@ const ExamPage = () => {
             onAnswerSelect={handleAnswerSelect}
           />
         </div>
+
+        {/* Teacher Messages UI - keeping existing implementation */}
         {teacherMessages && teacherMessages.length > 0 && (
           <div className='fixed top-4 left-24 z-50'>
             <button
@@ -465,31 +571,8 @@ const ExamPage = () => {
             </button>
           </div>
         )}
-        {teacherMessages && teacherMessages.length > 0 && (
-          <div className='fixed top-4 left-24 z-50'>
-            <button
-              onClick={() => setShowMessages(!showMessages)}
-              className={`flex items-center rounded-md px-3 py-2 text-sm font-medium ${
-                hasNewMessage
-                  ? 'bg-blue-600 hover:text-black text-white animate-bounce shadow-lg border-2 border-blue-300'
-                  : showMessages
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-white text-gray-700 border border-gray-300'
-              } shadow-sm hover:bg-blue-50`}
-            >
-              <MessageSquare className={`text-black ${hasNewMessage ? 'h-5 w-5 mr-2' : 'h-4 w-4 mr-2'}`} />
-              {hasNewMessage ? (
-                <span className='font-bold'>
-                  Tin nhắn mới! {teacherMessages.length > 0 && `(${teacherMessages.length})`}
-                </span>
-              ) : (
-                <span>Tin nhắn {teacherMessages.length > 0 && `(${teacherMessages.length})`}</span>
-              )}
-            </button>
-          </div>
-        )}
 
-        {/* Teacher Messages panel */}
+        {/* Teacher Messages panel - keeping existing implementation */}
         {showMessages && teacherMessages && (
           <div className='fixed top-16 left-4 z-50 bg-white shadow-lg rounded-lg w-80 max-h-96 overflow-y-auto animate-fade-in-scale transition-all duration-300'>
             <div className='p-3 bg-blue-600 text-white border-b rounded-t-lg flex justify-between items-center'>
@@ -508,7 +591,7 @@ const ExamPage = () => {
                   setHasNewMessage(false)
                 }}
                 className='text-white hover:text-red-100 transition-colors'
-                aria-label="Đóng thông báo"
+                aria-label='Đóng thông báo'
               >
                 <XCircle className='h-4 w-4' />
               </button>
@@ -517,8 +600,8 @@ const ExamPage = () => {
               {teacherMessages.length > 0 ? (
                 <ul className='space-y-3'>
                   {teacherMessages.map((msg, index) => (
-                    <li 
-                      key={index} 
+                    <li
+                      key={index}
                       className='bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400 shadow-sm hover:shadow-md transition-shadow'
                     >
                       <p className='text-sm text-gray-800 font-medium'>{msg.message}</p>
@@ -541,16 +624,16 @@ const ExamPage = () => {
           </div>
         )}
 
-        {/* Floating notification for new messages */}
+        {/* Floating notification for new messages - keeping existing implementation */}
         {hasNewMessage && !showMessages && (
-          <div 
+          <div
             className='fixed top-16 left-4 z-50 bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg rounded-lg p-4 max-w-xs animate-bounce-in transform transition-all duration-300 cursor-pointer text-white'
             onClick={() => {
-              setShowMessages(true);
-              setHasNewMessage(false);
+              setShowMessages(true)
+              setHasNewMessage(false)
             }}
-            role="button"
-            aria-label="Xem tin nhắn mới"
+            role='button'
+            aria-label='Xem tin nhắn mới'
           >
             <div className='flex items-center'>
               <div className='relative mr-3'>
@@ -567,6 +650,7 @@ const ExamPage = () => {
             </div>
           </div>
         )}
+
         {/* Navigation and Submit */}
         <div className='flex items-center justify-between pb-12'>
           <button

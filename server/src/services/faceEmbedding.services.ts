@@ -4,9 +4,11 @@ import { ObjectId } from 'mongodb'
 import databaseService from './database.services'
 import fs from 'fs'
 import path from 'path'
+import https from 'https'
 import { envConfig } from '../constants/config'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { uploadFileS3 } from '~/utils/s3'
+import { uploadFileS3, sendFileFromS3 } from '~/utils/s3'
+import { S3 } from '@aws-sdk/client-s3'
 
 interface FaceDetection {
   bbox: [number, number, number, number] // [x1, y1, x2, y2]
@@ -48,6 +50,10 @@ class CompleteFaceAnalysisService {
   private readonly GENDERAGE_MODEL_PATH = path.join(process.cwd(), 'src', 'models', 'genderage.onnx') // Gender + Age
   private readonly GLINTR100_MODEL_PATH = path.join(process.cwd(), 'src', 'models', 'glintr100.onnx') // Face Recognition
 
+  // 🔥 AUTO DOWNLOAD CONFIG
+  private readonly GLINTR100_DOWNLOAD_URL =
+    'https://huggingface.co/camenduru/show/resolve/main/insightface/models/antelopev2/glintr100.onnx'
+
   // Model sessions
   private scrfdSession: ort.InferenceSession | null = null // Face detection
   private genderAgeSession: ort.InferenceSession | null = null // Gender/Age
@@ -61,10 +67,22 @@ class CompleteFaceAnalysisService {
   private genAI: GoogleGenerativeAI
   private geminiModel: any
 
+  // S3 client for downloading reference images
+  private s3: S3
+
   constructor() {
     this.initPromise = this.initializeAllModels()
     this.genAI = new GoogleGenerativeAI(process.env.GERMINI_API_KEY as string)
     this.geminiModel = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
+
+    // Initialize S3 client
+    this.s3 = new S3({
+      region: envConfig.region,
+      credentials: {
+        secretAccessKey: envConfig.secretAccessKey as string,
+        accessKeyId: envConfig.accessKeyId as string
+      }
+    })
   }
 
   async ensureInitialized() {
@@ -78,13 +96,16 @@ class CompleteFaceAnalysisService {
     try {
       console.log('🚀 Loading Complete InsightFace Pipeline (3 Models)...')
 
+      // Ensure models directory exists
+      this.ensureModelsDirectory()
+
       // 1. SCRFD Face Detection Model
       await this.loadSCRFDModel()
 
       // 2. GenderAge Model
       await this.loadGenderAgeModel()
 
-      // 3. GLinT100 Recognition Model
+      // 3. GLinT100 Recognition Model (with auto download)
       await this.loadGLinT100Model()
 
       this.isInitialized = true
@@ -95,14 +116,349 @@ class CompleteFaceAnalysisService {
     }
   }
 
-  // 🔥 STEP 1: SCRFD Face Detection + Landmarks
+  // 🔥 AUTO DOWNLOAD UTILITIES
+  private ensureModelsDirectory(): void {
+    const modelsDir = path.dirname(this.GLINTR100_MODEL_PATH)
+    if (!fs.existsSync(modelsDir)) {
+      fs.mkdirSync(modelsDir, { recursive: true })
+      console.log(`📁 Created models directory: ${modelsDir}`)
+    }
+  }
+
+  private formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  private validateModelFile(modelPath: string): boolean {
+    if (!fs.existsSync(modelPath)) {
+      return false
+    }
+
+    // Check file size (GLinT100 should be around 261MB)
+    const stats = fs.statSync(modelPath)
+    console.log(`📊 Model file size: ${this.formatBytes(stats.size)}`)
+
+    // GLinT100 should be around 261MB, at least 200MB to be safe
+    if (stats.size < 200 * 1024 * 1024) {
+      console.log(`⚠️ Model file too small (${this.formatBytes(stats.size)}), expected ~261MB`)
+      return false
+    }
+
+    // 🔥 FIX: Improved ONNX validation
+    try {
+      const buffer = Buffer.alloc(32) // Read more bytes for better validation
+      const fd = fs.openSync(modelPath, 'r')
+      fs.readSync(fd, buffer, 0, 32, 0)
+      fs.closeSync(fd)
+
+      // Method 1: Check for ONNX protobuf magic bytes
+      const first8Bytes = buffer.subarray(0, 8)
+      const hasProtobufMagic =
+        buffer.includes(Buffer.from([0x08, 0x01])) ||
+        buffer.includes(Buffer.from([0x08, 0x02])) ||
+        buffer.includes(Buffer.from([0x08, 0x03]))
+
+      // Method 2: Check for common ONNX strings
+      const bufferStr = buffer.toString('ascii')
+      const hasOnnxSignature =
+        bufferStr.includes('ONNX') || bufferStr.includes('onnx') || buffer.toString('utf8').includes('ir_version')
+
+      // Method 3: Check file extension and size combination
+      const hasCorrectExtension = modelPath.endsWith('.onnx')
+      const hasReasonableSize = stats.size > 200 * 1024 * 1024 && stats.size < 300 * 1024 * 1024
+
+      console.log(`🔍 ONNX Validation:`)
+      console.log(`   - Protobuf magic: ${hasProtobufMagic}`)
+      console.log(`   - ONNX signature: ${hasOnnxSignature}`)
+      console.log(`   - Extension: ${hasCorrectExtension}`)
+      console.log(`   - Size range: ${hasReasonableSize}`)
+
+      // At least 2 of 3 criteria should pass for a valid ONNX file
+      const validationScore = [hasProtobufMagic, hasOnnxSignature, hasCorrectExtension && hasReasonableSize].filter(
+        Boolean
+      ).length
+
+      if (validationScore >= 2) {
+        console.log(`✅ ONNX validation passed (score: ${validationScore}/3)`)
+        return true
+      } else {
+        console.log(`❌ ONNX validation failed (score: ${validationScore}/3)`)
+        return false
+      }
+    } catch (error) {
+      console.log(`⚠️ Error reading model file: ${error}`)
+      return false
+    }
+  }
+
+  private async loadGLinT100Model() {
+    // 🔥 FIX 1: Check if model already exists and is valid
+    if (fs.existsSync(this.GLINTR100_MODEL_PATH)) {
+      console.log('📂 GLinT100 model file found, validating...')
+
+      if (this.validateModelFile(this.GLINTR100_MODEL_PATH)) {
+        console.log('✅ Existing GLinT100 model is valid, skipping download')
+
+        // Try to load the existing model
+        try {
+          this.embeddingSession = await ort.InferenceSession.create(this.GLINTR100_MODEL_PATH)
+          console.log('✅ GLinT100 Face Recognition model loaded from existing file')
+          console.log(`📊 GLinT100 Input: ${JSON.stringify(this.embeddingSession.inputNames)}`)
+          console.log(`📊 GLinT100 Output: ${JSON.stringify(this.embeddingSession.outputNames)}`)
+          return // Successfully loaded existing model
+        } catch (loadError) {
+          console.error('❌ Failed to load existing model:', loadError)
+          console.log('🗑️ Deleting corrupted existing file...')
+
+          try {
+            fs.unlinkSync(this.GLINTR100_MODEL_PATH)
+            console.log('✅ Corrupted file deleted, will re-download')
+          } catch (unlinkError) {
+            console.log('⚠️ Could not delete corrupted file:', unlinkError)
+          }
+        }
+      } else {
+        console.log('❌ Existing file validation failed, will re-download')
+        try {
+          fs.unlinkSync(this.GLINTR100_MODEL_PATH)
+          console.log('🗑️ Invalid file deleted')
+        } catch (unlinkError) {
+          console.log('⚠️ Could not delete invalid file:', unlinkError)
+        }
+      }
+    }
+
+    // 🔥 FIX 2: Download with better error handling
+    console.log('❌ GLinT100 model not found or invalid at:', this.GLINTR100_MODEL_PATH)
+    console.log('🚀 Starting automatic download...')
+
+    try {
+      await this.downloadModel(this.GLINTR100_DOWNLOAD_URL, this.GLINTR100_MODEL_PATH, 'GLinT100')
+
+      // 🔥 FIX 3: More lenient validation after download
+      if (!fs.existsSync(this.GLINTR100_MODEL_PATH)) {
+        throw new Error('Downloaded file does not exist')
+      }
+
+      const stats = fs.statSync(this.GLINTR100_MODEL_PATH)
+      console.log(`📊 Downloaded file size: ${this.formatBytes(stats.size)}`)
+
+      // For freshly downloaded files, be more lenient with validation
+      if (stats.size < 200 * 1024 * 1024) {
+        throw new Error(`Downloaded file too small: ${this.formatBytes(stats.size)}`)
+      }
+
+      console.log('🎉 GLinT100 model downloaded successfully!')
+
+      // Try to load immediately after download
+      try {
+        this.embeddingSession = await ort.InferenceSession.create(this.GLINTR100_MODEL_PATH)
+        console.log('✅ GLinT100 Face Recognition model loaded successfully')
+        console.log(`📊 GLinT100 Input: ${JSON.stringify(this.embeddingSession.inputNames)}`)
+        console.log(`📊 GLinT100 Output: ${JSON.stringify(this.embeddingSession.outputNames)}`)
+        return
+      } catch (loadError) {
+        console.error('❌ Failed to load downloaded model:', loadError)
+        throw new Error('Downloaded model cannot be loaded by ONNX Runtime')
+      }
+    } catch (error) {
+      console.error('❌ Failed to download/load GLinT100 model:', error)
+      console.log('⚠️ Will continue with fallback methods (Computer Vision only)')
+      console.log('📌 For full functionality, manually download GLinT100 from:')
+      console.log('   https://huggingface.co/camenduru/show/resolve/main/insightface/models/antelopev2/glintr100.onnx')
+      console.log('   And place it at:', this.GLINTR100_MODEL_PATH)
+
+      // Clean up failed download
+      if (fs.existsSync(this.GLINTR100_MODEL_PATH)) {
+        try {
+          fs.unlinkSync(this.GLINTR100_MODEL_PATH)
+          console.log('🗑️ Cleaned up failed download')
+        } catch (unlinkError) {
+          console.log('⚠️ Could not clean up failed download:', unlinkError)
+        }
+      }
+
+      // Don't throw error - continue without the model
+      return
+    }
+  }
+
+  private async downloadModel(url: string, outputPath: string, modelName: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      console.log(`📥 Downloading ${modelName} from: ${url}`)
+      console.log(`📁 Saving to: ${outputPath}`)
+
+      // Create parent directory if needed
+      const dir = path.dirname(outputPath)
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true })
+      }
+
+      // Clean up any existing incomplete file
+      if (fs.existsSync(outputPath)) {
+        try {
+          fs.unlinkSync(outputPath)
+          console.log(`🗑️ Removed existing incomplete file`)
+        } catch (e) {
+          console.log(`⚠️ Could not remove existing file: ${e}`)
+        }
+      }
+
+      const file = fs.createWriteStream(outputPath)
+      let downloadedSize = 0
+      let lastPercent = -1
+      let requestFinished = false
+
+      const request = https.get(url, (response) => {
+        // Handle redirects
+        if (response.statusCode === 301 || response.statusCode === 302) {
+          if (response.headers.location) {
+            console.log(`🔄 Redirecting to: ${response.headers.location}`)
+            file.destroy()
+            if (fs.existsSync(outputPath)) {
+              fs.unlinkSync(outputPath)
+            }
+            return this.downloadModel(response.headers.location, outputPath, modelName).then(resolve).catch(reject)
+          }
+        }
+
+        if (response.statusCode !== 200) {
+          file.destroy()
+          if (fs.existsSync(outputPath)) {
+            fs.unlinkSync(outputPath)
+          }
+          reject(new Error(`Failed to download ${modelName}: HTTP ${response.statusCode} ${response.statusMessage}`))
+          return
+        }
+
+        const totalSize = parseInt(response.headers['content-length'] || '0', 10)
+        console.log(`📊 Expected file size: ${this.formatBytes(totalSize)}`)
+
+        // Validate expected size for GLinT100 (should be around 261MB)
+        if (totalSize > 0 && totalSize < 200 * 1024 * 1024) {
+          file.destroy()
+          if (fs.existsSync(outputPath)) {
+            fs.unlinkSync(outputPath)
+          }
+          reject(new Error(`Unexpected file size: ${this.formatBytes(totalSize)}, expected ~261MB`))
+          return
+        }
+
+        response.on('data', (chunk) => {
+          if (!file.destroyed) {
+            file.write(chunk)
+            downloadedSize += chunk.length
+
+            if (totalSize > 0) {
+              const percent = Math.floor((downloadedSize / totalSize) * 100)
+              if (percent !== lastPercent && percent % 10 === 0) {
+                console.log(
+                  `⬇️ ${modelName}: ${percent}% (${this.formatBytes(downloadedSize)}/${this.formatBytes(totalSize)})`
+                )
+                lastPercent = percent
+              }
+            } else {
+              // If no content-length, show progress every 20MB
+              if (
+                Math.floor(downloadedSize / (20 * 1024 * 1024)) >
+                Math.floor((downloadedSize - chunk.length) / (20 * 1024 * 1024))
+              ) {
+                console.log(`⬇️ ${modelName}: ${this.formatBytes(downloadedSize)} downloaded...`)
+              }
+            }
+          }
+        })
+
+        response.on('end', () => {
+          requestFinished = true
+          console.log(`✅ ${modelName} download completed: ${this.formatBytes(downloadedSize)}`)
+
+          // Close the file and validate
+          file.end(() => {
+            // Wait a bit for file system to sync
+            setTimeout(() => {
+              // Validate final file size
+              if (downloadedSize < 200 * 1024 * 1024) {
+                if (fs.existsSync(outputPath)) {
+                  fs.unlinkSync(outputPath)
+                }
+                reject(new Error(`Downloaded file too small: ${this.formatBytes(downloadedSize)}, expected ~261MB`))
+                return
+              }
+
+              // Double-check file exists and has correct size
+              if (!fs.existsSync(outputPath)) {
+                reject(new Error('Downloaded file does not exist'))
+                return
+              }
+
+              const fileStats = fs.statSync(outputPath)
+              console.log(`📊 Final file size on disk: ${this.formatBytes(fileStats.size)}`)
+
+              if (fileStats.size < 200 * 1024 * 1024) {
+                fs.unlinkSync(outputPath)
+                reject(new Error(`File on disk too small: ${this.formatBytes(fileStats.size)}, expected ~261MB`))
+                return
+              }
+
+              resolve()
+            }, 1000) // Wait 1 second for file system
+          })
+        })
+
+        response.on('error', (err) => {
+          file.destroy()
+          if (fs.existsSync(outputPath)) {
+            fs.unlinkSync(outputPath)
+          }
+          reject(err)
+        })
+      })
+
+      request.on('error', (err) => {
+        file.destroy()
+        if (fs.existsSync(outputPath)) {
+          fs.unlinkSync(outputPath)
+        }
+        reject(err)
+      })
+
+      request.setTimeout(600000, () => {
+        // 10 minute timeout for large file
+        request.destroy()
+        file.destroy()
+        if (fs.existsSync(outputPath)) {
+          fs.unlinkSync(outputPath)
+        }
+        reject(new Error('Download timeout after 10 minutes'))
+      })
+
+      file.on('error', (err) => {
+        console.error('File write error:', err)
+        file.destroy()
+        if (fs.existsSync(outputPath)) {
+          fs.unlinkSync(outputPath)
+        }
+        if (!requestFinished) {
+          reject(err)
+        }
+      })
+    })
+  }
+
+  // 🔥 STEP 1: SCRFD Face Detection Model
   private async loadSCRFDModel() {
     if (!fs.existsSync(this.SCRFD_MODEL_PATH)) {
       console.log('❌ SCRFD model not found at:', this.SCRFD_MODEL_PATH)
       console.log(
         '📥 Download from: https://huggingface.co/camenduru/show/resolve/main/insightface/models/antelopev2/scrfd_10g_bnkps.onnx'
       )
-      throw new Error('SCRFD model required for face detection')
+      console.log('⚠️ SCRFD model not available, will use fallback detection')
+      return // Not critical, we have fallback
     }
 
     this.scrfdSession = await ort.InferenceSession.create(this.SCRFD_MODEL_PATH)
@@ -126,22 +482,6 @@ class CompleteFaceAnalysisService {
     console.log('✅ GenderAge model loaded')
     console.log(`📊 GenderAge Input: ${JSON.stringify(this.genderAgeSession.inputNames)}`)
     console.log(`📊 GenderAge Output: ${JSON.stringify(this.genderAgeSession.outputNames)}`)
-  }
-
-  // 🔥 STEP 3: GLinT100 Recognition Model
-  private async loadGLinT100Model() {
-    if (!fs.existsSync(this.GLINTR100_MODEL_PATH)) {
-      console.log('❌ GLinT100 model not found at:', this.GLINTR100_MODEL_PATH)
-      console.log(
-        '📥 Download from: https://huggingface.co/camenduru/show/resolve/main/insightface/models/antelopev2/glintr100.onnx'
-      )
-      throw new Error('GLinT100 model required for face recognition')
-    }
-
-    this.embeddingSession = await ort.InferenceSession.create(this.GLINTR100_MODEL_PATH)
-    console.log('✅ GLinT100 Face Recognition model loaded')
-    console.log(`📊 GLinT100 Input: ${JSON.stringify(this.embeddingSession.inputNames)}`)
-    console.log(`📊 GLinT100 Output: ${JSON.stringify(this.embeddingSession.outputNames)}`)
   }
 
   // 🎯 MAIN PIPELINE: Complete Face Analysis
@@ -665,6 +1005,7 @@ class CompleteFaceAnalysisService {
       }
     }
   }
+
   // 🔥 IMPROVED: Choose based on confidence when methods disagree
   private async estimateGenderAge(alignedFace: Buffer): Promise<{
     age: number
@@ -754,17 +1095,6 @@ class CompleteFaceAnalysisService {
     return { ...cvResult, confidence: Math.max(0.4, cvResult.confidence) }
   }
 
-  // 🔥 ADD: Better logging for final decision
-  private logFinalDecision(cvResult: any, modelResult: any, finalResult: any) {
-    console.log(`
-🎯 GENDER ESTIMATION SUMMARY:
-   CV Result:    ${cvResult.gender} (confidence: ${cvResult.confidence.toFixed(3)})
-   Model Result: ${modelResult?.gender || 'N/A'} (confidence: ${modelResult?.confidence?.toFixed(3) || 'N/A'})
-   FINAL:        ${finalResult.gender} (confidence: ${finalResult.confidence.toFixed(3)})
-   Decision:     Based on ${finalResult.confidence > cvResult.confidence ? 'higher confidence' : 'fallback rules'}
-  `)
-  }
-
   private async estimateWithGenderAgeModel(alignedFace: Buffer): Promise<{
     age: number
     gender: 'nam' | 'nữ'
@@ -803,37 +1133,30 @@ class CompleteFaceAnalysisService {
         .join(', ')}...] (length: ${output.length})`
     )
 
-    // Parse based on output format - IMPROVED with empirical testing
+    // Parse based on output format - ALWAYS USE STRATEGY A
     let age = 20
     let gender: 'nam' | 'nữ' = 'nam' // Default to male
     let confidence = 0.5
 
     if (output.length >= 3) {
-      const val1 = output[0] // 0.197
-      const val2 = output[1] // -0.197
-      const val3 = output[2] // 0.351
+      const val1 = output[0] // Age estimation value
+      const val2 = output[1] // Gender value 1
+      const val3 = output[2] // Gender value 2
 
       console.log(`🔍 Raw values: val1=${val1.toFixed(3)}, val2=${val2.toFixed(3)}, val3=${val3.toFixed(3)}`)
-
-      // 🔥 EMPIRICAL APPROACH: Based on testing with known male/female images
-      // From testing: Male images tend to have val2 negative, val3 positive but smaller
-      // Female images tend to have val2 negative, val3 positive but larger
 
       // Age estimation (val1 seems to be normalized age)
       if (Math.abs(val1) < 2.0) {
         age = Math.round(Math.max(15, Math.min(60, val1 * 50 + 25))) // Scale to 15-60 range
       }
 
-      // 🔥 NEW STRATEGY: Empirical gender classification
-      // For male faces: typically val3 - val2 is smaller (around 0.5-0.6)
-      // For female faces: typically val3 - val2 is larger (around 0.7+)
-
+      // 🔥 STRATEGY A (PRIORITY): Threshold-based approach
       const genderDiff = val3 - val2 // Difference between val3 and val2
       const absDiff = Math.abs(val2) + Math.abs(val3) // Total magnitude
 
-      console.log(`🔍 Gender analysis: diff=${genderDiff.toFixed(3)}, absDiff=${absDiff.toFixed(3)}`)
+      console.log(`🔍 Strategy A analysis: diff=${genderDiff.toFixed(3)}, absDiff=${absDiff.toFixed(3)}`)
 
-      // 🔥 STRATEGY A: Threshold-based approach
+      // Threshold-based gender detection
       if (genderDiff < 0.6) {
         gender = 'nam'
         confidence = Math.min(0.9, (0.6 - genderDiff) / 0.6 + 0.4)
@@ -842,60 +1165,37 @@ class CompleteFaceAnalysisService {
         confidence = Math.min(0.9, (genderDiff - 0.6) / 0.4 + 0.4)
       }
 
-      console.log(`🎯 Strategy A result: gender=${gender}, confidence=${confidence.toFixed(3)}`)
+      console.log(`🎯 Strategy A result (FINAL): gender=${gender}, confidence=${confidence.toFixed(3)}`)
 
-      // 🔥 STRATEGY B: If Strategy A gives low confidence, try alternative
-      if (confidence < 0.6) {
-        console.log(`🔄 Trying Strategy B: Magnitude-based approach...`)
+      // 🔥 BOOST CONFIDENCE: Since Strategy A is most accurate according to your testing
+      // Increase confidence by 10-15% to make it more competitive
+      confidence = Math.min(0.95, confidence + 0.12)
 
-        // Maybe val2 represents male strength, val3 represents female strength
+      console.log(`✅ Strategy A boosted confidence: ${confidence.toFixed(3)}`)
+
+      // 🔥 FALLBACK: Only if Strategy A gives extremely low confidence (< 0.3)
+      if (confidence < 0.3) {
+        console.log(`⚠️ Strategy A confidence too low (${confidence.toFixed(3)}), using fallback...`)
+
+        // Fallback: use simple magnitude comparison
         const maleStrength = Math.abs(val2)
         const femaleStrength = Math.abs(val3)
 
         if (maleStrength > femaleStrength) {
           gender = 'nam'
-          confidence = maleStrength / (maleStrength + femaleStrength)
+          confidence = Math.max(0.4, maleStrength / (maleStrength + femaleStrength))
         } else {
           gender = 'nữ'
-          confidence = femaleStrength / (maleStrength + femaleStrength)
+          confidence = Math.max(0.4, femaleStrength / (maleStrength + femaleStrength))
         }
 
-        console.log(
-          `🎯 Strategy B result: male_str=${maleStrength.toFixed(3)}, female_str=${femaleStrength.toFixed(3)}, gender=${gender}, confidence=${confidence.toFixed(3)}`
-        )
-      }
-
-      // 🔥 STRATEGY C: If still low confidence, try ratio approach
-      if (confidence < 0.6) {
-        console.log(`🔄 Trying Strategy C: Ratio-based approach...`)
-
-        // Look at the ratio val3/val2 (both are typically negative/positive respectively)
-        if (val2 !== 0) {
-          const ratio = val3 / Math.abs(val2)
-          console.log(`🔍 Ratio val3/|val2|: ${ratio.toFixed(3)}`)
-
-          // Empirical: lower ratios tend to be male, higher ratios tend to be female
-          if (ratio < 1.5) {
-            gender = 'nam'
-            confidence = Math.min(0.8, (1.5 - ratio) / 1.5 + 0.3)
-          } else {
-            gender = 'nữ'
-            confidence = Math.min(0.8, (ratio - 1.5) / 1.0 + 0.3)
-          }
-
-          console.log(`🎯 Strategy C result: gender=${gender}, confidence=${confidence.toFixed(3)}`)
-        }
-      }
-
-      // 🔥 FINAL FALLBACK: If all strategies fail, use Computer Vision
-      if (confidence < 0.5) {
-        console.log(`🔄 All strategies failed, will use Computer Vision fallback`)
-        // This will trigger Computer Vision in the calling method
-        return { age, gender: 'nam', confidence: 0.3 } // Low confidence to trigger CV
+        console.log(`🔄 Fallback result: gender=${gender}, confidence=${confidence.toFixed(3)}`)
       }
     }
 
-    console.log(`👫 GenderAge FINAL result: age=${age}, gender=${gender}, confidence=${confidence.toFixed(3)}`)
+    console.log(
+      `👫 GenderAge FINAL result (Strategy A Priority): age=${age}, gender=${gender}, confidence=${confidence.toFixed(3)}`
+    )
     return { age, gender, confidence: Math.max(0.2, confidence) }
   }
 
@@ -1156,7 +1456,7 @@ class CompleteFaceAnalysisService {
       const ageGroup = this.getAgeGroupFromClass(user?.class as string)
       const userAgeDescription = `${userAge} tuổi, ${ageGroup}`
 
-      // Upload reference image
+      // 🔥 FIXED: Upload reference image to S3 properly
       const referenceImageUrl = await this.uploadProfileImageToS3(userId, imageBuffer)
       await this.updateUserAvatar(userId, referenceImageUrl)
 
@@ -1194,6 +1494,7 @@ class CompleteFaceAnalysisService {
     }
   }
 
+  // 🔥 UPDATED: AI-powered face verification using Gemini Vision
   async verifyFace(
     userId: string,
     imageBuffer: Buffer
@@ -1203,20 +1504,26 @@ class CompleteFaceAnalysisService {
     confidence: 'high' | 'medium' | 'low'
     quality_score: number
     detection_info?: any
+    ai_analysis?: string
   }> {
     try {
-      console.log(`🔍 Starting complete face verification for user ${userId}`)
+      console.log(`🔍 Starting AI-powered face verification for user ${userId}`)
 
-      // Get stored embedding
+      // Get stored embedding document
       const storedEmbeddingDoc = await databaseService.db
         .collection('face_embeddings')
         .findOne({ user_id: new ObjectId(userId) })
 
-      if (!storedEmbeddingDoc?.embedding) {
-        throw new Error('No stored face embedding found')
+      if (!storedEmbeddingDoc?.reference_image_url) {
+        throw new Error('No stored face reference found')
       }
 
-      // Analyze new image
+      console.log(`📥 Downloading reference image from: ${storedEmbeddingDoc.reference_image_url}`)
+
+      // Download reference image from S3
+      const referenceImageBuffer = await this.downloadImageFromS3(storedEmbeddingDoc.reference_image_url)
+
+      // Analyze new image to get quality score
       const analyses = await this.analyzeImageComplete(imageBuffer)
 
       if (analyses.length === 0) {
@@ -1224,34 +1531,24 @@ class CompleteFaceAnalysisService {
           isMatch: false,
           similarity: 0,
           confidence: 'low',
-          quality_score: 0
+          quality_score: 0,
+          ai_analysis: 'No faces detected in provided image'
         }
       }
 
       // Use best quality face
       const bestFace = analyses.reduce((best, current) => (current.quality > best.quality ? current : best))
 
-      // Calculate similarity
-      const similarity = this.calculateSimilarity(
-        storedEmbeddingDoc.embedding,
-        bestFace.embedding,
-        storedEmbeddingDoc.face_features.quality_score,
-        bestFace.quality
-      )
+      // 🔥 Use Gemini AI to compare the two images
+      const aiComparison = await this.compareImagesWithAI(referenceImageBuffer, imageBuffer)
 
-      const isMatch = similarity >= this.SIMILARITY_THRESHOLD
-
-      // Determine confidence
-      let confidence: 'high' | 'medium' | 'low'
-      const avgQuality = (storedEmbeddingDoc.face_features.quality_score + bestFace.quality) / 2
-
-      if (similarity >= 0.8 && avgQuality >= 0.7) confidence = 'high'
-      else if (similarity >= 0.6 && avgQuality >= 0.5) confidence = 'medium'
-      else confidence = 'low'
+      // Parse AI result
+      const { isMatch, similarity, confidence, analysis } = this.parseAIComparison(aiComparison, bestFace.quality)
 
       console.log(
-        `🎯 Verification result: similarity=${similarity.toFixed(3)}, match=${isMatch}, confidence=${confidence}`
+        `🎯 AI Verification result: match=${isMatch}, similarity=${similarity.toFixed(3)}, confidence=${confidence}`
       )
+      console.log(`🤖 AI Analysis: ${analysis}`)
 
       return {
         isMatch,
@@ -1262,103 +1559,337 @@ class CompleteFaceAnalysisService {
           faces_detected: analyses.length,
           best_face_confidence: bestFace.detection.confidence,
           landmarks_count: bestFace.detection.landmarks.length / 2
-        }
+        },
+        ai_analysis: analysis
       }
-    } catch (error) {
-      console.error('Complete face verification failed:', error)
+    } catch (error: any) {
+      console.error('AI face verification failed:', error)
       return {
         isMatch: false,
         similarity: 0,
         confidence: 'low',
-        quality_score: 0
+        quality_score: 0,
+        ai_analysis: `Verification failed: ${error.message}`
       }
     }
   }
 
-  // 🔥 DEBUG: Add method to test SCRFD outputs
-  async debugSCRFDOutputs(imageBuffer: Buffer): Promise<void> {
-    if (!this.scrfdSession) {
-      console.log('❌ SCRFD model not loaded')
-      return
-    }
+  private async downloadImageFromS3(imageUrl: string): Promise<Buffer> {
+    console.log(`📥 Starting download: ${imageUrl}`)
 
+    // Parse S3 URL properly
+    const { bucket, key, region } = this.parseS3URL(imageUrl)
+    console.log(`🔍 Parsed S3 URL: bucket=${bucket}, key=${key}, region=${region}`)
+
+    // Method 1: Try direct HTTPS first (fastest)
     try {
-      const imageInfo = await sharp(imageBuffer).metadata()
-      console.log(`📏 Image info: ${imageInfo.width}x${imageInfo.height}, channels: ${imageInfo.channels}`)
+      console.log(`🌐 Trying direct HTTPS download...`)
+      return await this.downloadImageViaHTTP(imageUrl)
+    } catch (httpError: any) {
+      console.warn(`⚠️ HTTPS download failed:`, httpError.message)
 
-      const { data, info } = await sharp(imageBuffer)
-        .resize(640, 640, { fit: 'fill' })
-        .toColorspace('srgb')
-        .raw()
-        .toBuffer({ resolveWithObject: true })
+      // Method 2: Try S3 SDK
+      try {
+        console.log(`🔄 Trying S3 SDK download...`)
+        return await this.downloadViaS3SDK(bucket, key)
+      } catch (s3Error: any) {
+        console.warn(`⚠️ S3 SDK failed:`, s3Error.message)
 
-      const inputData = new Float32Array(3 * 640 * 640)
-      for (let h = 0; h < 640; h++) {
-        for (let w = 0; w < 640; w++) {
-          for (let c = 0; c < 3; c++) {
-            const srcIdx = (h * 640 + w) * 3 + c
-            const dstIdx = c * 640 * 640 + h * 640 + w
-            inputData[dstIdx] = data[srcIdx] / 255.0
-          }
-        }
-      }
-
-      const inputName = this.scrfdSession.inputNames[0]
-      const inputTensor = new ort.Tensor('float32', inputData, [1, 3, 640, 640])
-      const feeds: { [name: string]: ort.Tensor } = {}
-      feeds[inputName] = inputTensor
-
-      console.log(`🔍 Running SCRFD inference with input shape: [1, 3, 640, 640]`)
-      const results = await this.scrfdSession.run(feeds)
-
-      console.log(`📊 SCRFD Outputs Analysis:`)
-      const outputNames = Object.keys(results).sort()
-
-      for (const outputName of outputNames) {
-        const output = results[outputName]?.data as Float32Array
-        if (output) {
-          const min = Math.min(...Array.from(output.slice(0, 1000)))
-          const max = Math.max(...Array.from(output.slice(0, 1000)))
-          const mean = Array.from(output.slice(0, 1000)).reduce((a, b) => a + b, 0) / Math.min(1000, output.length)
-
-          console.log(`  ${outputName}:`)
-          console.log(`    Length: ${output.length}`)
-          console.log(`    Range: [${min.toFixed(3)}, ${max.toFixed(3)}]`)
-          console.log(`    Mean: ${mean.toFixed(3)}`)
-          console.log(
-            `    Sample: [${Array.from(output.slice(0, 10))
-              .map((v) => v.toFixed(3))
-              .join(', ')}...]`
+        // Method 3: Try signed URL
+        try {
+          console.log(`🔄 Trying pre-signed URL...`)
+          return await this.downloadViaPresignedURL(bucket, key)
+        } catch (signedError: any) {
+          console.error(`❌ All download methods failed`)
+          throw new Error(
+            `Could not download image: HTTP=${httpError.message}, S3=${s3Error.message}, Signed=${signedError.message}`
           )
-
-          // Detect potential scores (0-1 range)
-          const scores = Array.from(output).filter((v) => v >= 0 && v <= 1)
-          const highConfidenceScores = scores.filter((v) => v > 0.3)
-
-          if (scores.length > output.length * 0.8) {
-            console.log(`    🎯 Likely SCORES: ${highConfidenceScores.length} high confidence (>0.3)`)
-            if (highConfidenceScores.length > 0) {
-              console.log(
-                `    Top scores: [${highConfidenceScores
-                  .slice(0, 5)
-                  .map((v) => v.toFixed(3))
-                  .join(', ')}]`
-              )
-            }
-          }
-
-          // Detect potential coordinates (larger values)
-          if (min > 0 && max > 10) {
-            console.log(`    🎯 Likely COORDINATES (bbox/landmarks)`)
-          }
-
-          console.log(``)
         }
       }
-    } catch (error) {
-      console.error('❌ SCRFD debug failed:', error)
     }
   }
+
+  // 🔧 Parse S3 URL to extract components
+  private parseS3URL(imageUrl: string): { bucket: string; key: string; region: string } {
+    try {
+      // Handle virtual-hosted-style URLs: https://bucket-name.s3.region.amazonaws.com/key
+      const url = new URL(imageUrl)
+      const hostname = url.hostname
+
+      let bucket: string
+      let region: string
+
+      if (hostname.includes('.s3.') && hostname.includes('.amazonaws.com')) {
+        // Virtual-hosted-style: bucket-name.s3.region.amazonaws.com
+        const parts = hostname.split('.s3.')
+        bucket = parts[0]
+        region = parts[1].replace('.amazonaws.com', '')
+      } else if (hostname.startsWith('s3.') || hostname.startsWith('s3-')) {
+        // Path-style: s3.region.amazonaws.com/bucket-name/key
+        const pathParts = url.pathname.split('/').filter((p) => p)
+        bucket = pathParts[0]
+        region = hostname.includes('s3-') ? hostname.replace('s3-', '').replace('.amazonaws.com', '') : 'us-east-1'
+      } else {
+        throw new Error('Invalid S3 URL format')
+      }
+
+      const key = url.pathname.startsWith('/') ? url.pathname.substring(1) : url.pathname
+
+      console.log(`🔍 URL Parse Result: bucket=${bucket}, region=${region}, key=${key}`)
+
+      return { bucket, key, region }
+    } catch (error) {
+      console.error('Failed to parse S3 URL:', error)
+
+      // Fallback parsing
+      const bucketName = envConfig.Bucket_Name as string
+      const urlPattern = `https://${bucketName}.s3.${envConfig.region}.amazonaws.com/`
+      const key = imageUrl.replace(urlPattern, '')
+
+      return {
+        bucket: bucketName,
+        key,
+        region: envConfig.region as string
+      }
+    }
+  }
+
+  // Method 1: S3 SDK Download
+  private async downloadViaS3SDK(bucket: string, key: string): Promise<Buffer> {
+    console.log(`🔧 S3 SDK Download: Bucket=${bucket}, Key=${key}`)
+
+    // Use existing S3 client or create new one
+    const s3Client =
+      this.s3 ||
+      new S3({
+        region: envConfig.region,
+        credentials: {
+          accessKeyId: envConfig.accessKeyId as string,
+          secretAccessKey: envConfig.secretAccessKey as string
+        },
+        forcePathStyle: false, // Use virtual-hosted-style URLs
+        useAccelerateEndpoint: false
+      })
+
+    const response = await s3Client.getObject({
+      Bucket: bucket,
+      Key: key
+    })
+
+    if (!response.Body) {
+      throw new Error('Empty response from S3')
+    }
+
+    const chunks: Uint8Array[] = []
+    const stream = response.Body as any
+
+    for await (const chunk of stream) {
+      chunks.push(chunk)
+    }
+
+    const buffer = Buffer.concat(chunks)
+    console.log(`✅ S3 SDK downloaded ${buffer.length} bytes`)
+    return buffer
+  }
+
+  // Method 2: Direct HTTPS Download
+  private async downloadImageViaHTTP(imageUrl: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const https = require('https')
+
+      console.log(`🌐 HTTPS Download: ${imageUrl}`)
+
+      const request = https.get(imageUrl, (response: any) => {
+        console.log(`📡 HTTP Response: ${response.statusCode} ${response.statusMessage}`)
+
+        if (response.statusCode === 403) {
+          reject(new Error(`HTTP 403: Access denied - check bucket public access settings`))
+          return
+        }
+
+        if (response.statusCode !== 200) {
+          reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`))
+          return
+        }
+
+        const chunks: Buffer[] = []
+        let totalSize = 0
+
+        response.on('data', (chunk: Buffer) => {
+          chunks.push(chunk)
+          totalSize += chunk.length
+        })
+
+        response.on('end', () => {
+          const buffer = Buffer.concat(chunks)
+          console.log(`✅ HTTPS downloaded ${buffer.length} bytes`)
+          resolve(buffer)
+        })
+
+        response.on('error', (error: Error) => {
+          reject(error)
+        })
+      })
+
+      request.on('error', (error: Error) => {
+        reject(error)
+      })
+
+      request.setTimeout(30000, () => {
+        request.destroy()
+        reject(new Error('Download timeout after 30 seconds'))
+      })
+    })
+  }
+
+  // Method 3: Pre-signed URL Download
+  private async downloadViaPresignedURL(bucket: string, key: string): Promise<Buffer> {
+    console.log(`🔐 Generating pre-signed URL for: ${bucket}/${key}`)
+
+    const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
+    const { GetObjectCommand } = require('@aws-sdk/client-s3')
+
+    const s3Client =
+      this.s3 ||
+      new S3({
+        region: envConfig.region,
+        credentials: {
+          accessKeyId: envConfig.accessKeyId as string,
+          secretAccessKey: envConfig.secretAccessKey as string
+        }
+      })
+
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: key
+    })
+
+    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 })
+    console.log(`🔗 Pre-signed URL generated: ${signedUrl.substring(0, 100)}...`)
+
+    return await this.downloadImageViaHTTP(signedUrl)
+  }
+
+  // 🔥 NEW: Compare two images using Gemini AI
+  private async compareImagesWithAI(referenceImage: Buffer, currentImage: Buffer): Promise<string> {
+    try {
+      console.log('🤖 Using Gemini AI for face comparison...')
+
+      // Convert images to base64
+      const referenceBase64 = referenceImage.toString('base64')
+      const currentBase64 = currentImage.toString('base64')
+
+      // Create prompt for Gemini
+      const prompt = `Bạn là một chuyên gia nhận dạng khuôn mặt. Hãy so sánh hai bức ảnh sau và xác định xem chúng có phải là cùng một người hay không.
+
+NHIỆM VỤ:
+1. Phân tích kỹ lưỡng các đặc điểm khuôn mặt trong cả hai ảnh
+2. So sánh: hình dáng mặt, mắt, mũi, miệng, tai, tổng thể gương mặt
+3. Đưa ra kết luận có phải cùng một người hay không
+4. Cho điểm similarity từ 0-100 (0 = hoàn toàn khác người, 100 = chắc chắn cùng người)
+5. Đánh giá mức độ tin cậy: HIGH/MEDIUM/LOW
+
+LƯU Ý:
+- Bỏ qua sự khác biệt về ánh sáng, góc chụp, chất lượng ảnh
+- Tập trung vào các đặc điểm sinh trắc học cơ bản
+- Nếu không thấy rõ mặt người trong ảnh nào thì báo LOW confidence
+
+ĐỊNH DẠNG TRẢ LỜI:
+RESULT: [SAME/DIFFERENT]
+SIMILARITY: [0-100]
+CONFIDENCE: [HIGH/MEDIUM/LOW]
+ANALYSIS: [Giải thích chi tiết lý do so sánh, ít nhất 2-3 câu về các đặc điểm cụ thể]
+
+Hãy phân tích và trả lời:`
+
+      const result = await this.geminiModel.generateContent([
+        {
+          text: prompt
+        },
+        {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: referenceBase64
+          }
+        },
+        {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: currentBase64
+          }
+        }
+      ])
+
+      const response = await result.response
+      const aiResponse = response.text()
+
+      console.log(`🤖 Gemini AI Response:`)
+      console.log(aiResponse)
+
+      return aiResponse
+    } catch (error: any) {
+      console.error('Gemini AI comparison failed:', error)
+      throw new Error(`AI comparison failed: ${error.message}`)
+    }
+  }
+
+  // 🔥 NEW: Parse AI comparison result
+  private parseAIComparison(
+    aiResponse: string,
+    imageQuality: number
+  ): {
+    isMatch: boolean
+    similarity: number
+    confidence: 'high' | 'medium' | 'low'
+    analysis: string
+  } {
+    try {
+      // Extract information using regex
+      const resultMatch = aiResponse.match(/RESULT:\s*(SAME|DIFFERENT)/i)
+      const similarityMatch = aiResponse.match(/SIMILARITY:\s*(\d+)/i)
+      const confidenceMatch = aiResponse.match(/CONFIDENCE:\s*(HIGH|MEDIUM|LOW)/i)
+      const analysisMatch = aiResponse.match(/ANALYSIS:\s*(.+)/is)
+
+      const result = resultMatch?.[1]?.toUpperCase() || 'DIFFERENT'
+      const similarity = similarityMatch ? parseInt(similarityMatch[1]) / 100 : 0
+      const aiConfidence = (confidenceMatch?.[1]?.toLowerCase() as 'high' | 'medium' | 'low') || 'low'
+      const analysis = analysisMatch?.[1]?.trim() || 'No detailed analysis available'
+
+      const isMatch = result === 'SAME'
+
+      // Adjust confidence based on image quality
+      let finalConfidence = aiConfidence
+      if (imageQuality < 0.4) {
+        finalConfidence = 'low'
+      } else if (imageQuality < 0.7 && aiConfidence === 'high') {
+        finalConfidence = 'medium'
+      }
+
+      // Apply similarity threshold
+      const adjustedSimilarity = isMatch ? Math.max(similarity, 0.5) : Math.min(similarity, 0.4)
+
+      console.log(
+        `📊 Parsed AI result: result=${result}, similarity=${similarity}, confidence=${aiConfidence} -> ${finalConfidence}`
+      )
+
+      return {
+        isMatch: isMatch && adjustedSimilarity >= 0.6, // Apply threshold
+        similarity: adjustedSimilarity,
+        confidence: finalConfidence,
+        analysis
+      }
+    } catch (error: any) {
+      console.error('Failed to parse AI response:', error)
+      return {
+        isMatch: false,
+        similarity: 0,
+        confidence: 'low',
+        analysis: `Failed to parse AI response: ${error.message}`
+      }
+    }
+  }
+
+  // Helper utility methods
   private calculateJawSharpness(grayData: Buffer, width: number, height: number): number {
     // Simplified jawline analysis
     let sharpness = 0
@@ -1541,10 +2072,43 @@ class CompleteFaceAnalysisService {
     else return 'người trẻ'
   }
 
+  // 🔥 FIXED: Properly upload to S3
   async uploadProfileImageToS3(userId: string, imageBuffer: Buffer): Promise<string> {
-    const timestamp = Date.now()
-    const filename = `profiles/${userId}/${timestamp}.jpg`
-    return `https://${envConfig.Bucket_Name}.s3.${envConfig.region}.amazonaws.com/${filename}`
+    try {
+      const timestamp = Date.now()
+      const filename = `profiles/${userId}/${timestamp}.jpg`
+
+      // Create a temporary file
+      const tempDir = path.join(process.cwd(), 'temp')
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true })
+      }
+
+      const tempFilePath = path.join(tempDir, `${timestamp}.jpg`)
+
+      // Write buffer to temp file
+      fs.writeFileSync(tempFilePath, imageBuffer)
+
+      console.log(`📤 Uploading profile image to S3: ${filename}`)
+
+      // Upload to S3 using existing utility
+      await uploadFileS3({
+        filename,
+        filePath: tempFilePath,
+        contentType: 'image/jpeg'
+      })
+
+      // Clean up temp file
+      fs.unlinkSync(tempFilePath)
+
+      const imageUrl = `https://${envConfig.Bucket_Name}.s3.${envConfig.region}.amazonaws.com/${filename}`
+      console.log(`✅ Profile image uploaded successfully: ${imageUrl}`)
+
+      return imageUrl
+    } catch (error: any) {
+      console.error('Failed to upload profile image to S3:', error)
+      throw new Error(`S3 upload failed: ${error.message}`)
+    }
   }
 
   async updateUserAvatar(userId: string, avatarUrl: string): Promise<boolean> {
@@ -1569,6 +2133,7 @@ class CompleteFaceAnalysisService {
       glintr100: boolean
     }
     pipeline_ready: boolean
+    ai_ready: boolean
   }> {
     await this.ensureInitialized()
 
@@ -1578,12 +2143,14 @@ class CompleteFaceAnalysisService {
       glintr100: this.embeddingSession !== null
     }
 
-    const pipeline_ready = models.scrfd
+    const pipeline_ready = models.glintr100 // GLinT100 is essential
+    const ai_ready = !!this.geminiModel && !!process.env.GERMINI_API_KEY
 
     return {
-      status: pipeline_ready ? 'healthy' : 'unhealthy',
+      status: pipeline_ready && ai_ready ? 'healthy' : 'unhealthy',
       models,
-      pipeline_ready
+      pipeline_ready,
+      ai_ready
     }
   }
 }
