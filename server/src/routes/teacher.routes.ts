@@ -1,4 +1,3 @@
-import { User } from './../../../client/src/types/User.type'
 import { Router } from 'express'
 import {
   registerStudentController,
@@ -14,7 +13,6 @@ import databaseService from '~/services/database.services'
 import { ObjectId } from 'mongodb'
 import { UserRole } from '~/models/schemas/User.schema'
 import faceEmbeddingServices from '~/services/faceEmbedding.services'
-import { validate } from '~/utils/utils'
 
 const teacherRouter = Router()
 

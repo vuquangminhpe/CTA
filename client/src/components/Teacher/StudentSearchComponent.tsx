@@ -47,7 +47,7 @@ const StudentSearchComponent: React.FC = () => {
     setIsSearching(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/search/students/text', {
+      const response = await fetch('https://server-aql1.onrender.com/api/search/students/text', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ const StudentSearchComponent: React.FC = () => {
         formData.append('class_filter', filters.class_filter)
       }
 
-      const response = await fetch('http://localhost:5000/api/search/students/image', {
+      const response = await fetch('https://server-aql1.onrender.com/api/search/students/image', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
