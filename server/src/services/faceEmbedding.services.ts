@@ -547,6 +547,7 @@ class CompleteFaceAnalysisService {
   }
 
   // 🔥 STEP 1: SCRFD Face Detection + Landmarks
+  // 🔥 UPDATED: SCRFD Face Detection + Landmarks with improved parsing
   private async detectFacesWithSCRFD(imageBuffer: Buffer): Promise<FaceDetection[]> {
     if (!this.scrfdSession) {
       console.log('⚠️ SCRFD model not available, using fallback detection')
@@ -580,6 +581,8 @@ class CompleteFaceAnalysisService {
         }
       }
 
+      console.log('🔄 Running SCRFD inference...')
+
       // Run SCRFD inference
       const inputName = this.scrfdSession.inputNames[0]
       const inputTensor = new ort.Tensor('float32', inputData, [1, 3, 640, 640])
@@ -588,48 +591,197 @@ class CompleteFaceAnalysisService {
 
       const results = await this.scrfdSession.run(feeds)
 
-      // Parse SCRFD outputs
+      console.log(`✅ SCRFD inference completed, parsing outputs...`)
+
+      // Parse SCRFD outputs with improved logic
       const detections = this.parseSCRFDOutputs(results, originalWidth, originalHeight)
 
       if (detections.length === 0) {
-        console.log('⚠️ SCRFD found no faces, trying fallback detection...')
-        return await this.fallbackFaceDetection(imageBuffer)
+        console.log('⚠️ SCRFD parsing found no valid faces, trying fallback detection...')
+
+        // 🔥 FALLBACK: If SCRFD fails, use computer vision fallback
+        const fallbackDetections = await this.fallbackFaceDetection(imageBuffer)
+
+        if (fallbackDetections.length > 0) {
+          console.log(`✅ Fallback detection successful: ${fallbackDetections.length} faces`)
+          return fallbackDetections
+        } else {
+          console.log('❌ Both SCRFD and fallback detection failed')
+          return []
+        }
       }
 
-      console.log(`🔍 SCRFD detected ${detections.length} faces with confidence > ${this.FACE_CONFIDENCE_THRESHOLD}`)
-      return detections
+      console.log(`🔍 SCRFD successful: ${detections.length} faces detected`)
+
+      // 🔥 VALIDATION: Additional validation and filtering
+      const validDetections = detections.filter((detection) => {
+        const [x1, y1, x2, y2] = detection.bbox
+        const width = x2 - x1
+        const height = y2 - y1
+        const area = width * height
+        const imageArea = originalWidth * originalHeight
+
+        // Filter out detections that are too small or too large
+        const minArea = imageArea * 0.001 // At least 0.1% of image
+        const maxArea = imageArea * 0.8 // At most 80% of image
+
+        const isValidSize = area >= minArea && area <= maxArea
+        const isValidRatio = width / height >= 0.5 && width / height <= 2.0 // Reasonable face ratio
+
+        if (!isValidSize || !isValidRatio) {
+          console.log(
+            `🚫 Filtered detection: size=${area.toFixed(0)} (${minArea.toFixed(0)}-${maxArea.toFixed(0)}), ratio=${(width / height).toFixed(2)}`
+          )
+          return false
+        }
+
+        return true
+      })
+
+      console.log(`✅ Final validation: ${validDetections.length}/${detections.length} detections passed`)
+
+      return validDetections
     } catch (error) {
       console.error('SCRFD detection failed, using fallback:', error)
       return await this.fallbackFaceDetection(imageBuffer)
     }
   }
 
-  // 🔥 FALLBACK: Simple face detection when SCRFD fails
+  // 🔥 ENHANCED: Better fallback detection
   private async fallbackFaceDetection(imageBuffer: Buffer): Promise<FaceDetection[]> {
     try {
-      console.log('🎯 Using fallback face detection...')
+      console.log('🎯 Using enhanced fallback face detection...')
 
       const { data, info } = await sharp(imageBuffer).toColorspace('srgb').raw().toBuffer({ resolveWithObject: true })
 
       const { width, height } = info
 
-      // Simple face detection: assume center region contains face
-      const faceWidth = Math.floor(width * 0.6) // 60% of image width
-      const faceHeight = Math.floor(height * 0.7) // 70% of image height
-      const startX = Math.floor((width - faceWidth) / 2)
-      const startY = Math.floor((height - faceHeight) / 3) // Face usually in upper 2/3
+      // 🔥 IMPROVED: Multiple detection strategies for fallback
+      const strategies = [
+        // Strategy 1: Center-weighted detection
+        () => {
+          const faceWidth = Math.floor(width * 0.6)
+          const faceHeight = Math.floor(height * 0.7)
+          const startX = Math.floor((width - faceWidth) / 2)
+          const startY = Math.floor((height - faceHeight) / 3)
 
-      const bbox: [number, number, number, number] = [startX, startY, startX + faceWidth, startY + faceHeight]
+          return {
+            bbox: [startX, startY, startX + faceWidth, startY + faceHeight] as [number, number, number, number],
+            confidence: 0.8,
+            reason: 'center-weighted'
+          }
+        },
+
+        // Strategy 2: Upper-third detection (common for portraits)
+        () => {
+          const faceWidth = Math.floor(width * 0.5)
+          const faceHeight = Math.floor(height * 0.6)
+          const startX = Math.floor((width - faceWidth) / 2)
+          const startY = Math.floor(height * 0.1) // Start from 10% from top
+
+          return {
+            bbox: [startX, startY, startX + faceWidth, startY + faceHeight] as [number, number, number, number],
+            confidence: 0.7,
+            reason: 'upper-third'
+          }
+        },
+
+        // Strategy 3: Variance-based detection (find most textured region)
+        () => {
+          let maxVariance = 0
+          let bestRegion = {
+            bbox: [0, 0, width, height] as [number, number, number, number],
+            confidence: 0.5,
+            reason: 'variance-based'
+          }
+
+          const blockSize = Math.min(64, Math.floor(Math.min(width, height) / 8))
+
+          for (let y = 0; y < height - blockSize; y += blockSize / 2) {
+            for (let x = 0; x < width - blockSize; x += blockSize / 2) {
+              const variance = this.calculateRegionVariance(data, x, y, blockSize, width, height)
+
+              if (variance > maxVariance) {
+                maxVariance = variance
+                const padding = blockSize
+                bestRegion = {
+                  bbox: [
+                    Math.max(0, x - padding),
+                    Math.max(0, y - padding),
+                    Math.min(width, x + blockSize + padding),
+                    Math.min(height, y + blockSize + padding)
+                  ] as [number, number, number, number],
+                  confidence: Math.min(0.9, 0.5 + variance / 10000),
+                  reason: 'variance-based'
+                }
+              }
+            }
+          }
+
+          return bestRegion
+        }
+      ]
+
+      // Try each strategy and pick the best one
+      let bestDetection = null
+      let bestScore = 0
+
+      for (let i = 0; i < strategies.length; i++) {
+        try {
+          const detection = strategies[i]()
+          const [x1, y1, x2, y2] = detection.bbox
+
+          // Score based on size and position
+          const faceWidth = x2 - x1
+          const faceHeight = y2 - y1
+          const area = faceWidth * faceHeight
+          const centerX = (x1 + x2) / 2
+          const centerY = (y1 + y2) / 2
+
+          // Prefer detections that are:
+          // 1. Reasonable size (20-80% of image)
+          // 2. Centered horizontally
+          // 3. In upper 2/3 of image
+          const sizeScore = area / (width * height) // 0-1
+          const centerScore = 1 - Math.abs(centerX - width / 2) / (width / 2) // 0-1
+          const positionScore = centerY < (height * 2) / 3 ? 1 : 0.5 // 0.5-1
+
+          const totalScore = (sizeScore + centerScore + positionScore + detection.confidence) / 4
+
+          console.log(
+            `🎯 Strategy ${i} (${detection.reason}): score=${totalScore.toFixed(3)}, bbox=[${detection.bbox.map((v) => v.toFixed(0)).join(', ')}]`
+          )
+
+          if (totalScore > bestScore && sizeScore > 0.1 && sizeScore < 0.8) {
+            bestScore = totalScore
+            bestDetection = detection
+          }
+        } catch (error) {
+          console.log(`❌ Strategy ${i} failed:`, error)
+        }
+      }
+
+      if (!bestDetection) {
+        console.log('❌ All fallback strategies failed')
+        return []
+      }
+
+      // Generate landmarks for the best detection
+      const [x1, y1, x2, y2] = bestDetection.bbox
+      const faceWidth = x2 - x1
+      const faceHeight = y2 - y1
+      const centerX = x1 + faceWidth / 2
+      const centerY = y1 + faceHeight / 2
 
       // Generate approximate landmarks (5 points)
-      const eyeY = startY + Math.floor(faceHeight * 0.4)
-      const leftEyeX = startX + Math.floor(faceWidth * 0.3)
-      const rightEyeX = startX + Math.floor(faceWidth * 0.7)
-      const noseX = startX + Math.floor(faceWidth * 0.5)
-      const noseY = startY + Math.floor(faceHeight * 0.55)
-      const mouthY = startY + Math.floor(faceHeight * 0.75)
-      const leftMouthX = startX + Math.floor(faceWidth * 0.4)
-      const rightMouthX = startX + Math.floor(faceWidth * 0.6)
+      const eyeY = y1 + faceHeight * 0.4
+      const leftEyeX = x1 + faceWidth * 0.3
+      const rightEyeX = x1 + faceWidth * 0.7
+      const noseX = centerX
+      const noseY = y1 + faceHeight * 0.55
+      const mouthY = y1 + faceHeight * 0.75
+      const leftMouthX = x1 + faceWidth * 0.4
+      const rightMouthX = x1 + faceWidth * 0.6
 
       const landmarks = [
         leftEyeX,
@@ -644,19 +796,54 @@ class CompleteFaceAnalysisService {
         mouthY // right mouth
       ]
 
-      console.log(`✅ Fallback detection: bbox=[${bbox.map((v) => v.toFixed(1)).join(', ')}]`)
+      console.log(
+        `✅ Fallback detection (${bestDetection.reason}): bbox=[${bestDetection.bbox.map((v) => v.toFixed(1)).join(', ')}], confidence=${bestDetection.confidence.toFixed(3)}`
+      )
 
       return [
         {
-          bbox,
+          bbox: bestDetection.bbox,
           landmarks,
-          confidence: 0.8 // High confidence for fallback since we assume face is there
+          confidence: bestDetection.confidence
         }
       ]
     } catch (error) {
-      console.error('Fallback face detection failed:', error)
+      console.error('Enhanced fallback face detection failed:', error)
       return []
     }
+  }
+
+  // Helper method for variance calculation
+  private calculateRegionVariance(
+    data: Buffer,
+    startX: number,
+    startY: number,
+    blockSize: number,
+    width: number,
+    height: number
+  ): number {
+    let sum = 0
+    let sumSquares = 0
+    let count = 0
+
+    for (let y = startY; y < Math.min(startY + blockSize, height); y++) {
+      for (let x = startX; x < Math.min(startX + blockSize, width); x++) {
+        for (let c = 0; c < 3; c++) {
+          // RGB channels
+          const idx = (y * width + x) * 3 + c
+          if (idx < data.length) {
+            const pixel = data[idx]
+            sum += pixel
+            sumSquares += pixel * pixel
+            count++
+          }
+        }
+      }
+    }
+
+    if (count === 0) return 0
+    const mean = sum / count
+    return sumSquares / count - mean * mean
   }
 
   private parseSCRFDOutputs(

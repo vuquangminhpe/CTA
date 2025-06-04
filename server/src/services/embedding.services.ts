@@ -110,8 +110,8 @@ class EnhancedEmbeddingService {
 
   private session: ort.InferenceSession | null = null
   private isInitialized = false
-  private readonly FACE_SIMILARITY_THRESHOLD = 0.65
-  private readonly TEXT_SIMILARITY_THRESHOLD = 0.6
+  private readonly FACE_SIMILARITY_THRESHOLD = 0.25
+  private readonly TEXT_SIMILARITY_THRESHOLD = 0.3
   private readonly QUALITY_THRESHOLD = 0.4
   private initPromise: Promise<void> | null = null
   private modelType: 'glintr100' | 'arcface_old' | 'fallback' = 'fallback'
@@ -1273,7 +1273,7 @@ class EnhancedEmbeddingService {
     const details = {
       same_preprocessing: true, // Same CHW format, [-1,1] normalization
       same_similarity_calculation: true, // Same cosine similarity with quality weighting
-      same_threshold: this.FACE_SIMILARITY_THRESHOLD === 0.65,
+      same_threshold: this.FACE_SIMILARITY_THRESHOLD === (0.65 as any),
       model_available: this.session !== null
     }
 

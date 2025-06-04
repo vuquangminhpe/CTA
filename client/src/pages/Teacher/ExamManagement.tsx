@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Power, Edit, Eye, Calendar, Clock, ArrowLeft } from 'lucide-react'
+import { Power, Eye, Calendar, Clock, ArrowLeft, Settings, Activity, Users, Target } from 'lucide-react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { toast } from 'sonner'
@@ -113,196 +113,273 @@ const ExamManagement = () => {
 
   if (isLoading) {
     return (
-      <div className='flex justify-center items-center py-12'>
-        <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600'></div>
+      <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/30 flex justify-center items-center'>
+        <div className='relative'>
+          <div className='w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin'></div>
+          <div className='absolute inset-0 w-16 h-16 border-4 border-transparent border-t-purple-600 rounded-full animate-spin animation-delay-150'></div>
+        </div>
       </div>
     )
   }
 
   if (!exam) {
     return (
-      <div className='text-center py-12'>
-        <h2 className='text-xl font-medium text-gray-900'>Không tìm thấy bài kiểm tra</h2>
-        <p className='mt-2 text-gray-500'>Kỳ thi bạn đang tìm kiếm không tồn tại</p>
-        <button
-          onClick={goBack}
-          className='mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700'
-        >
-          <ArrowLeft className='h-4 w-4 mr-2' /> Quay lại Trang tổng quan
-        </button>
+      <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/30'>
+        <div className='relative z-10 max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8'>
+          <div className='text-center backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-12 shadow-2xl shadow-blue-500/10'>
+            <div className='w-20 h-20 bg-gradient-to-br from-red-100 to-pink-100 rounded-3xl flex items-center justify-center mx-auto mb-6'>
+              <Target className='w-10 h-10 text-red-600' />
+            </div>
+            <h2 className='text-3xl font-black text-gray-900 mb-4'>Không tìm thấy bài kiểm tra</h2>
+            <p className='text-xl text-gray-600 mb-8'>Kỳ thi bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.</p>
+            <button
+              onClick={goBack}
+              className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-2xl hover:from-blue-600 hover:to-cyan-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105 font-semibold text-lg'
+            >
+              <ArrowLeft className='h-6 w-6 mr-3' />
+              Quay lại Trang tổng quan
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className='max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8'>
-      <button
-        onClick={() => window.history.back()}
-        className=' right-0 mb-4 flex items-center text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors'
-      >
-        <ArrowLeft className='h-4 w-4 mr-1' /> Quay Lại
-      </button>
-      <div className='bg-white shadow rounded-lg overflow-hidden'>
-        <div className='px-4 py-5 sm:px-6 flex justify-between items-center'>
-          <div>
-            <h2 className='text-xl font-bold text-gray-900'>{exam.title}</h2>
-            <p className='mt-1 text-sm text-gray-500'>Mã bài thi: {exam.exam_code}</p>
+    <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/30'>
+      {/* Animated Background Elements */}
+      <div className='fixed inset-0 overflow-hidden pointer-events-none'>
+        <div className='absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse'></div>
+        <div className='absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000'></div>
+      </div>
+
+      <div className='relative z-10 max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8'>
+        {/* Back Button */}
+        <button
+          onClick={() => window.history.back()}
+          className='mb-6 flex items-center text-lg font-semibold text-gray-600 hover:text-blue-600 transition-all duration-300 hover:scale-105'
+        >
+          <div className='w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-2xl flex items-center justify-center mr-3 transition-all duration-300 shadow-lg'>
+            <ArrowLeft className='h-6 w-6' />
           </div>
-          <div className='flex space-x-2'>
-            <button
-              onClick={toggleExamStatus}
-              disabled={isUpdating}
-              className={`inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-                active ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
-            >
-              <Power className='h-4 w-4 mr-1' />
-              {active ? 'Đã tắt' : 'Đã bật'}
-            </button>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-            >
-              <Edit className='h-4 w-4 mr-1' />
-              Cài đặt
-            </button>
-            <button
-              onClick={goToMonitoring}
-              className='inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-            >
-              <Eye className='h-4 w-4 mr-1' />
-              Màn hình
-            </button>
-          </div>
-        </div>
+          Quay Lại
+        </button>
 
-        <div className='border-t border-gray-200 px-4 py-5 sm:p-6'>
-          <dl className='grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2'>
-            <div>
-              <dt className='text-sm font-medium text-gray-500 flex items-center'>
-                <Clock className='h-4 w-4 mr-1' />
-                Khoảng thời gian
-              </dt>
-              <dd className='mt-1 text-sm text-gray-900'>{exam.duration} minutes</dd>
-            </div>
+        {/* Main Card */}
+        <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl shadow-2xl shadow-blue-500/10 overflow-hidden'>
+          {/* Header */}
+          <div className='px-8 py-8 bg-gradient-to-r from-blue-50/50 to-purple-50/50 border-b border-white/20'>
+            <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6'>
+              <div className='flex-1'>
+                <h2 className='text-4xl font-black bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2'>
+                  {exam.title}
+                </h2>
+                <div className='flex items-center text-lg text-gray-600 font-medium'>
+                  <Target className='w-5 h-5 mr-2 text-blue-500' />
+                  Mã bài thi: {exam.exam_code}
+                </div>
+              </div>
 
-            <div>
-              <dt className='text-sm font-medium text-gray-500 flex items-center'>
-                <Calendar className='h-4 w-4 mr-1' />
-                Thời gian bắt đầu
-              </dt>
-              <dd className='mt-1 text-sm text-gray-900'>
-                {exam.start_time ? new Date(exam.start_time).toLocaleString() : 'Immediately (no scheduled time)'}
-              </dd>
-            </div>
-
-            <div>
-              <dt className='text-sm font-medium text-gray-500'>Trạng thái</dt>
-              <dd className='mt-1 text-sm text-gray-900'>
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    exam.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              <div className='flex flex-wrap gap-3'>
+                <button
+                  onClick={toggleExamStatus}
+                  disabled={isUpdating}
+                  className={`inline-flex items-center px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:scale-105 ${
+                    active
+                      ? 'bg-gradient-to-r from-red-500 to-pink-400 text-white hover:from-red-600 hover:to-pink-500 hover:shadow-red-500/25'
+                      : 'bg-gradient-to-r from-green-500 to-emerald-400 text-white hover:from-green-600 hover:to-emerald-500 hover:shadow-green-500/25'
                   }`}
                 >
-                  {exam.active ? 'đã bật' : 'đã tắt'}
-                </span>
-              </dd>
-            </div>
-
-            <div>
-              <dt className='text-sm font-medium text-gray-500'>Câu hỏi</dt>
-              <dd className='mt-1 text-sm text-gray-900'>{exam.question_ids.length} câu hỏi</dd>
-            </div>
-          </dl>
-        </div>
-
-        {showSettings && (
-          <div className='border-t border-gray-200 px-4 py-5 sm:p-6'>
-            <h3 className='text-lg font-medium text-gray-900 mb-4'>Cài đặt bài kiểm tra</h3>
-
-            <form onSubmit={handleSubmit}>
-              <div className='space-y-4'>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700'>Trạng thái thi</label>
-                  <div className='mt-1 flex items-center space-x-4'>
-                    <label className='inline-flex items-center'>
-                      <input
-                        type='radio'
-                        className='form-radio'
-                        name='status'
-                        checked={active}
-                        onChange={() => setActive(true)}
-                      />
-                      <span className='ml-2 text-sm text-gray-700'>đã bật</span>
-                    </label>
-                    <label className='inline-flex items-center'>
-                      <input
-                        type='radio'
-                        className='form-radio'
-                        name='status'
-                        checked={!active}
-                        onChange={() => setActive(false)}
-                      />
-                      <span className='ml-2 text-sm text-gray-700'>đã tắt</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <label className='block text-sm font-medium text-gray-700'>Thời gian bắt đầu</label>
-                  <div className='mt-1'>
-                    <DatePicker
-                      selected={startTime}
-                      onChange={setStartTime}
-                      showTimeSelect
-                      dateFormat='Pp'
-                      placeholderText='No scheduled start time (start immediately)'
-                      className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2'
-                      isClearable
-                    />
-                  </div>
-                  <p className='mt-1 text-xs text-gray-500'>Để trống để cho phép kỳ thi bắt đầu ngay lập tức</p>
-                </div>
-
-                <div>
-                  <label htmlFor='duration' className='block text-sm font-medium text-gray-700'>
-                    Thời lượng (phút)
-                  </label>
-                  <div className='mt-1'>
-                    <input
-                      type='number'
-                      name='duration'
-                      id='duration'
-                      min='1'
-                      max='240'
-                      value={duration}
-                      onChange={(e) => setDuration(parseInt(e.target.value, 10))}
-                      className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md'
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className='mt-6 flex justify-end space-x-3'>
-                <button
-                  type='button'
-                  onClick={() => setShowSettings(false)}
-                  className='px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                >
-                  Hủy bỏ
+                  <Power className='h-5 w-5 mr-2' />
+                  {active ? 'Tắt bài thi' : 'Bật bài thi'}
                 </button>
+
                 <button
-                  type='submit'
-                  disabled={isUpdating}
-                  className='px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  onClick={() => setShowSettings(!showSettings)}
+                  className='inline-flex items-center px-6 py-3 bg-white/80 text-gray-700 border border-gray-200/50 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold'
                 >
-                  {isUpdating ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  <Settings className='h-5 w-5 mr-2' />
+                  Cài đặt
+                </button>
+
+                <button
+                  onClick={goToMonitoring}
+                  className='inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-2xl hover:from-blue-600 hover:to-cyan-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105 font-semibold'
+                >
+                  <Eye className='h-5 w-5 mr-2' />
+                  Giám sát
                 </button>
               </div>
-            </form>
+            </div>
           </div>
-        )}
+
+          {/* Info Grid */}
+          <div className='p-8'>
+            <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
+              <div className='backdrop-blur-sm bg-white/50 border border-white/30 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300'>
+                <div className='flex items-center'>
+                  <div className='w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-400 rounded-2xl flex items-center justify-center mr-4'>
+                    <Clock className='h-6 w-6 text-white' />
+                  </div>
+                  <div>
+                    <p className='text-sm font-semibold text-gray-600 uppercase tracking-wider'>Thời lượng</p>
+                    <p className='text-2xl font-bold text-gray-900'>{exam.duration} phút</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className='backdrop-blur-sm bg-white/50 border border-white/30 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300'>
+                <div className='flex items-center'>
+                  <div className='w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-400 rounded-2xl flex items-center justify-center mr-4'>
+                    <Calendar className='h-6 w-6 text-white' />
+                  </div>
+                  <div>
+                    <p className='text-sm font-semibold text-gray-600 uppercase tracking-wider'>Thời gian bắt đầu</p>
+                    <p className='text-lg font-bold text-gray-900'>
+                      {exam.start_time ? new Date(exam.start_time).toLocaleString() : 'Ngay lập tức'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className='backdrop-blur-sm bg-white/50 border border-white/30 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300'>
+                <div className='flex items-center'>
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center mr-4 ${
+                      exam.active
+                        ? 'bg-gradient-to-br from-green-500 to-emerald-400'
+                        : 'bg-gradient-to-br from-red-500 to-pink-400'
+                    }`}
+                  >
+                    <Activity className='h-6 w-6 text-white' />
+                  </div>
+                  <div>
+                    <p className='text-sm font-semibold text-gray-600 uppercase tracking-wider'>Trạng thái</p>
+                    <span
+                      className={`px-4 py-2 text-sm font-bold rounded-2xl ${
+                        exam.active
+                          ? 'bg-green-100 text-green-800 border border-green-200'
+                          : 'bg-red-100 text-red-800 border border-red-200'
+                      }`}
+                    >
+                      {exam.active ? 'Đang hoạt động' : 'Vô hiệu hóa'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className='backdrop-blur-sm bg-white/50 border border-white/30 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300'>
+                <div className='flex items-center'>
+                  <div className='w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-400 rounded-2xl flex items-center justify-center mr-4'>
+                    <Users className='h-6 w-6 text-white' />
+                  </div>
+                  <div>
+                    <p className='text-sm font-semibold text-gray-600 uppercase tracking-wider'>Số câu hỏi</p>
+                    <p className='text-2xl font-bold text-gray-900'>{exam.question_ids.length}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Settings Panel */}
+          {showSettings && (
+            <div className='border-t border-gray-200/50 bg-gradient-to-r from-gray-50/50 to-blue-50/50'>
+              <div className='p-8'>
+                <div className='flex items-center mb-6'>
+                  <div className='w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-400 rounded-2xl flex items-center justify-center mr-4'>
+                    <Settings className='h-6 w-6 text-white' />
+                  </div>
+                  <h3 className='text-2xl font-bold text-gray-900'>Cài đặt bài kiểm tra</h3>
+                </div>
+
+                <form onSubmit={handleSubmit} className='space-y-8'>
+                  {/* Status Setting */}
+                  <div className='backdrop-blur-sm bg-white/50 border border-white/30 rounded-2xl p-6'>
+                    <label className='block text-lg font-semibold text-gray-700 mb-4'>Trạng thái thi</label>
+                    <div className='flex gap-6'>
+                      <label className='inline-flex items-center cursor-pointer'>
+                        <input
+                          type='radio'
+                          className='w-5 h-5 text-green-600 bg-white border-2 border-gray-300 focus:ring-green-500 focus:ring-2'
+                          name='status'
+                          checked={active}
+                          onChange={() => setActive(true)}
+                        />
+                        <span className='ml-3 text-lg font-medium text-gray-700'>Đang hoạt động</span>
+                      </label>
+                      <label className='inline-flex items-center cursor-pointer'>
+                        <input
+                          type='radio'
+                          className='w-5 h-5 text-red-600 bg-white border-2 border-gray-300 focus:ring-red-500 focus:ring-2'
+                          name='status'
+                          checked={!active}
+                          onChange={() => setActive(false)}
+                        />
+                        <span className='ml-3 text-lg font-medium text-gray-700'>Vô hiệu hóa</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Start Time Setting */}
+                  <div className='backdrop-blur-sm bg-white/50 border border-white/30 rounded-2xl p-6'>
+                    <label className='block text-lg font-semibold text-gray-700 mb-4'>Thời gian bắt đầu</label>
+                    <div className='max-w-md'>
+                      <DatePicker
+                        selected={startTime}
+                        onChange={setStartTime}
+                        showTimeSelect
+                        dateFormat='Pp'
+                        placeholderText='Để trống để bắt đầu ngay lập tức'
+                        className='w-full px-4 py-3 bg-white/80 backdrop-blur border border-gray-200/50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-300 text-gray-900 font-medium shadow-sm'
+                        isClearable
+                      />
+                    </div>
+                    <p className='mt-3 text-sm text-gray-600'>Để trống để cho phép kỳ thi bắt đầu ngay lập tức</p>
+                  </div>
+
+                  {/* Duration Setting */}
+                  <div className='backdrop-blur-sm bg-white/50 border border-white/30 rounded-2xl p-6'>
+                    <label htmlFor='duration' className='block text-lg font-semibold text-gray-700 mb-4'>
+                      Thời lượng (phút)
+                    </label>
+                    <div className='max-w-md'>
+                      <input
+                        type='number'
+                        name='duration'
+                        id='duration'
+                        min='1'
+                        max='240'
+                        value={duration}
+                        onChange={(e) => setDuration(parseInt(e.target.value, 10))}
+                        className='w-full px-4 py-3 bg-white/80 backdrop-blur border border-gray-200/50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-300 text-gray-900 font-medium shadow-sm'
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className='flex justify-end gap-4'>
+                    <button
+                      type='button'
+                      onClick={() => setShowSettings(false)}
+                      className='px-8 py-3 bg-white/80 text-gray-700 border border-gray-200/50 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold'
+                    >
+                      Hủy bỏ
+                    </button>
+                    <button
+                      type='submit'
+                      disabled={isUpdating}
+                      className='px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-2xl hover:from-blue-600 hover:to-cyan-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105 font-semibold disabled:opacity-50 disabled:cursor-not-allowed'
+                    >
+                      {isUpdating ? 'Đang lưu...' : 'Lưu thay đổi'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

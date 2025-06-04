@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, Clock, PlusCircle, Search, ArrowLeft, BookOpen, School } from 'lucide-react'
+import { Calendar, Clock, PlusCircle, Search, ArrowLeft, BookOpen, Target, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import examApi from '../../apis/exam.api'
 import MasterExamForm from '../../components/Teacher/MasterExamForm'
@@ -72,142 +72,196 @@ const MasterExamsList: React.FC = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8'>
-      {/* Header */}
-      <div className='md:flex md:items-center md:justify-between mb-6'>
-        <div className='flex-1 min-w-0'>
-          <div className='flex items-center'>
-            <button
-              onClick={() => navigate('/teacher')}
-              className='mr-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors'
-            >
-              <ArrowLeft className='h-5 w-5 text-gray-600' />
-            </button>
-            <h2 className='text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate flex items-center'>
-              <BookOpen className='mr-2 h-8 w-8 text-blue-500' />
-              Danh sách kỳ thi
-            </h2>
-          </div>
-          <p className='mt-1 text-sm text-gray-500'>
-            Quản lý tất cả các kỳ thi chính và xem kết quả của học sinh theo lớp
-          </p>
-        </div>
-        <div className='mt-4 flex md:mt-0 md:ml-4'>
-          <button
-            type='button'
-            onClick={() => setShowCreateForm(true)}
-            className='inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700'
-          >
-            <PlusCircle className='mr-2 -ml-1 h-5 w-5' />
-            Tạo kỳ thi mới
-          </button>
-        </div>
+    <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/30'>
+      {/* Animated Background Elements */}
+      <div className='fixed inset-0 overflow-hidden pointer-events-none'>
+        <div className='absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse'></div>
+        <div className='absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000'></div>
       </div>
 
-      {/* Search box */}
-      <div className='mb-6'>
-        <div className='mt-1 relative rounded-md shadow-sm'>
-          <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-            <Search className='h-5 w-5 text-gray-400' />
-          </div>
-          <input
-            type='text'
-            className='focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 pr-12 sm:text-sm border-gray-300 rounded-md'
-            placeholder='Tìm kiếm kỳ thi theo tên, mô tả, học kỳ...'
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Create Form */}
-      {showCreateForm && (
-        <div className='mb-6'>
-          <MasterExamForm onSuccess={handleCreateExamSuccess} onCancel={() => setShowCreateForm(false)} />
-        </div>
-      )}
-
-      {/* Master Exams List */}
-      {isLoading ? (
-        <div className='flex justify-center items-center py-12'>
-          <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600'></div>
-        </div>
-      ) : filteredExams.length > 0 ? (
-        <div className='bg-white shadow overflow-hidden sm:rounded-md'>
-          <ul className='divide-y divide-gray-200'>
-            {filteredExams.map((exam) => (
-              <li key={exam._id}>
-                <div
-                  className='block hover:bg-gray-50 cursor-pointer'
-                  onClick={() => navigate(`/teacher/master-exams/${exam._id}`)}
+      <div className='relative z-10 max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8'>
+        {/* Modern Header */}
+        <div className='mb-8'>
+          <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-blue-500/10'>
+            <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between'>
+              <div className='flex-1'>
+                <div className='flex items-center mb-4'>
+                  <button
+                    onClick={() => navigate('/teacher')}
+                    className='mr-6 w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-2xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg'
+                  >
+                    <ArrowLeft className='h-6 w-6 text-gray-600' />
+                  </button>
+                  <div className='w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mr-6 shadow-lg'>
+                    <BookOpen className='w-8 h-8 text-white' />
+                  </div>
+                  <div>
+                    <h2 className='text-4xl font-black bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent'>
+                      Danh sách kỳ thi
+                    </h2>
+                    <p className='text-xl text-gray-600 font-medium mt-2'>
+                      Quản lý tất cả các kỳ thi chính và xem kết quả của học sinh theo lớp
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className='mt-6 lg:mt-0'>
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-2xl hover:from-blue-600 hover:to-cyan-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105 font-semibold text-lg'
                 >
-                  <div className='px-4 py-4 sm:px-6'>
-                    <div className='flex items-center justify-between'>
-                      <p className='text-lg font-medium text-blue-600 truncate'>{exam.name}</p>
-                      <div className='ml-2 flex-shrink-0 flex'>
-                        {exam.exam_period && (
-                          <p className='px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800'>
-                            {exam.exam_period}
-                          </p>
-                        )}
+                  <PlusCircle className='mr-3 h-6 w-6' />
+                  Tạo kỳ thi mới
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modern Search Box */}
+        <div className='mb-8'>
+          <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-6 shadow-xl shadow-blue-500/10'>
+            <div className='relative max-w-2xl mx-auto'>
+              <div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none'>
+                <Search className='h-6 w-6 text-gray-400' />
+              </div>
+              <input
+                type='text'
+                className='w-full pl-12 pr-4 py-4 bg-white/80 backdrop-blur border border-gray-200/50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-300 text-gray-900 font-medium shadow-sm text-lg'
+                placeholder='Tìm kiếm kỳ thi theo tên, mô tả, học kỳ...'
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Create Form */}
+        {showCreateForm && (
+          <div className='mb-8'>
+            <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-blue-500/10'>
+              <MasterExamForm onSuccess={handleCreateExamSuccess} onCancel={() => setShowCreateForm(false)} />
+            </div>
+          </div>
+        )}
+
+        {/* Master Exams List */}
+        {isLoading ? (
+          <div className='flex justify-center items-center py-16'>
+            <div className='relative'>
+              <div className='w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin'></div>
+              <div className='absolute inset-0 w-16 h-16 border-4 border-transparent border-t-purple-600 rounded-full animate-spin animation-delay-150'></div>
+            </div>
+          </div>
+        ) : filteredExams.length > 0 ? (
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+            {filteredExams.map((exam, index) => (
+              <div
+                key={exam._id}
+                className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl shadow-xl shadow-blue-500/10 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden group'
+                onClick={() => navigate(`/teacher/master-exams/${exam._id}`)}
+              >
+                {/* Card Header */}
+                <div className='p-6 bg-gradient-to-r from-blue-50/50 to-purple-50/50 border-b border-white/20'>
+                  <div className='flex items-start justify-between mb-4'>
+                    <div className='w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center'>
+                      <span className='text-white font-bold text-lg'>{index + 1}</span>
+                    </div>
+                    {exam.exam_period && (
+                      <span className='px-4 py-2 bg-green-100 text-green-800 border border-green-200 rounded-2xl text-sm font-bold'>
+                        {exam.exam_period}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className='text-2xl font-black text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-300'>
+                    {exam.name}
+                  </h3>
+                  {exam.description && (
+                    <p className='text-gray-600 font-medium leading-relaxed'>
+                      {exam.description.length > 100 ? `${exam.description.substring(0, 100)}...` : exam.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Card Body */}
+                <div className='p-6 space-y-4'>
+                  {exam.start_time && (
+                    <div className='flex items-center text-gray-600'>
+                      <div className='w-10 h-10 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center mr-3'>
+                        <Calendar className='h-5 w-5 text-green-600' />
+                      </div>
+                      <div>
+                        <div className='text-sm font-semibold text-gray-500 uppercase tracking-wider'>Bắt đầu</div>
+                        <div className='font-bold text-gray-900'>{formatDate(exam.start_time)}</div>
                       </div>
                     </div>
-                    <div className='mt-2 sm:flex sm:justify-between'>
-                      <div className='sm:flex'>
-                        {exam.description && (
-                          <p className='flex items-center text-sm text-gray-500'>
-                            <School className='flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400' />
-                            {exam.description}
-                          </p>
-                        )}
+                  )}
+
+                  {exam.end_time && (
+                    <div className='flex items-center text-gray-600'>
+                      <div className='w-10 h-10 bg-gradient-to-br from-red-100 to-pink-100 rounded-2xl flex items-center justify-center mr-3'>
+                        <Clock className='h-5 w-5 text-red-600' />
                       </div>
-                      <div className='mt-2 flex items-center text-sm text-gray-500 sm:mt-0'>
-                        <div className='flex space-x-4'>
-                          {exam.start_time && (
-                            <div className='flex items-center'>
-                              <Calendar className='flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400' />
-                              <p>Bắt đầu: {formatDate(exam.start_time)}</p>
-                            </div>
-                          )}
-                          {exam.end_time && (
-                            <div className='flex items-center'>
-                              <Clock className='flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400' />
-                              <p>Kết thúc: {formatDate(exam.end_time)}</p>
-                            </div>
-                          )}
-                        </div>
+                      <div>
+                        <div className='text-sm font-semibold text-gray-500 uppercase tracking-wider'>Kết thúc</div>
+                        <div className='font-bold text-gray-900'>{formatDate(exam.end_time)}</div>
                       </div>
+                    </div>
+                  )}
+
+                  <div className='flex items-center text-gray-600'>
+                    <div className='w-10 h-10 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-2xl flex items-center justify-center mr-3'>
+                      <Target className='h-5 w-5 text-blue-600' />
+                    </div>
+                    <div>
+                      <div className='text-sm font-semibold text-gray-500 uppercase tracking-wider'>Tạo lúc</div>
+                      <div className='font-bold text-gray-900'>{formatDate(exam.created_at)}</div>
                     </div>
                   </div>
                 </div>
-              </li>
+
+                {/* Card Footer */}
+                <div className='px-6 pb-6'>
+                  <button className='w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-2xl hover:from-blue-600 hover:to-cyan-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 font-semibold group-hover:scale-105'>
+                    <Sparkles className='h-5 w-5 inline-block mr-2' />
+                    Xem chi tiết
+                  </button>
+                </div>
+              </div>
             ))}
-          </ul>
-        </div>
-      ) : (
-        <div className='bg-white shadow sm:rounded-lg p-6 text-center'>
-          <BookOpen className='mx-auto h-12 w-12 text-gray-400' />
-          <h3 className='mt-2 text-sm font-medium text-gray-900'>
-            {searchTerm ? 'Không tìm thấy kỳ thi phù hợp' : 'Chưa có kỳ thi nào'}
-          </h3>
-          <p className='mt-1 text-sm text-gray-500'>
-            {searchTerm
-              ? 'Thử tìm kiếm với từ khóa khác hoặc tạo kỳ thi mới.'
-              : 'Bắt đầu bằng cách tạo kỳ thi mới để quản lý các bài kiểm tra của bạn.'}
-          </p>
-          {searchTerm && (
-            <div className='mt-6'>
+          </div>
+        ) : (
+          <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl shadow-2xl shadow-blue-500/10 p-12 text-center'>
+            <div className='w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mx-auto mb-6'>
+              <BookOpen className='w-10 h-10 text-gray-400' />
+            </div>
+            <h3 className='text-2xl font-black text-gray-900 mb-4'>
+              {searchTerm ? 'Không tìm thấy kỳ thi phù hợp' : 'Chưa có kỳ thi nào'}
+            </h3>
+            <p className='text-xl text-gray-600 mb-8'>
+              {searchTerm
+                ? 'Thử tìm kiếm với từ khóa khác hoặc tạo kỳ thi mới.'
+                : 'Bắt đầu bằng cách tạo kỳ thi mới để quản lý các bài kiểm tra của bạn.'}
+            </p>
+            {searchTerm ? (
               <button
-                type='button'
                 onClick={() => setSearchTerm('')}
-                className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50'
+                className='inline-flex items-center px-8 py-4 bg-white/80 text-gray-700 border border-gray-200/50 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold text-lg'
               >
                 Xóa tìm kiếm
               </button>
-            </div>
-          )}
-        </div>
-      )}
+            ) : (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-2xl hover:from-blue-600 hover:to-cyan-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105 font-semibold text-lg'
+              >
+                <PlusCircle className='mr-3 h-6 w-6' />
+                Tạo kỳ thi đầu tiên
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

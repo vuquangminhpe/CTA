@@ -1,7 +1,8 @@
 import { config } from 'dotenv'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { ObjectId } from 'mongodb'
-import databaseService from '../services/database.services'
+import { ValidationError, validationResult } from 'express-validator'
+import { NextFunction, Request, Response } from 'express'
+import HTTP_STATUS from '~/constants/httpStatus'
 config()
 export function convertS3Url(inputUrl: string): string {
   const httpS3UrlPattern = /^https?:\/\/([^.]+)\.s3\.([^/]+)\.amazonaws\.com\/(.+)$/
@@ -152,4 +153,27 @@ function extractContentFromResponse(response: string): any {
     console.error('Error in extractContentFromResponse:', error)
     return response
   }
+}
+
+export const validate = (req: Request, res: Response, next: NextFunction) => {
+  const errors = validationResult(req)
+
+  if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map((error: ValidationError) => ({
+      field: error.type === 'field' ? error.path : 'unknown',
+      message: error.msg,
+      value: error.type === 'field' ? error.value : undefined
+    }))
+
+    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+      message: 'Validation failed',
+      errors: errorMessages,
+      details: {
+        total_errors: errorMessages.length,
+        first_error: errorMessages[0]?.message
+      }
+    })
+  }
+
+  next()
 }

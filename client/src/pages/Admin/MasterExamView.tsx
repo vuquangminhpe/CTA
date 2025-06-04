@@ -1,380 +1,368 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Clock, Calendar, Users, FileText, BarChart2, Trash2, Eye, Power } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Users,
+  School,
+  BarChart,
+  Download,
+  Target,
+  Activity,
+  TrendingUp
+} from 'lucide-react'
 import { toast } from 'sonner'
 import examApi from '../../apis/exam.api'
-import { useDeleteMasterExam } from '../../hooks/useAdminQuery'
+
+interface MasterExam {
+  _id: string
+  name: string
+  description?: string
+  exam_period?: string
+  start_time?: string
+  end_time?: string
+  created_at: string
+}
+
+interface Exam {
+  _id: string
+  title: string
+  exam_code: string
+  duration: number
+  start_time?: string
+  active: boolean
+}
+
+interface ClassInfo {
+  class_name: string
+  student_count: number
+}
 
 const MasterExamView = () => {
   const { masterExamId } = useParams()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [masterExam, setMasterExam] = useState<MasterExam | null>(null)
+  const [exams, setExams] = useState<Exam[]>([])
+  const [classes, setClasses] = useState<ClassInfo[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [, setSelectedClass] = useState<string | null>(null)
 
-  // Fetch master exam details
-  const {
-    data: masterExam,
-    isLoading: isLoadingMasterExam,
-    isError: isMasterExamError,
-    error: masterExamError
-  } = useQuery({
-    queryKey: ['masterExam', masterExamId],
-    queryFn: async () => {
-      const response = await examApi.getMasterExamById(masterExamId as string)
-
-      return response.data.result
-    },
-    enabled: !!masterExamId
-  })
-
-  // Fetch exams associated with this master exam
-  const {
-    data: exams,
-    isLoading: isLoadingExams,
-    isError: isExamsError
-  } = useQuery({
-    queryKey: ['masterExamExams', masterExamId],
-    queryFn: async () => {
-      const response = await examApi.getExamsByMasterExamId(masterExamId as string)
-      return response.data.result
-    },
-    enabled: !!masterExamId
-  })
-
-  // Fetch classes that participated in this master exam
-  const { data: classes, isLoading: isLoadingClasses } = useQuery({
-    queryKey: ['masterExamClasses', masterExamId],
-    queryFn: async () => {
-      const response = await examApi.getClassesForMasterExam(masterExamId as string)
-
-      return response.data.result
-    },
-    enabled: !!masterExamId
-  })
-
-  // Mutation for toggling master exam status
-  const toggleStatusMutation = useMutation({
-    mutationFn: (active: boolean) => examApi.toggleMasterExamStatus(masterExamId as string, active),
-    onSuccess: () => {
-      toast.success(`Status ${masterExam?.active ? 'deactivated' : 'activated'} successfully`)
-      queryClient.invalidateQueries({ queryKey: ['masterExam', masterExamId] })
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to update status')
-    }
-  })
-
-  // Delete master exam mutation
-  const deleteMasterExamMutation = useDeleteMasterExam()
-
-  const handleToggleStatus = () => {
-    if (masterExam) {
-      toggleStatusMutation.mutate(!masterExam.active)
-    }
-  }
-
-  const handleDeleteMasterExam = () => {
-    deleteMasterExamMutation.mutate(masterExamId as string, {
-      onSuccess: () => {
-        toast.success('Master exam deleted successfully')
-        navigate('/admin')
-      }
-    })
-    setIsDeleteModalOpen(false)
-  }
-
-  // Error handling
   useEffect(() => {
-    if (isMasterExamError) {
-      toast.error('Failed to load master exam details')
-      console.error('Master exam error:', masterExamError)
+    if (!masterExamId) return
+
+    const fetchMasterExamData = async () => {
+      try {
+        setIsLoading(true)
+
+        // Fetch master exam info
+        const masterExamResponse = await examApi.getMasterExamById(masterExamId)
+        setMasterExam(masterExamResponse.data.result)
+
+        // Fetch exams associated with this master exam
+        const examsResponse = await examApi.getExamsByMasterExamId(masterExamId)
+        setExams(examsResponse.data.result)
+
+        // Fetch classes that participated in this master exam
+        const classesResponse = await examApi.getClassesForMasterExam(masterExamId)
+        setClasses(classesResponse.data.result)
+
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch master exam data:', error)
+        toast.error('Không thể tải dữ liệu kỳ thi')
+        setIsLoading(false)
+      }
     }
 
-    if (isExamsError) {
-      toast.error('Failed to load exams for this master exam')
-    }
-  }, [isMasterExamError, isExamsError, masterExamError])
+    fetchMasterExamData()
+  }, [masterExamId])
 
-  if (isLoadingMasterExam) {
+  const handleClassSelect = (className: string) => {
+    setSelectedClass(className)
+    // Navigation to class results would happen here
+    // This would need a new endpoint that filters by class
+    navigate(`/teacher/master-exams/${masterExamId}/classes/${encodeURIComponent(className)}`)
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A'
+    return new Date(dateString).toLocaleString()
+  }
+
+  if (isLoading) {
     return (
-      <div className='max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8'>
-        <div className='animate-pulse space-y-6'>
-          <div className='h-10 bg-gray-200 rounded w-1/4'></div>
-          <div className='h-40 bg-gray-200 rounded'></div>
-          <div className='h-60 bg-gray-200 rounded'></div>
+      <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/30 flex justify-center items-center'>
+        <div className='relative'>
+          <div className='w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin'></div>
+          <div className='absolute inset-0 w-16 h-16 border-4 border-transparent border-t-purple-600 rounded-full animate-spin animation-delay-150'></div>
         </div>
       </div>
     )
   }
 
-  if (isMasterExamError || !masterExam) {
+  if (!masterExam) {
     return (
-      <div className='max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8'>
-        <div className='bg-red-50 border border-red-200 text-red-800 rounded-lg p-4'>
-          <h3 className='text-lg font-medium'>Error loading master exam</h3>
-          <p className='mt-2'>
-            Could not load the requested master exam. It may have been deleted or you may not have permission to view
-            it.
-          </p>
-          <button
-            onClick={() => navigate('/admin')}
-            className='mt-4 px-4 py-2 bg-red-100 text-red-800 rounded hover:bg-red-200'
-          >
-            Go Back
-          </button>
+      <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/30'>
+        {/* Animated Background Elements */}
+        <div className='fixed inset-0 overflow-hidden pointer-events-none'>
+          <div className='absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse'></div>
+          <div className='absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000'></div>
+        </div>
+
+        <div className='relative z-10 max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8'>
+          <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-12 shadow-2xl shadow-blue-500/10 text-center'>
+            <div className='w-20 h-20 bg-gradient-to-br from-red-100 to-pink-100 rounded-3xl flex items-center justify-center mx-auto mb-6'>
+              <Target className='h-10 w-10 text-red-600' />
+            </div>
+            <h2 className='text-3xl font-black text-gray-900 mb-4'>Kỳ thi không tồn tại</h2>
+            <p className='text-xl text-gray-600 mb-8'>Kỳ thi bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.</p>
+            <button
+              onClick={() => navigate('/teacher')}
+              className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-2xl hover:from-blue-600 hover:to-cyan-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105 font-semibold text-lg'
+            >
+              <ArrowLeft className='mr-3 h-6 w-6' />
+              Quay lại trang chủ
+            </button>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className='max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8'>
-      {/* Back Button */}
-      <button onClick={() => navigate('/admin')} className='mb-6 flex items-center text-blue-600 hover:text-blue-800'>
-        <ArrowLeft size={16} className='mr-1' /> Back to Admin Dashboard
-      </button>
-
-      {/* Header */}
-      <div className='bg-white shadow rounded-lg p-6 mb-8'>
-        <div className='flex justify-between items-start'>
-          <div>
-            <h1 className='text-2xl font-bold text-gray-900'>{masterExam.name}</h1>
-            {masterExam.description && <p className='mt-2 text-gray-600'>{masterExam.description}</p>}
-          </div>
-          <div className='flex space-x-2'>
-            <button
-              onClick={handleToggleStatus}
-              disabled={toggleStatusMutation.isPending}
-              className={`px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                masterExam.active
-                  ? 'bg-red-100 text-red-800 hover:bg-red-200 focus:ring-red-500'
-                  : 'bg-green-100 text-green-800 hover:bg-green-200 focus:ring-green-500'
-              }`}
-            >
-              <Power size={16} className='inline mr-1' />
-              {masterExam.active ? 'Deactivate' : 'Activate'}
-            </button>
-            <button
-              onClick={() => setIsDeleteModalOpen(true)}
-              className='px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'
-            >
-              <Trash2 size={16} className='inline mr-1' />
-              Delete
-            </button>
-          </div>
-        </div>
-
-        {/* Master Exam Info */}
-        <div className='mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-4'>
-          <div className='bg-gray-50 rounded-lg p-4'>
-            <div className='flex items-center'>
-              <Calendar className='h-5 w-5 text-gray-400 mr-2' />
-              <span className='text-sm font-medium text-gray-500'>Exam Period</span>
-            </div>
-            <div className='mt-1 text-lg font-semibold'>{masterExam.exam_period || 'Not specified'}</div>
-          </div>
-
-          <div className='bg-gray-50 rounded-lg p-4'>
-            <div className='flex items-center'>
-              <Clock className='h-5 w-5 text-gray-400 mr-2' />
-              <span className='text-sm font-medium text-gray-500'>Time Frame</span>
-            </div>
-            <div className='mt-1 text-sm'>
-              {masterExam.start_time ? (
-                <>Start: {new Date(masterExam.start_time).toLocaleString()}</>
-              ) : (
-                'No start time set'
-              )}
-              {masterExam.end_time && (
-                <>
-                  <br />
-                  End: {new Date(masterExam.end_time).toLocaleString()}
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className='bg-gray-50 rounded-lg p-4'>
-            <div className='flex items-center'>
-              <FileText className='h-5 w-5 text-gray-400 mr-2' />
-              <span className='text-sm font-medium text-gray-500'>Created Exams</span>
-            </div>
-            <div className='mt-1 text-lg font-semibold'>
-              {isLoadingExams ? <span className='animate-pulse'>Loading...</span> : <>{exams?.length || 0}</>}
-            </div>
-          </div>
-
-          <div className='bg-gray-50 rounded-lg p-4'>
-            <div className='flex items-center'>
-              <Users className='h-5 w-5 text-gray-400 mr-2' />
-              <span className='text-sm font-medium text-gray-500'>Classes</span>
-            </div>
-            <div className='mt-1 text-lg font-semibold'>
-              {isLoadingClasses ? <span className='animate-pulse'>Loading...</span> : <>{classes?.length || 0}</>}
-            </div>
-          </div>
-        </div>
+    <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/30'>
+      {/* Animated Background Elements */}
+      <div className='fixed inset-0 overflow-hidden pointer-events-none'>
+        <div className='absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse'></div>
+        <div className='absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000'></div>
       </div>
 
-      {/* Exams Section */}
-      <div className='bg-white shadow rounded-lg p-6 mb-8'>
-        <h2 className='text-lg font-semibold text-gray-900 mb-4'>Exams</h2>
-
-        {isLoadingExams ? (
-          <div className='animate-pulse space-y-4'>
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className='h-16 bg-gray-200 rounded'></div>
-            ))}
-          </div>
-        ) : exams && exams.length > 0 ? (
-          <div className='overflow-x-auto'>
-            <table className='min-w-full divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
-                <tr>
-                  <th
-                    scope='col'
-                    className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
-                  >
-                    Exam Title
-                  </th>
-                  <th
-                    scope='col'
-                    className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
-                  >
-                    Exam Code
-                  </th>
-                  <th
-                    scope='col'
-                    className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
-                  >
-                    Duration
-                  </th>
-                  <th
-                    scope='col'
-                    className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope='col'
-                    className='px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className='bg-white divide-y divide-gray-200'>
-                {exams.map((exam: any) => (
-                  <tr key={exam._id}>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='text-sm font-medium text-gray-900'>{exam.title}</div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='text-sm text-gray-500'>{exam.exam_code}</div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='text-sm text-gray-500'>{exam.duration} minutes</div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <span
-                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          exam.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {exam.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
-                      <div className='flex justify-end space-x-2'>
-                        <Link
-                          to={`/teacher/exams/${exam._id}/monitor`}
-                          className='text-indigo-600 hover:text-indigo-900'
-                          title='Monitor'
-                        >
-                          <Eye size={18} />
-                        </Link>
-                        <Link
-                          to={`/teacher/exams/${exam._id}/results`}
-                          className='text-blue-600 hover:text-blue-900'
-                          title='View Results'
-                        >
-                          <BarChart2 size={18} />
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className='text-center py-6 bg-gray-50 rounded-lg'>
-            <p className='text-gray-500'>No exams created for this master exam yet.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Classes Section */}
-      <div className='bg-white shadow rounded-lg p-6'>
-        <h2 className='text-lg font-semibold text-gray-900 mb-4'>Classes</h2>
-
-        {isLoadingClasses ? (
-          <div className='animate-pulse space-y-4'>
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className='h-16 bg-gray-200 rounded'></div>
-            ))}
-          </div>
-        ) : classes && classes.length > 0 ? (
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-            {classes.map((classInfo: any) => (
-              <Link
-                key={classInfo.class_name}
-                to={`/teacher/master-exams/${masterExamId}/classes/${encodeURIComponent(classInfo.class_name)}`}
-                className='bg-blue-50 border border-blue-200 rounded-lg p-4 hover:bg-blue-100 transition-colors'
+      <div className='relative z-10 max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8'>
+        {/* Modern Header */}
+        <div className='mb-8'>
+          <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-blue-500/10'>
+            <div className='flex items-center mb-6'>
+              <button
+                onClick={() => navigate('/teacher')}
+                className='mr-6 w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-2xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg'
               >
-                <h3 className='font-medium text-blue-800'>{classInfo.class_name}</h3>
-                <p className='text-blue-600 mt-1'>
-                  {classInfo.student_count} {classInfo.student_count === 1 ? 'student' : 'students'}
+                <ArrowLeft className='h-6 w-6 text-gray-600' />
+              </button>
+              <div className='flex-1'>
+                <h2 className='text-4xl font-black bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2'>
+                  {masterExam.name}
+                </h2>
+                <div className='flex flex-wrap items-center gap-4 text-lg text-gray-600 font-medium'>
+                  {masterExam.exam_period && (
+                    <span className='flex items-center'>
+                      <Calendar className='w-5 h-5 mr-2 text-blue-500' />
+                      Học kỳ: {masterExam.exam_period}
+                    </span>
+                  )}
+                  {masterExam.start_time && (
+                    <span className='flex items-center'>
+                      <Clock className='w-5 h-5 mr-2 text-green-500' />
+                      Bắt đầu: {formatDate(masterExam.start_time)}
+                    </span>
+                  )}
+                </div>
+                {masterExam.description && (
+                  <p className='mt-3 text-xl text-gray-600 font-medium'>{masterExam.description}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modern Stats Cards */}
+        <div className='grid grid-cols-1 gap-6 sm:grid-cols-3 mb-8'>
+          <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-6 shadow-xl shadow-blue-500/10 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:scale-105'>
+            <div className='flex items-center'>
+              <div className='w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center shadow-lg'>
+                <BarChart className='h-7 w-7 text-white' />
+              </div>
+              <div className='ml-5 flex-1'>
+                <p className='text-sm font-semibold text-gray-600 uppercase tracking-wider'>Tổng số lần thi</p>
+                <p className='text-3xl font-black text-gray-900'>{exams.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-6 shadow-xl shadow-green-500/10 hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300 hover:scale-105'>
+            <div className='flex items-center'>
+              <div className='w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg'>
+                <School className='h-7 w-7 text-white' />
+              </div>
+              <div className='ml-5 flex-1'>
+                <p className='text-sm font-semibold text-gray-600 uppercase tracking-wider'>Số lớp tham gia</p>
+                <p className='text-3xl font-black text-gray-900'>{classes.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-6 shadow-xl shadow-indigo-500/10 hover:shadow-2xl hover:shadow-indigo-500/20 transition-all duration-300 hover:scale-105'>
+            <div className='flex items-center'>
+              <div className='w-14 h-14 bg-gradient-to-br from-indigo-500 to-blue-400 rounded-2xl flex items-center justify-center shadow-lg'>
+                <Users className='h-7 w-7 text-white' />
+              </div>
+              <div className='ml-5 flex-1'>
+                <p className='text-sm font-semibold text-gray-600 uppercase tracking-wider'>Tổng số học sinh</p>
+                <p className='text-3xl font-black text-gray-900'>
+                  {classes.reduce((total, cls) => total + cls.student_count, 0)}
                 </p>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className='text-center py-6 bg-gray-50 rounded-lg'>
-            <p className='text-gray-500'>No classes have taken this exam yet.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && (
-        <div className='fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-lg p-6 max-w-md w-full'>
-            <h3 className='text-lg font-medium text-gray-900 mb-4'>Delete Master Exam</h3>
-            <p className='text-sm text-gray-500 mb-4'>
-              Are you sure you want to delete this master exam? This will permanently delete the master exam, all
-              associated exams, and all student results. This action cannot be undone.
-            </p>
-            <div className='flex justify-end space-x-3'>
-              <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                className='px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200'
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteMasterExam}
-                disabled={deleteMasterExamMutation.isPending}
-                className='px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700'
-              >
-                {deleteMasterExamMutation.isPending ? 'Deleting...' : 'Delete'}
-              </button>
+              </div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Classes Section */}
+        <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl shadow-2xl shadow-blue-500/10 overflow-hidden mb-8'>
+          <div className='px-8 py-6 bg-gradient-to-r from-blue-50/50 to-purple-50/50 border-b border-white/20'>
+            <div className='flex items-center'>
+              <div className='w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-400 rounded-2xl flex items-center justify-center mr-4'>
+                <School className='h-6 w-6 text-white' />
+              </div>
+              <div>
+                <h3 className='text-2xl font-bold text-gray-900'>Lớp tham gia</h3>
+                <p className='text-gray-600 font-medium mt-1'>Chọn một lớp để xem chi tiết kết quả và vi phạm</p>
+              </div>
+            </div>
+          </div>
+
+          <div className='p-8'>
+            {classes.length > 0 ? (
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                {classes.map((classInfo) => (
+                  <div
+                    key={classInfo.class_name}
+                    className='backdrop-blur-sm bg-white/50 border border-white/30 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300 hover:scale-105 cursor-pointer group'
+                    onClick={() => handleClassSelect(classInfo.class_name)}
+                  >
+                    <div className='flex items-center justify-between mb-4'>
+                      <div className='w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-400 rounded-2xl flex items-center justify-center'>
+                        <School className='h-6 w-6 text-white' />
+                      </div>
+                      <div className='text-right'>
+                        <div className='text-2xl font-black text-gray-900'>{classInfo.student_count}</div>
+                        <div className='text-sm text-gray-600 font-medium'>học sinh</div>
+                      </div>
+                    </div>
+                    <h4 className='text-xl font-bold text-gray-900 mb-2'>{classInfo.class_name}</h4>
+                    <button className='w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-xl hover:from-blue-600 hover:to-cyan-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 font-semibold group-hover:scale-105'>
+                      Xem kết quả
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className='text-center py-12'>
+                <div className='w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mx-auto mb-6'>
+                  <School className='w-10 h-10 text-gray-400' />
+                </div>
+                <h3 className='text-xl font-bold text-gray-900 mb-2'>Chưa có lớp tham gia</h3>
+                <p className='text-gray-600'>Chưa có lớp nào tham gia kỳ thi này.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Exams Table */}
+        <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl shadow-2xl shadow-blue-500/10 overflow-hidden'>
+          <div className='px-8 py-6 bg-gradient-to-r from-green-50/50 to-blue-50/50 border-b border-white/20 flex justify-between items-center'>
+            <div className='flex items-center'>
+              <div className='w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-400 rounded-2xl flex items-center justify-center mr-4'>
+                <TrendingUp className='h-6 w-6 text-white' />
+              </div>
+              <div>
+                <h3 className='text-2xl font-bold text-gray-900'>Danh sách bài thi</h3>
+                <p className='text-gray-600 font-medium mt-1'>Tất cả các bài thi trong kỳ thi này</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                // Export functionality would go here
+                toast.info('Feature coming soon')
+              }}
+              className='inline-flex items-center px-6 py-3 bg-white/80 text-gray-700 border border-gray-200/50 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold'
+            >
+              <Download className='mr-2 h-5 w-5' />
+              Xuất báo cáo
+            </button>
+          </div>
+
+          <div className='overflow-hidden'>
+            {exams.length > 0 ? (
+              <div className='overflow-x-auto'>
+                <table className='min-w-full'>
+                  <thead className='bg-gradient-to-r from-gray-50 to-blue-50'>
+                    <tr>
+                      <th className='px-8 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider'>
+                        Tên bài thi
+                      </th>
+                      <th className='px-8 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider'>
+                        Mã bài thi
+                      </th>
+                      <th className='px-8 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider'>
+                        Thời gian bắt đầu
+                      </th>
+                      <th className='px-8 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider'>
+                        Thời lượng
+                      </th>
+                      <th className='px-8 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider'>
+                        Trạng thái
+                      </th>
+                      <th className='px-8 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wider'>
+                        Hành động
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-gray-200/50'>
+                    {exams.map((exam) => (
+                      <tr key={exam._id} className='hover:bg-white/50 transition-all duration-300'>
+                        <td className='px-8 py-6 text-lg font-bold text-gray-900'>{exam.title}</td>
+                        <td className='px-8 py-6 text-gray-600 font-medium'>{exam.exam_code}</td>
+                        <td className='px-8 py-6 text-gray-600 font-medium'>
+                          {exam.start_time ? formatDate(exam.start_time) : 'Ngay lập tức'}
+                        </td>
+                        <td className='px-8 py-6 text-gray-600 font-medium'>{exam.duration} phút</td>
+                        <td className='px-8 py-6'>
+                          <span
+                            className={`px-4 py-2 text-sm font-bold rounded-2xl ${
+                              exam.active
+                                ? 'bg-green-100 text-green-800 border border-green-200'
+                                : 'bg-red-100 text-red-800 border border-red-200'
+                            }`}
+                          >
+                            {exam.active ? 'Hoạt động' : 'Vô hiệu hóa'}
+                          </span>
+                        </td>
+                        <td className='px-8 py-6 text-right'>
+                          <button
+                            onClick={() => navigate(`/teacher/exams/${exam._id}/class-results`)}
+                            className='px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-2xl hover:from-blue-600 hover:to-cyan-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105 font-semibold'
+                          >
+                            Xem kết quả
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className='py-16 text-center'>
+                <div className='w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mx-auto mb-6'>
+                  <Activity className='w-10 h-10 text-gray-400' />
+                </div>
+                <h3 className='text-xl font-bold text-gray-900 mb-2'>Chưa có bài thi</h3>
+                <p className='text-gray-600'>Chưa có bài thi nào cho kỳ thi này.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
