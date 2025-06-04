@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useContext } from 'react'
-import { useForm } from 'react-hook-form'
-import { User, Camera, Eye, EyeOff, Copy, RefreshCw, UserPlus, AlertCircle } from 'lucide-react'
+import { useForm, useFieldArray } from 'react-hook-form'
+import { User, Upload, Eye, EyeOff, Copy, RefreshCw, UserPlus, Plus, Minus, Image } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   generateUsernameFromName,
@@ -12,44 +12,59 @@ import {
   getAgeRangeByClass
 } from '../helper/help_vietnam_classes'
 import { AuthContext } from '../../Contexts/auth.context'
-import FaceProfileRegistration from './FaceProfileRegistration'
 
 interface StudentData {
   name: string
   age: number
   gender: 'nam' | 'nữ'
   phone: string
-  class: string
   username: string
   password: string
+  faceImage: File | null
+}
+
+interface BulkStudentForm {
+  selectedClass: string
+  students: StudentData[]
 }
 
 interface StudentRegistrationFormProps {
-  onSuccess?: (studentData: StudentData) => void
+  onSuccess?: (studentsData: StudentData[]) => void
   onCancel?: () => void
 }
 
 const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuccess, onCancel }) => {
   const { profile } = useContext(AuthContext) as any
-  const [step, setStep] = useState<'info' | 'face' | 'review' | 'success'>('info')
-  const [studentData, setStudentData] = useState<StudentData | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
+  const [step, setStep] = useState<'class' | 'students' | 'review' | 'success'>('class')
+  const [selectedClass, setSelectedClass] = useState<string>('')
   const [availableClasses, setAvailableClasses] = useState<string[]>([])
   const [isRegistering, setIsRegistering] = useState(false)
-  const [faceImageCaptured, setFaceImageCaptured] = useState(false)
-  const [faceImageBlob, setFaceImageBlob] = useState<Blob | null>(null)
+  const [showPasswords, setShowPasswords] = useState<boolean[]>([])
+  const [registeredStudents, setRegisteredStudents] = useState<StudentData[]>([])
+  const [registrationProgress, setRegistrationProgress] = useState({ current: 0, total: 0 })
+
+  const teacherLevel = profile?.teacher_level || 'middle_school'
 
   const {
+    control,
     register,
     handleSubmit,
     watch,
     setValue,
     formState: { errors }
-  } = useForm<StudentData>()
+  } = useForm<BulkStudentForm>({
+    defaultValues: {
+      selectedClass: '',
+      students: [{ name: '', age: 16, gender: 'nam', phone: '', username: '', password: '', faceImage: null }]
+    }
+  })
 
-  const watchedName = watch('name')
-  const watchedClass = watch('class')
-  const teacherLevel = profile?.teacher_level || 'middle_school'
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'students'
+  })
+
+  const watchedStudents = watch('students')
 
   // Load available classes based on teacher level
   useEffect(() => {
@@ -57,101 +72,55 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
     setAvailableClasses(classes)
   }, [teacherLevel])
 
-  // Auto-generate username when name changes
+  // Auto-generate usernames and passwords when student data changes
   useEffect(() => {
-    if (watchedName && watchedName.length >= 2) {
-      if (isValidVietnameseName(watchedName)) {
-        const username = generateUsernameFromName(watchedName)
-        setValue('username', username)
+    watchedStudents.forEach((student, index) => {
+      if (student.name && student.name.length >= 2 && isValidVietnameseName(student.name)) {
+        const username = generateUsernameFromName(student.name)
+        setValue(`students.${index}.username`, username)
       }
-    }
-  }, [watchedName, setValue])
 
-  // Auto-generate password when class changes
+      if (selectedClass) {
+        const password = generateRandomPassword(selectedClass)
+        setValue(`students.${index}.password`, password)
+      }
+    })
+  }, [watchedStudents, selectedClass, setValue])
+
+  // Initialize password visibility array
   useEffect(() => {
-    if (watchedClass) {
-      const password = generateRandomPassword(watchedClass)
-      setValue('password', password)
-    }
-  }, [watchedClass, setValue])
+    setShowPasswords(new Array(fields.length).fill(false))
+  }, [fields.length])
 
-  const handleInfoSubmit = async (data: StudentData) => {
-    try {
-      // Validate age range for selected class
-      const [minAge, maxAge] = getAgeRangeByClass(data.class)
-      if (data.age < minAge - 2 || data.age > maxAge + 2) {
-        toast.warning(`Tuổi thường cho lớp ${data.class} là từ ${minAge} đến ${maxAge}. Bạn có chắc chắn không?`)
-      }
+  const handleClassSelect = (classValue: string) => {
+    setSelectedClass(classValue)
+    setValue('selectedClass', classValue)
+    setStep('students')
+  }
 
-      // Check if username already exists (simulated)
-      // In real implementation, you would call an API
-      const existingUsernames: string[] = [] // Would come from API
-      const finalUsername = generateAlternativeUsername(data.username, existingUsernames)
+  const addStudent = () => {
+    const [minAge, maxAge] = getAgeRangeByClass(selectedClass)
+    const defaultAge = Math.floor((minAge + maxAge) / 2)
 
-      if (finalUsername !== data.username) {
-        setValue('username', finalUsername)
-        data.username = finalUsername
-        toast.info(`Username đã được điều chỉnh thành: ${finalUsername}`)
-      }
+    append({
+      name: '',
+      age: defaultAge,
+      gender: 'nam',
+      phone: '',
+      username: '',
+      password: '',
+      faceImage: null
+    })
+  }
 
-      setStudentData(data)
-      setStep('face')
-    } catch (error) {
-      console.error('Error validating student info:', error)
-      toast.error('Có lỗi xảy ra khi xử lý thông tin')
+  const removeStudent = (index: number) => {
+    if (fields.length > 1) {
+      remove(index)
     }
   }
 
-  const handleFaceRegistrationComplete = (imageBlob: Blob) => {
-    setFaceImageBlob(imageBlob)
-    setFaceImageCaptured(true)
-    setStep('review')
-    toast.success('Đã chụp ảnh khuôn mặt thành công!')
-  }
-
-  const handleFinalSubmit = async () => {
-    if (!studentData || !faceImageBlob) return
-
-    setIsRegistering(true)
-
-    try {
-      // Create FormData for API call
-      const formData = new FormData()
-      formData.append('name', studentData.name)
-      formData.append('age', studentData.age.toString())
-      formData.append('gender', studentData.gender)
-      formData.append('phone', studentData.phone)
-      formData.append('class', studentData.class)
-      formData.append('username', studentData.username)
-      formData.append('password', studentData.password)
-      formData.append('face_image', faceImageBlob, 'face_profile.jpg')
-      formData.append('teacher_id', profile._id)
-
-      // Call API to register student
-      const response = await fetch('/api/teacher/register-student', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`
-        },
-        body: formData
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to register student')
-      }
-
-      toast.success('Đăng ký học sinh thành công!')
-      setStep('success')
-
-      if (onSuccess) {
-        onSuccess(studentData)
-      }
-    } catch (error: any) {
-      console.error('Error registering student:', error)
-      toast.error(error.message || 'Không thể đăng ký học sinh')
-    } finally {
-      setIsRegistering(false)
-    }
+  const handleImageUpload = (index: number, file: File) => {
+    setValue(`students.${index}.faceImage`, file)
   }
 
   const copyToClipboard = (text: string, label: string) => {
@@ -159,28 +128,161 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
     toast.success(`Đã copy ${label}`)
   }
 
-  const regeneratePassword = () => {
-    if (studentData?.class) {
-      const newPassword = generateRandomPassword(studentData.class)
-      setValue('password', newPassword)
-      setStudentData({ ...studentData, password: newPassword })
+  const togglePasswordVisibility = (index: number) => {
+    setShowPasswords((prev) => {
+      const newState = [...prev]
+      newState[index] = !newState[index]
+      return newState
+    })
+  }
+
+  const regeneratePassword = (index: number) => {
+    if (selectedClass) {
+      const newPassword = generateRandomPassword(selectedClass)
+      setValue(`students.${index}.password`, newPassword)
       toast.info('Đã tạo mật khẩu mới')
     }
   }
 
+  const validateStudentsData = (data: BulkStudentForm) => {
+    const errors: string[] = []
+
+    data.students.forEach((student, index) => {
+      // Validate age range for selected class
+      const [minAge, maxAge] = getAgeRangeByClass(data.selectedClass)
+      if (student.age < minAge - 2 || student.age > maxAge + 2) {
+        errors.push(
+          `Học sinh ${index + 1} (${student.name}): Tuổi thường cho lớp ${data.selectedClass} là từ ${minAge} đến ${maxAge}`
+        )
+      }
+
+      // Check for required face image
+      if (!student.faceImage) {
+        errors.push(`Học sinh ${index + 1} (${student.name}): Chưa chọn ảnh khuôn mặt`)
+      }
+    })
+
+    return errors
+  }
+
+  const handleStudentsSubmit = async (data: BulkStudentForm) => {
+    try {
+      const validationErrors = validateStudentsData(data)
+      if (validationErrors.length > 0) {
+        validationErrors.forEach((error) => toast.warning(error))
+        return
+      }
+
+      // Check for duplicate usernames and adjust if needed
+      const existingUsernames: string[] = [] // Would come from API in real implementation
+      const adjustedStudents = data.students.map((student, index) => {
+        const finalUsername = generateAlternativeUsername(student.username, existingUsernames)
+        existingUsernames.push(finalUsername)
+
+        if (finalUsername !== student.username) {
+          setValue(`students.${index}.username`, finalUsername)
+          toast.info(`Username học sinh ${index + 1} đã được điều chỉnh thành: ${finalUsername}`)
+        }
+
+        return { ...student, username: finalUsername }
+      })
+
+      setValue('students', adjustedStudents)
+      setStep('review')
+    } catch (error) {
+      console.error('Error validating students data:', error)
+      toast.error('Có lỗi xảy ra khi xử lý thông tin')
+    }
+  }
+
+  const handleFinalSubmit = async () => {
+    const formData = watch()
+    if (!formData.students.length) return
+
+    setIsRegistering(true)
+    setRegistrationProgress({ current: 0, total: formData.students.length })
+
+    const successfulRegistrations: StudentData[] = []
+    const failedRegistrations: string[] = []
+
+    try {
+      for (let i = 0; i < formData.students.length; i++) {
+        const student = formData.students[i]
+        setRegistrationProgress({ current: i + 1, total: formData.students.length })
+
+        try {
+          // Create FormData for each student
+          const studentFormData = new FormData()
+          studentFormData.append('name', student.name)
+          studentFormData.append('age', student.age.toString())
+          studentFormData.append('gender', student.gender)
+          studentFormData.append('phone', student.phone || '')
+          studentFormData.append('class', formData.selectedClass)
+          studentFormData.append('username', student.username)
+          studentFormData.append('password', student.password)
+          if (student.faceImage) {
+            studentFormData.append('face_image', student.faceImage, `${student.username}_face.jpg`)
+          }
+          studentFormData.append('teacher_id', profile._id)
+
+          // Call API to register individual student
+          const response = await fetch('/api/teacher/register-student', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('access_token')}`
+            },
+            body: studentFormData
+          })
+
+          if (!response.ok) {
+            throw new Error(`Failed to register ${student.name}`)
+          }
+
+          successfulRegistrations.push(student)
+          toast.success(`Đã đăng ký thành công: ${student.name}`)
+        } catch (error: any) {
+          console.error(`Error registering ${student.name}:`, error)
+          failedRegistrations.push(`${student.name}: ${error.message}`)
+          toast.error(`Lỗi đăng ký ${student.name}: ${error.message}`)
+        }
+      }
+
+      // Show final results
+      if (successfulRegistrations.length > 0) {
+        toast.success(`Đăng ký thành công ${successfulRegistrations.length}/${formData.students.length} học sinh`)
+        setRegisteredStudents(successfulRegistrations)
+        setStep('success')
+
+        if (onSuccess) {
+          onSuccess(successfulRegistrations)
+        }
+      }
+
+      if (failedRegistrations.length > 0) {
+        toast.error(`Có ${failedRegistrations.length} học sinh đăng ký thất bại`)
+      }
+    } catch (error: any) {
+      console.error('Error in bulk registration:', error)
+      toast.error('Có lỗi xảy ra trong quá trình đăng ký')
+    } finally {
+      setIsRegistering(false)
+      setRegistrationProgress({ current: 0, total: 0 })
+    }
+  }
+
   return (
-    <div className='max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6'>
+    <div className='max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6'>
       {/* Progress Steps */}
       <div className='mb-8'>
         <div className='flex items-center justify-between'>
-          {['info', 'face', 'review'].map((currentStep, index) => (
+          {['class', 'students', 'review'].map((currentStep, index) => (
             <React.Fragment key={currentStep}>
               <div
                 className={`flex items-center ${
                   step === currentStep
                     ? 'text-blue-600'
-                    : ['face', 'review'].includes(currentStep) &&
-                        ['face', 'review'].indexOf(step) > ['face', 'review'].indexOf(currentStep)
+                    : ['students', 'review'].includes(currentStep) &&
+                        ['students', 'review'].indexOf(step) > ['students', 'review'].indexOf(currentStep)
                       ? 'text-green-600'
                       : 'text-gray-400'
                 }`}
@@ -189,26 +291,26 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
                   className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                     step === currentStep
                       ? 'border-blue-600 bg-blue-50'
-                      : ['face', 'review'].includes(currentStep) &&
-                          ['face', 'review'].indexOf(step) > ['face', 'review'].indexOf(currentStep)
+                      : ['students', 'review'].includes(currentStep) &&
+                          ['students', 'review'].indexOf(step) > ['students', 'review'].indexOf(currentStep)
                         ? 'border-green-600 bg-green-50'
                         : 'border-gray-300'
                   }`}
                 >
-                  {currentStep === 'info' && <User className='w-4 h-4' />}
-                  {currentStep === 'face' && <Camera className='w-4 h-4' />}
+                  {currentStep === 'class' && <User className='w-4 h-4' />}
+                  {currentStep === 'students' && <UserPlus className='w-4 h-4' />}
                   {currentStep === 'review' && <Eye className='w-4 h-4' />}
                 </div>
                 <span className='ml-2 text-sm font-medium'>
-                  {currentStep === 'info' && 'Thông tin'}
-                  {currentStep === 'face' && 'Chụp ảnh'}
+                  {currentStep === 'class' && 'Chọn lớp'}
+                  {currentStep === 'students' && 'Danh sách học sinh'}
                   {currentStep === 'review' && 'Xác nhận'}
                 </span>
               </div>
               {index < 2 && (
                 <div
                   className={`flex-1 h-0.5 mx-4 ${
-                    ['face', 'review'].indexOf(step) > index ? 'bg-green-600' : 'bg-gray-300'
+                    ['students', 'review'].indexOf(step) > index ? 'bg-green-600' : 'bg-gray-300'
                   }`}
                 />
               )}
@@ -218,296 +320,310 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
       </div>
 
       {/* Step Content */}
-      {step === 'info' && (
-        <form onSubmit={handleSubmit(handleInfoSubmit)} className='space-y-6'>
-          <div>
-            <h3 className='text-lg font-medium text-gray-900 mb-4'>Thông tin học sinh</h3>
+      {step === 'class' && (
+        <div>
+          <h3 className='text-lg font-medium text-gray-900 mb-4'>Chọn lớp học</h3>
+          <p className='text-gray-600 mb-6'>Chọn lớp học cho toàn bộ danh sách học sinh sẽ đăng ký</p>
 
-            {/* Name */}
-            <div className='mb-4'>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
-                Họ và tên <span className='text-red-500'>*</span>
-              </label>
-              <input
-                type='text'
-                {...register('name', {
-                  required: 'Vui lòng nhập họ tên',
-                  validate: (value) => isValidVietnameseName(value) || 'Tên không hợp lệ'
-                })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='Ví dụ: Nguyễn Văn An'
-              />
-              {errors.name && <p className='mt-1 text-sm text-red-600'>{errors.name.message}</p>}
-            </div>
-
-            {/* Age and Gender */}
-            <div className='grid grid-cols-2 gap-4 mb-4'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Tuổi <span className='text-red-500'>*</span>
-                </label>
-                <input
-                  type='number'
-                  {...register('age', {
-                    required: 'Vui lòng nhập tuổi',
-                    min: { value: 5, message: 'Tuổi phải từ 5 trở lên' },
-                    max: { value: 25, message: 'Tuổi không được quá 25' }
-                  })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='18'
-                />
-                {errors.age && <p className='mt-1 text-sm text-red-600'>{errors.age.message}</p>}
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Giới tính <span className='text-red-500'>*</span>
-                </label>
-                <select
-                  {...register('gender', { required: 'Vui lòng chọn giới tính' })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                >
-                  <option value=''>Chọn giới tính</option>
-                  <option value='nam'>Nam</option>
-                  <option value='nữ'>Nữ</option>
-                </select>
-                {errors.gender && <p className='mt-1 text-sm text-red-600'>{errors.gender.message}</p>}
-              </div>
-            </div>
-
-            {/* Phone */}
-            <div className='mb-4'>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Số điện thoại</label>
-              <input
-                type='tel'
-                {...register('phone', {
-                  pattern: {
-                    value: /^[0-9]{10,11}$/,
-                    message: 'Số điện thoại không hợp lệ'
-                  }
-                })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='0123456789'
-              />
-              {errors.phone && <p className='mt-1 text-sm text-red-600'>{errors.phone.message}</p>}
-            </div>
-
-            {/* Class */}
-            <div className='mb-4'>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
-                Lớp học <span className='text-red-500'>*</span>
-              </label>
-              <select
-                {...register('class', { required: 'Vui lòng chọn lớp' })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+          <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8'>
+            {availableClasses.map((className) => (
+              <button
+                key={className}
+                onClick={() => handleClassSelect(className)}
+                className='p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-center'
               >
-                <option value=''>Chọn lớp</option>
-                {availableClasses.map((className) => (
-                  <option key={className} value={className}>
-                    Lớp {className}
-                  </option>
-                ))}
-              </select>
-              {errors.class && <p className='mt-1 text-sm text-red-600'>{errors.class.message}</p>}
-            </div>
-
-            {/* Generated Username */}
-            <div className='mb-4'>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Tên đăng nhập (tự động tạo)</label>
-              <div className='flex'>
-                <input
-                  type='text'
-                  {...register('username')}
-                  readOnly
-                  className='flex-1 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 text-gray-600'
-                />
-                <button
-                  type='button'
-                  onClick={() => copyToClipboard(watch('username'), 'username')}
-                  className='px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-200'
-                >
-                  <Copy className='w-4 h-4' />
-                </button>
-              </div>
-            </div>
-
-            {/* Generated Password */}
-            <div className='mb-6'>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Mật khẩu (tự động tạo)</label>
-              <div className='flex'>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  {...register('password')}
-                  readOnly
-                  className='flex-1 px-3 py-2 border border-gray-300 bg-gray-50 text-gray-600'
-                />
-                <button
-                  type='button'
-                  onClick={() => setShowPassword(!showPassword)}
-                  className='px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 hover:bg-gray-200'
-                >
-                  {showPassword ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
-                </button>
-                <button
-                  type='button'
-                  onClick={regeneratePassword}
-                  className='px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 hover:bg-gray-200'
-                >
-                  <RefreshCw className='w-4 h-4' />
-                </button>
-                <button
-                  type='button'
-                  onClick={() => copyToClipboard(watch('password'), 'mật khẩu')}
-                  className='px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-200'
-                >
-                  <Copy className='w-4 h-4' />
-                </button>
-              </div>
-            </div>
+                <div className='text-lg font-medium text-gray-900'>Lớp {className}</div>
+                <div className='text-sm text-gray-500 mt-1'>
+                  {(() => {
+                    const [minAge, maxAge] = getAgeRangeByClass(className)
+                    return `${minAge}-${maxAge} tuổi`
+                  })()}
+                </div>
+              </button>
+            ))}
           </div>
 
           <div className='flex justify-between'>
             <button type='button' onClick={onCancel} className='px-4 py-2 text-gray-600 hover:text-gray-800'>
               Hủy
             </button>
-            <button
-              type='submit'
-              className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              Tiếp theo: Chụp ảnh
-            </button>
-          </div>
-        </form>
-      )}
-
-      {step === 'face' && studentData && (
-        <div>
-          <h3 className='text-lg font-medium text-gray-900 mb-4'>Chụp ảnh khuôn mặt cho {studentData.name}</h3>
-          <div className='mb-4 p-4 bg-blue-50 rounded-lg'>
-            <div className='flex items-start'>
-              <AlertCircle className='w-5 h-5 text-blue-600 mr-2 mt-0.5' />
-              <div className='text-sm text-blue-800'>
-                <p className='font-medium'>Hướng dẫn quan trọng:</p>
-                <ul className='mt-1 space-y-1'>
-                  <li>• Đảm bảo học sinh nhìn thẳng vào camera</li>
-                  <li>• Ánh sáng đầy đủ và rõ ràng</li>
-                  <li>• Không đeo kính râm hoặc khẩu trang</li>
-                  <li>• Ảnh này sẽ được dùng để xác thực trong các kỳ thi</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <FaceProfileRegistration
-            onRegistrationComplete={handleFaceRegistrationComplete as any}
-            studentName={studentData.name}
-            hideDeleteOption={true}
-          />
-
-          <div className='flex justify-between mt-6'>
-            <button
-              type='button'
-              onClick={() => setStep('info')}
-              className='px-4 py-2 text-gray-600 hover:text-gray-800'
-            >
-              Quay lại
-            </button>
-            <button
-              type='button'
-              onClick={() => faceImageCaptured && setStep('review')}
-              disabled={!faceImageCaptured}
-              className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
-            >
-              Tiếp theo: Xác nhận
-            </button>
           </div>
         </div>
       )}
 
-      {step === 'review' && studentData && (
-        <div>
-          <h3 className='text-lg font-medium text-gray-900 mb-4'>Xác nhận thông tin học sinh</h3>
+      {step === 'students' && (
+        <form onSubmit={handleSubmit(handleStudentsSubmit)} className='space-y-6'>
+          <div className='flex items-center justify-between'>
+            <h3 className='text-lg font-medium text-gray-900'>Danh sách học sinh lớp {selectedClass}</h3>
+            <button
+              type='button'
+              onClick={addStudent}
+              className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center'
+            >
+              <Plus className='w-4 h-4 mr-2' />
+              Thêm học sinh
+            </button>
+          </div>
 
-          <div className='space-y-4 mb-6'>
-            <div className='bg-gray-50 rounded-lg p-4'>
-              <h4 className='font-medium text-gray-900 mb-3'>Thông tin cá nhân</h4>
-              <div className='grid grid-cols-2 gap-4 text-sm'>
-                <div>
-                  <span className='text-gray-600'>Họ tên:</span>
-                  <span className='ml-2 font-medium'>{studentData.name}</span>
+          <div className='space-y-6'>
+            {fields.map((field, index) => (
+              <div key={field.id} className='border border-gray-200 rounded-lg p-4 bg-gray-50'>
+                <div className='flex items-center justify-between mb-4'>
+                  <h4 className='font-medium text-gray-900'>Học sinh {index + 1}</h4>
+                  {fields.length > 1 && (
+                    <button
+                      type='button'
+                      onClick={() => removeStudent(index)}
+                      className='p-1 text-red-600 hover:text-red-800'
+                    >
+                      <Minus className='w-4 h-4' />
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <span className='text-gray-600'>Tuổi:</span>
-                  <span className='ml-2 font-medium'>{studentData.age}</span>
-                </div>
-                <div>
-                  <span className='text-gray-600'>Giới tính:</span>
-                  <span className='ml-2 font-medium'>{studentData.gender}</span>
-                </div>
-                <div>
-                  <span className='text-gray-600'>Lớp:</span>
-                  <span className='ml-2 font-medium'>{studentData.class}</span>
-                </div>
-                {studentData.phone && (
-                  <div className='col-span-2'>
-                    <span className='text-gray-600'>Số điện thoại:</span>
-                    <span className='ml-2 font-medium'>{studentData.phone}</span>
-                  </div>
-                )}
-              </div>
-            </div>
 
-            <div className='bg-gray-50 rounded-lg p-4'>
-              <h4 className='font-medium text-gray-900 mb-3'>Thông tin đăng nhập</h4>
-              <div className='space-y-2 text-sm'>
-                <div className='flex justify-between items-center'>
-                  <span className='text-gray-600'>Username:</span>
-                  <div className='flex items-center'>
-                    <span className='font-mono bg-white px-2 py-1 rounded border'>{studentData.username}</span>
-                    <button
-                      onClick={() => copyToClipboard(studentData.username, 'username')}
-                      className='ml-2 p-1 hover:bg-gray-200 rounded'
-                    >
-                      <Copy className='w-4 h-4' />
-                    </button>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                  {/* Name */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Họ và tên <span className='text-red-500'>*</span>
+                    </label>
+                    <input
+                      type='text'
+                      {...register(`students.${index}.name`, {
+                        required: 'Vui lòng nhập họ tên',
+                        validate: (value) => isValidVietnameseName(value) || 'Tên không hợp lệ'
+                      })}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      placeholder='Ví dụ: Nguyễn Văn An'
+                    />
+                    {errors.students?.[index]?.name && (
+                      <p className='mt-1 text-sm text-red-600'>{errors.students[index]?.name?.message}</p>
+                    )}
                   </div>
-                </div>
-                <div className='flex justify-between items-center'>
-                  <span className='text-gray-600'>Password:</span>
-                  <div className='flex items-center'>
-                    <span className='font-mono bg-white px-2 py-1 rounded border'>
-                      {showPassword ? studentData.password : '••••••••'}
-                    </span>
-                    <button
-                      onClick={() => setShowPassword(!showPassword)}
-                      className='ml-2 p-1 hover:bg-gray-200 rounded'
-                    >
-                      {showPassword ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
-                    </button>
-                    <button
-                      onClick={() => copyToClipboard(studentData.password, 'mật khẩu')}
-                      className='ml-2 p-1 hover:bg-gray-200 rounded'
-                    >
-                      <Copy className='w-4 h-4' />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            <div className='bg-green-50 rounded-lg p-4'>
-              <div className='flex items-center'>
-                <Camera className='w-5 h-5 text-green-600 mr-2' />
-                <span className='text-green-800 font-medium'>Ảnh khuôn mặt đã được chụp và lưu thành công</span>
+                  {/* Age */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Tuổi <span className='text-red-500'>*</span>
+                    </label>
+                    <input
+                      type='number'
+                      {...register(`students.${index}.age`, {
+                        required: 'Vui lòng nhập tuổi',
+                        min: { value: 5, message: 'Tuổi phải từ 5 trở lên' },
+                        max: { value: 25, message: 'Tuổi không được quá 25' }
+                      })}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    />
+                    {errors.students?.[index]?.age && (
+                      <p className='mt-1 text-sm text-red-600'>{errors.students[index]?.age?.message}</p>
+                    )}
+                  </div>
+
+                  {/* Gender */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Giới tính <span className='text-red-500'>*</span>
+                    </label>
+                    <select
+                      {...register(`students.${index}.gender`, { required: 'Vui lòng chọn giới tính' })}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    >
+                      <option value='nam'>Nam</option>
+                      <option value='nữ'>Nữ</option>
+                    </select>
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Số điện thoại</label>
+                    <input
+                      type='tel'
+                      {...register(`students.${index}.phone`, {
+                        pattern: {
+                          value: /^[0-9]{10,11}$/,
+                          message: 'Số điện thoại không hợp lệ'
+                        }
+                      })}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      placeholder='0123456789'
+                    />
+                    {errors.students?.[index]?.phone && (
+                      <p className='mt-1 text-sm text-red-600'>{errors.students[index]?.phone?.message}</p>
+                    )}
+                  </div>
+
+                  {/* Username */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Tên đăng nhập</label>
+                    <div className='flex'>
+                      <input
+                        type='text'
+                        {...register(`students.${index}.username`)}
+                        readOnly
+                        className='flex-1 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 text-gray-600'
+                      />
+                      <button
+                        type='button'
+                        onClick={() => copyToClipboard(watch(`students.${index}.username`), 'username')}
+                        className='px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-200'
+                      >
+                        <Copy className='w-4 h-4' />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Mật khẩu</label>
+                    <div className='flex'>
+                      <input
+                        type={showPasswords[index] ? 'text' : 'password'}
+                        {...register(`students.${index}.password`)}
+                        readOnly
+                        className='flex-1 px-3 py-2 border border-gray-300 bg-gray-50 text-gray-600'
+                      />
+                      <button
+                        type='button'
+                        onClick={() => togglePasswordVisibility(index)}
+                        className='px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 hover:bg-gray-200'
+                      >
+                        {showPasswords[index] ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => regeneratePassword(index)}
+                        className='px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 hover:bg-gray-200'
+                      >
+                        <RefreshCw className='w-4 h-4' />
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => copyToClipboard(watch(`students.${index}.password`), 'mật khẩu')}
+                        className='px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-200'
+                      >
+                        <Copy className='w-4 h-4' />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Face Image Upload */}
+                <div className='mt-4'>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Ảnh khuôn mặt <span className='text-red-500'>*</span>
+                  </label>
+                  <div className='flex items-center space-x-4'>
+                    <input
+                      type='file'
+                      accept='image/*'
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          handleImageUpload(index, file)
+                        }
+                      }}
+                      className='hidden'
+                      id={`image-upload-${index}`}
+                    />
+                    <label
+                      htmlFor={`image-upload-${index}`}
+                      className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer flex items-center'
+                    >
+                      <Upload className='w-4 h-4 mr-2' />
+                      Chọn ảnh
+                    </label>
+                    {watchedStudents[index]?.faceImage && (
+                      <div className='flex items-center text-green-600'>
+                        <Image className='w-4 h-4 mr-2' />
+                        <span className='text-sm'>{watchedStudents[index].faceImage.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
 
           <div className='flex justify-between'>
             <button
               type='button'
-              onClick={() => setStep('face')}
+              onClick={() => setStep('class')}
               className='px-4 py-2 text-gray-600 hover:text-gray-800'
+            >
+              Quay lại
+            </button>
+            <button
+              type='submit'
+              className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
+            >
+              Tiếp theo: Xác nhận
+            </button>
+          </div>
+        </form>
+      )}
+
+      {step === 'review' && (
+        <div>
+          <h3 className='text-lg font-medium text-gray-900 mb-4'>
+            Xác nhận đăng ký {watchedStudents.length} học sinh lớp {selectedClass}
+          </h3>
+
+          <div className='space-y-4 mb-6 max-h-96 overflow-y-auto'>
+            {watchedStudents.map((student, index) => (
+              <div key={index} className='bg-gray-50 rounded-lg p-4'>
+                <h4 className='font-medium text-gray-900 mb-3'>
+                  {index + 1}. {student.name} ({student.age} tuổi, {student.gender})
+                </h4>
+                <div className='grid grid-cols-2 gap-4 text-sm'>
+                  <div>
+                    <span className='text-gray-600'>Username:</span>
+                    <span className='ml-2 font-mono'>{student.username}</span>
+                  </div>
+                  <div>
+                    <span className='text-gray-600'>Password:</span>
+                    <span className='ml-2 font-mono'>{student.password}</span>
+                  </div>
+                  {student.phone && (
+                    <div>
+                      <span className='text-gray-600'>SĐT:</span>
+                      <span className='ml-2'>{student.phone}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className='text-gray-600'>Ảnh:</span>
+                    <span className='ml-2 text-green-600'>{student.faceImage ? '✓ Đã chọn' : '✗ Chưa chọn'}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {isRegistering && (
+            <div className='mb-6 p-4 bg-blue-50 rounded-lg'>
+              <div className='flex items-center justify-between'>
+                <span className='text-blue-800'>
+                  Đang đăng ký học sinh {registrationProgress.current}/{registrationProgress.total}...
+                </span>
+                <RefreshCw className='w-4 h-4 text-blue-600 animate-spin' />
+              </div>
+              <div className='mt-2 bg-blue-200 rounded-full h-2'>
+                <div
+                  className='bg-blue-600 h-2 rounded-full transition-all duration-300'
+                  style={{
+                    width: `${(registrationProgress.current / registrationProgress.total) * 100}%`
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className='flex justify-between'>
+            <button
+              type='button'
+              onClick={() => setStep('students')}
+              disabled={isRegistering}
+              className='px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50'
             >
               Quay lại
             </button>
@@ -525,7 +641,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
               ) : (
                 <>
                   <UserPlus className='w-4 h-4 mr-2' />
-                  Đăng ký học sinh
+                  Đăng ký tất cả học sinh
                 </>
               )}
             </button>
@@ -533,39 +649,44 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
         </div>
       )}
 
-      {step === 'success' && studentData && (
+      {step === 'success' && (
         <div className='text-center'>
           <div className='w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4'>
             <UserPlus className='w-8 h-8 text-green-600' />
           </div>
-          <h3 className='text-lg font-medium text-gray-900 mb-2'>Đăng ký học sinh thành công!</h3>
-          <p className='text-gray-600 mb-6'>Tài khoản cho {studentData.name} đã được tạo và có thể sử dụng ngay.</p>
+          <h3 className='text-lg font-medium text-gray-900 mb-2'>
+            Đăng ký thành công {registeredStudents.length} học sinh!
+          </h3>
+          <p className='text-gray-600 mb-6'>Tất cả tài khoản đã được tạo và có thể sử dụng ngay.</p>
 
-          <div className='bg-gray-50 rounded-lg p-4 mb-6'>
-            <h4 className='font-medium text-gray-900 mb-2'>Thông tin đăng nhập:</h4>
-            <div className='text-left space-y-2 text-sm max-w-sm mx-auto'>
-              <div className='flex justify-between'>
-                <span>Username:</span>
-                <span className='font-mono'>{studentData.username}</span>
-              </div>
-              <div className='flex justify-between'>
-                <span>Password:</span>
-                <span className='font-mono'>{studentData.password}</span>
-              </div>
+          <div className='bg-gray-50 rounded-lg p-4 mb-6 max-h-60 overflow-y-auto'>
+            <h4 className='font-medium text-gray-900 mb-2'>Danh sách đã đăng ký:</h4>
+            <div className='space-y-2 text-sm'>
+              {registeredStudents.map((student, index) => (
+                <div key={index} className='flex justify-between items-center p-2 bg-white rounded border'>
+                  <span>{student.name}</span>
+                  <div className='text-xs text-gray-600'>
+                    <span className='font-mono mr-2'>{student.username}</span>
+                    <span className='font-mono'>{student.password}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
           <button
             type='button'
             onClick={() => {
-              setStep('info')
-              setStudentData(null)
-              setFaceImageCaptured(false)
-              setFaceImageBlob(null)
+              setStep('class')
+              setSelectedClass('')
+              setValue('students', [
+                { name: '', age: 16, gender: 'nam', phone: '', username: '', password: '', faceImage: null }
+              ])
+              setRegisteredStudents([])
             }}
             className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
           >
-            Đăng ký học sinh khác
+            Đăng ký lớp khác
           </button>
         </div>
       )}

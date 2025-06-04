@@ -587,7 +587,7 @@ const TeacherDashboard = () => {
 
               {showStudentRegistration ? (
                 <StudentRegistrationForm
-                  onSuccess={handleStudentRegistrationSuccess}
+                  onSuccess={handleStudentRegistrationSuccess as any}
                   onCancel={() => setShowStudentRegistration(false)}
                 />
               ) : (
