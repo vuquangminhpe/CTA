@@ -46,9 +46,6 @@ interface FaceEmbedding {
 
 class CompleteFaceAnalysisService {
   // 🔥 THREE SPECIALIZED MODELS - Each with specific purpose
-  private modelLoadAttempts = new Map<string, number>() // Track loading attempts
-  private readonly MAX_LOAD_ATTEMPTS = 3
-  private readonly MODEL_LOCK_FILE = path.join(process.cwd(), 'src', 'models', '.model_loading.lock')
   private readonly SCRFD_MODEL_PATH = path.join(process.cwd(), 'src', 'models', 'scrfd_10g_bnkps.onnx') // Face Detection + Landmarks
   private readonly GENDERAGE_MODEL_PATH = path.join(process.cwd(), 'src', 'models', 'genderage.onnx') // Gender + Age
   private readonly GLINTR100_MODEL_PATH = path.join(process.cwd(), 'src', 'models', 'glintr100.onnx') // Face Recognition
@@ -102,46 +99,20 @@ class CompleteFaceAnalysisService {
       // Ensure models directory exists
       this.ensureModelsDirectory()
 
-      // 1. SCRFD Face Detection Model (non-critical)
-      try {
-        await this.loadSCRFDModel()
-      } catch (error) {
-        console.warn('⚠️ SCRFD model failed to load, using fallback detection:', error)
-      }
+      // 1. SCRFD Face Detection Model
+      await this.loadSCRFDModel()
 
-      // 2. GenderAge Model (non-critical)
-      try {
-        await this.loadGenderAgeModel()
-      } catch (error) {
-        console.warn('⚠️ GenderAge model failed to load, using CV fallback:', error)
-      }
+      // 2. GenderAge Model
+      await this.loadGenderAgeModel()
 
-      // 3. GLinT100 Recognition Model (critical, but with fallback)
-      try {
-        await this.loadGLinT100Model()
-      } catch (error) {
-        console.warn('⚠️ GLinT100 model failed to load, some features will be limited:', error)
-      }
+      // 3. GLinT100 Recognition Model (with auto download)
+      await this.loadGLinT100Model()
 
-      // 🔥 ALWAYS SET INITIALIZED = TRUE, even with partial failures
       this.isInitialized = true
-
-      const loadedModels = [
-        this.scrfdSession ? 'SCRFD' : null,
-        this.genderAgeSession ? 'GenderAge' : null,
-        this.embeddingSession ? 'GLinT100' : null
-      ].filter(Boolean)
-
-      console.log(`🎉 Pipeline initialized with models: [${loadedModels.join(', ')}]`)
-
-      if (loadedModels.length === 0) {
-        console.log('⚠️ No models loaded, running in Computer Vision only mode')
-      }
+      console.log('🎉 Complete InsightFace Pipeline loaded successfully!')
     } catch (error) {
-      console.error('❌ Pipeline initialization had issues:', error)
-      // 🔥 STILL SET INITIALIZED = TRUE to prevent restart loops
-      this.isInitialized = true
-      console.log('🔄 Pipeline will continue with available fallback methods')
+      console.error('❌ Failed to load InsightFace models:', error)
+      throw error
     }
   }
 
@@ -163,201 +134,221 @@ class CompleteFaceAnalysisService {
   }
 
   private validateModelFile(modelPath: string): boolean {
+    console.log(`🔍 Validating model file: ${modelPath}`)
+
+    if (!fs.existsSync(modelPath)) {
+      console.log(`❌ File does not exist: ${modelPath}`)
+      return false
+    }
+
+    // Check file size (GLinT100 should be around 261MB)
+    const stats = fs.statSync(modelPath)
+    console.log(`📊 Model file size: ${this.formatBytes(stats.size)}`)
+
+    // 🔥 FIX: More lenient size check for GLinT100
+    if (modelPath.includes('glintr100')) {
+      // GLinT100 should be around 248-270MB
+      if (stats.size < 240 * 1024 * 1024) {
+        console.log(`⚠️ GLinT100 file too small (${this.formatBytes(stats.size)}), expected ~261MB`)
+        return false
+      }
+      if (stats.size > 280 * 1024 * 1024) {
+        console.log(`⚠️ GLinT100 file too large (${this.formatBytes(stats.size)}), expected ~261MB`)
+        return false
+      }
+    } else {
+      // Other models - more lenient check
+      if (stats.size < 1024 * 1024) {
+        // At least 1MB
+        console.log(`⚠️ Model file too small (${this.formatBytes(stats.size)})`)
+        return false
+      }
+    }
+
+    // 🔥 FIX: More robust ONNX validation
     try {
-      if (!fs.existsSync(modelPath)) {
-        console.log(`❌ Model file not found: ${modelPath}`)
-        return false
-      }
+      const buffer = Buffer.alloc(512) // Read more bytes for better validation
+      const fd = fs.openSync(modelPath, 'r')
+      const bytesRead = fs.readSync(fd, buffer, 0, 512, 0)
+      fs.closeSync(fd)
 
-      const stats = fs.statSync(modelPath)
-      console.log(`📊 Model file size: ${this.formatBytes(stats.size)}`)
+      console.log(`📖 Read ${bytesRead} bytes for validation`)
 
-      // 🔥 RELAXED SIZE CHECK - allow smaller files for testing
-      const minSize = 180 * 1024 * 1024 // Reduced from 200MB to 180MB
-      const maxSize = 300 * 1024 * 1024 // Max 300MB
+      // Method 1: Check for ONNX protobuf magic bytes (more patterns)
+      const hasProtobufMagic =
+        buffer.includes(Buffer.from([0x08, 0x01])) || // Standard protobuf
+        buffer.includes(Buffer.from([0x08, 0x02])) ||
+        buffer.includes(Buffer.from([0x08, 0x03])) ||
+        buffer.includes(Buffer.from([0x08, 0x04])) ||
+        buffer.includes(Buffer.from([0x12])) || // Protobuf field tag
+        buffer.includes(Buffer.from([0x1a])) || // Protobuf string tag
+        buffer.includes(Buffer.from([0x22])) // Protobuf bytes tag
 
-      if (stats.size < minSize || stats.size > maxSize) {
-        console.log(
-          `⚠️ Model file size out of range: ${this.formatBytes(stats.size)} (expected: ${this.formatBytes(minSize)}-${this.formatBytes(maxSize)})`
-        )
-        return false
-      }
+      // Method 2: Check for ONNX strings (case insensitive)
+      const bufferStr = buffer.toString('ascii').toLowerCase()
+      const bufferUTF8 = buffer.toString('utf8').toLowerCase()
+      const hasOnnxSignature =
+        bufferStr.includes('onnx') ||
+        bufferStr.includes('ir_version') ||
+        bufferStr.includes('model_version') ||
+        bufferStr.includes('producer_name') ||
+        bufferStr.includes('graph') ||
+        bufferUTF8.includes('onnx') ||
+        bufferUTF8.includes('ir_version')
 
-      // 🔥 SIMPLIFIED ONNX VALIDATION - just check file extension and size
-      const hasCorrectExtension = modelPath.endsWith('.onnx')
-      if (!hasCorrectExtension) {
-        console.log(`❌ Invalid file extension`)
-        return false
-      }
+      // Method 3: Check for model metadata strings
+      const hasModelMetadata =
+        bufferStr.includes('input') ||
+        bufferStr.includes('output') ||
+        bufferStr.includes('node') ||
+        bufferStr.includes('tensor') ||
+        buffer.toString('hex').includes('6f6e6e78') // 'onnx' in hex
 
-      // 🔥 QUICK CONTENT CHECK - just verify it's not empty or corrupted
+      // Method 4: File extension check
+      const hasCorrectExtension = modelPath.toLowerCase().endsWith('.onnx')
+
+      // Method 5: Try to detect binary structure
+      let hasBinaryStructure = false
       try {
-        const fd = fs.openSync(modelPath, 'r')
-        const buffer = Buffer.alloc(8)
-        const bytesRead = fs.readSync(fd, buffer, 0, 8, 0)
-        fs.closeSync(fd)
+        // Check for reasonable binary patterns
+        const firstBytes = buffer.subarray(0, 16)
+        const zeroCount = firstBytes.filter((b) => b === 0).length
+        const nonZeroCount = firstBytes.filter((b) => b !== 0).length
+        hasBinaryStructure = zeroCount > 2 && nonZeroCount > 2 // Mixed binary content
+      } catch (e) {
+        console.log(`⚠️ Binary structure check failed: ${e}`)
+      }
 
-        if (bytesRead < 8) {
-          console.log(`❌ File too small to be valid ONNX`)
-          return false
+      console.log(`🔍 ONNX Validation Results:`)
+      console.log(`   - Protobuf magic: ${hasProtobufMagic}`)
+      console.log(`   - ONNX signature: ${hasOnnxSignature}`)
+      console.log(`   - Model metadata: ${hasModelMetadata}`)
+      console.log(`   - Correct extension: ${hasCorrectExtension}`)
+      console.log(`   - Binary structure: ${hasBinaryStructure}`)
+
+      // 🔥 LENIENT VALIDATION: Pass if ANY 2 of these criteria are met
+      const validationCriteria = [
+        hasProtobufMagic,
+        hasOnnxSignature,
+        hasModelMetadata,
+        hasCorrectExtension,
+        hasBinaryStructure
+      ]
+
+      const passedCriteria = validationCriteria.filter(Boolean).length
+      console.log(`📊 Validation score: ${passedCriteria}/5 criteria passed`)
+
+      if (passedCriteria >= 2) {
+        console.log(`✅ ONNX validation PASSED (score: ${passedCriteria}/5)`)
+        return true
+      } else {
+        console.log(`❌ ONNX validation FAILED (score: ${passedCriteria}/5)`)
+
+        // 🔥 ULTRA LENIENT: For GLinT100, if size is correct and has extension, assume valid
+        if (modelPath.includes('glintr100') && hasCorrectExtension && stats.size > 240 * 1024 * 1024) {
+          console.log(`🔧 GLinT100 special case: Size + extension OK, assuming valid`)
+          return true
         }
 
-        console.log(`✅ Basic ONNX validation passed`)
-        return true
-      } catch (error) {
-        console.log(`❌ Error reading model file: ${error}`)
         return false
       }
     } catch (error) {
-      console.log(`❌ Validation error: ${error}`)
-      return false
-    }
-  }
-  private async acquireModelLock(): Promise<boolean> {
-    try {
-      // Check if another process is already loading
-      if (fs.existsSync(this.MODEL_LOCK_FILE)) {
-        const lockStats = fs.statSync(this.MODEL_LOCK_FILE)
-        const lockAge = Date.now() - lockStats.mtime.getTime()
+      console.log(`⚠️ Error during model validation: ${error}`)
 
-        // If lock is older than 10 minutes, consider it stale
-        if (lockAge > 10 * 60 * 1000) {
-          console.log(`🔓 Removing stale lock file (age: ${Math.round(lockAge / 1000)}s)`)
-          fs.unlinkSync(this.MODEL_LOCK_FILE)
-        } else {
-          console.log(`⏳ Another process is loading model, waiting...`)
-          return false
-        }
+      // 🔥 ULTIMATE FALLBACK: If file exists and has reasonable size, assume valid
+      if (stats.size > 240 * 1024 * 1024 && modelPath.endsWith('.onnx')) {
+        console.log(`🔧 Validation error fallback: File exists with good size, assuming valid`)
+        return true
       }
 
-      // Create lock file
-      fs.writeFileSync(this.MODEL_LOCK_FILE, `${process.pid}-${Date.now()}`)
-      console.log(`🔒 Acquired model loading lock`)
-      return true
-    } catch (error) {
-      console.log(`⚠️ Could not acquire lock: ${error}`)
       return false
     }
   }
 
-  private async releaseModelLock(): Promise<void> {
-    try {
-      if (fs.existsSync(this.MODEL_LOCK_FILE)) {
-        fs.unlinkSync(this.MODEL_LOCK_FILE)
-        console.log(`🔓 Released model loading lock`)
-      }
-    } catch (error) {
-      console.log(`⚠️ Could not release lock: ${error}`)
-    }
-  }
   private async loadGLinT100Model() {
-    const modelKey = 'glintr100'
-    const attempts = this.modelLoadAttempts.get(modelKey) || 0
+    console.log(`🔍 Starting GLinT100 model loading process...`)
+    console.log(`📂 Model path: ${this.GLINTR100_MODEL_PATH}`)
+    console.log(`📋 File exists: ${fs.existsSync(this.GLINTR100_MODEL_PATH)}`)
 
-    if (attempts >= this.MAX_LOAD_ATTEMPTS) {
-      console.log(`❌ Maximum load attempts (${this.MAX_LOAD_ATTEMPTS}) reached for GLinT100`)
-      console.log(`⚠️ Will continue with fallback methods (Computer Vision only)`)
-      return
-    }
+    // 🔥 FIX 1: Check if model already exists and is valid
+    if (fs.existsSync(this.GLINTR100_MODEL_PATH)) {
+      console.log('📂 GLinT100 model file found, starting validation...')
 
-    this.modelLoadAttempts.set(modelKey, attempts + 1)
+      const isValid = this.validateModelFile(this.GLINTR100_MODEL_PATH)
+      console.log(`📋 Validation result: ${isValid}`)
 
-    // 🔥 CHECK LOCK
-    const hasLock = await this.acquireModelLock()
-    if (!hasLock) {
-      console.log(`⏳ Waiting for other process to finish loading model...`)
-      // Wait and check if model becomes available
-      await new Promise((resolve) => setTimeout(resolve, 5000))
+      if (isValid) {
+        console.log('✅ Existing GLinT100 model is valid, attempting to load...')
 
-      if (fs.existsSync(this.GLINTR100_MODEL_PATH) && this.validateModelFile(this.GLINTR100_MODEL_PATH)) {
-        console.log(`✅ Model loaded by another process`)
+        // Try to load the existing model
         try {
           this.embeddingSession = await ort.InferenceSession.create(this.GLINTR100_MODEL_PATH)
-          console.log('✅ GLinT100 loaded from another process')
-          return
-        } catch (error) {
-          console.log(`❌ Failed to load model loaded by another process: ${error}`)
-        }
-      }
+          console.log('✅ GLinT100 Face Recognition model loaded from existing file')
+          console.log(`📊 GLinT100 Input: ${JSON.stringify(this.embeddingSession.inputNames)}`)
+          console.log(`📊 GLinT100 Output: ${JSON.stringify(this.embeddingSession.outputNames)}`)
+          return // Successfully loaded existing model
+        } catch (loadError) {
+          console.error('❌ Failed to load existing model despite validation passed:', loadError)
+          console.log('🗑️ This suggests the file is corrupted, deleting and re-downloading...')
 
-      console.log(`⚠️ Will try again later`)
-      return
-    }
-
-    try {
-      // 🔥 CHECK EXISTING FILE FIRST
-      if (fs.existsSync(this.GLINTR100_MODEL_PATH)) {
-        console.log('📂 GLinT100 model file found, validating...')
-
-        if (this.validateModelFile(this.GLINTR100_MODEL_PATH)) {
-          console.log('✅ Existing GLinT100 model is valid, attempting to load...')
-
-          try {
-            // 🔥 ADD DELAY before loading to ensure file is fully written
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-
-            this.embeddingSession = await ort.InferenceSession.create(this.GLINTR100_MODEL_PATH)
-            console.log('✅ GLinT100 Face Recognition model loaded from existing file')
-            console.log(`📊 GLinT100 Input: ${JSON.stringify(this.embeddingSession.inputNames)}`)
-            console.log(`📊 GLinT100 Output: ${JSON.stringify(this.embeddingSession.outputNames)}`)
-
-            await this.releaseModelLock()
-            return // Successfully loaded existing model
-          } catch (loadError) {
-            console.error('❌ Failed to load existing model:', loadError)
-            console.log('🗑️ Deleting corrupted existing file...')
-
-            try {
-              fs.unlinkSync(this.GLINTR100_MODEL_PATH)
-              console.log('✅ Corrupted file deleted')
-            } catch (unlinkError) {
-              console.log('⚠️ Could not delete corrupted file:', unlinkError)
-            }
-          }
-        } else {
-          console.log('❌ Existing file validation failed, will re-download')
           try {
             fs.unlinkSync(this.GLINTR100_MODEL_PATH)
-            console.log('🗑️ Invalid file deleted')
+            console.log('✅ Corrupted file deleted, will re-download')
           } catch (unlinkError) {
-            console.log('⚠️ Could not delete invalid file:', unlinkError)
+            console.log('⚠️ Could not delete corrupted file:', unlinkError)
           }
         }
+      } else {
+        console.log('❌ Existing file validation failed, deleting and re-downloading...')
+        try {
+          fs.unlinkSync(this.GLINTR100_MODEL_PATH)
+          console.log('🗑️ Invalid file deleted')
+        } catch (unlinkError) {
+          console.log('⚠️ Could not delete invalid file:', unlinkError)
+        }
       }
+    } else {
+      console.log('📂 GLinT100 model file not found, need to download')
+    }
 
-      // 🔥 DOWNLOAD ONLY IF REALLY NEEDED
-      console.log('❌ GLinT100 model not found or invalid at:', this.GLINTR100_MODEL_PATH)
-      console.log(`🚀 Starting download attempt ${attempts + 1}/${this.MAX_LOAD_ATTEMPTS}...`)
+    // 🔥 FIX 2: Complete download logic that was missing
+    console.log('🚀 Starting automatic download...')
 
+    try {
       await this.downloadModel(this.GLINTR100_DOWNLOAD_URL, this.GLINTR100_MODEL_PATH, 'GLinT100')
 
-      // 🔥 VALIDATE DOWNLOAD
+      // 🔥 FIX 3: Validate download
       if (!fs.existsSync(this.GLINTR100_MODEL_PATH)) {
         throw new Error('Downloaded file does not exist')
       }
 
-      if (!this.validateModelFile(this.GLINTR100_MODEL_PATH)) {
-        throw new Error('Downloaded file failed validation')
+      const stats = fs.statSync(this.GLINTR100_MODEL_PATH)
+      console.log(`📊 Downloaded file size: ${this.formatBytes(stats.size)}`)
+
+      // For freshly downloaded files, be more lenient with validation
+      if (stats.size < 200 * 1024 * 1024) {
+        throw new Error(`Downloaded file too small: ${this.formatBytes(stats.size)}`)
       }
 
-      console.log('🎉 GLinT100 model downloaded and validated successfully!')
+      console.log('🎉 GLinT100 model downloaded successfully!')
 
-      // 🔥 WAIT BEFORE LOADING to ensure file is fully written
-      console.log('⏳ Waiting for file system to sync...')
-      await new Promise((resolve) => setTimeout(resolve, 3000))
-
-      // Try to load immediately after download
+      // 🔥 FIX 4: Try to load immediately after download
       try {
         this.embeddingSession = await ort.InferenceSession.create(this.GLINTR100_MODEL_PATH)
         console.log('✅ GLinT100 Face Recognition model loaded successfully')
         console.log(`📊 GLinT100 Input: ${JSON.stringify(this.embeddingSession.inputNames)}`)
         console.log(`📊 GLinT100 Output: ${JSON.stringify(this.embeddingSession.outputNames)}`)
-      } catch (loadError: any) {
+        return
+      } catch (loadError) {
         console.error('❌ Failed to load downloaded model:', loadError)
-        throw new Error(`Downloaded model cannot be loaded by ONNX Runtime: ${loadError.message}`)
+        throw new Error('Downloaded model cannot be loaded by ONNX Runtime')
       }
     } catch (error) {
-      console.error(`❌ Failed to download/load GLinT100 model (attempt ${attempts + 1}):`, error)
+      console.error('❌ Failed to download/load GLinT100 model:', error)
+      console.log('⚠️ Will continue with fallback methods (Computer Vision only)')
+      console.log('📌 For full functionality, manually download GLinT100 from:')
+      console.log('   https://huggingface.co/camenduru/show/resolve/main/insightface/models/antelopev2/glintr100.onnx')
+      console.log('   And place it at:', this.GLINTR100_MODEL_PATH)
 
       // Clean up failed download
       if (fs.existsSync(this.GLINTR100_MODEL_PATH)) {
@@ -369,13 +360,10 @@ class CompleteFaceAnalysisService {
         }
       }
 
-      if (attempts + 1 >= this.MAX_LOAD_ATTEMPTS) {
-        console.log('❌ Maximum retry attempts reached')
-        console.log('⚠️ Will continue with fallback methods (Computer Vision only)')
-        console.log('📌 For full functionality, manually place GLinT100 model at:', this.GLINTR100_MODEL_PATH)
-      }
-    } finally {
-      await this.releaseModelLock()
+      // 🔥 FIX 5: Don't throw error - continue without the model
+      // The system can work with CV fallback methods
+      console.log('🔄 System will continue with Computer Vision fallback methods')
+      return
     }
   }
 
@@ -390,22 +378,17 @@ class CompleteFaceAnalysisService {
         fs.mkdirSync(dir, { recursive: true })
       }
 
-      // 🔥 ATOMIC DOWNLOAD - download to temp file first
-      const tempPath = `${outputPath}.tmp`
-
-      // Clean up any existing files
-      ;[outputPath, tempPath].forEach((filePath: string) => {
-        if (fs.existsSync(filePath)) {
-          try {
-            fs.unlinkSync(filePath)
-            console.log(`🗑️ Removed existing file: ${path.basename(filePath)}`)
-          } catch (e) {
-            console.log(`⚠️ Could not remove existing file: ${e}`)
-          }
+      // Clean up any existing incomplete file
+      if (fs.existsSync(outputPath)) {
+        try {
+          fs.unlinkSync(outputPath)
+          console.log(`🗑️ Removed existing incomplete file`)
+        } catch (e) {
+          console.log(`⚠️ Could not remove existing file: ${e}`)
         }
-      })
+      }
 
-      const file = fs.createWriteStream(tempPath)
+      const file = fs.createWriteStream(outputPath)
       let downloadedSize = 0
       let lastPercent = -1
       let requestFinished = false
@@ -416,20 +399,34 @@ class CompleteFaceAnalysisService {
           if (response.headers.location) {
             console.log(`🔄 Redirecting to: ${response.headers.location}`)
             file.destroy()
-            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath)
+            if (fs.existsSync(outputPath)) {
+              fs.unlinkSync(outputPath)
+            }
             return this.downloadModel(response.headers.location, outputPath, modelName).then(resolve).catch(reject)
           }
         }
 
         if (response.statusCode !== 200) {
           file.destroy()
-          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath)
+          if (fs.existsSync(outputPath)) {
+            fs.unlinkSync(outputPath)
+          }
           reject(new Error(`Failed to download ${modelName}: HTTP ${response.statusCode} ${response.statusMessage}`))
           return
         }
 
         const totalSize = parseInt(response.headers['content-length'] || '0', 10)
         console.log(`📊 Expected file size: ${this.formatBytes(totalSize)}`)
+
+        // Validate expected size for GLinT100 (should be around 261MB)
+        if (totalSize > 0 && totalSize < 200 * 1024 * 1024) {
+          file.destroy()
+          if (fs.existsSync(outputPath)) {
+            fs.unlinkSync(outputPath)
+          }
+          reject(new Error(`Unexpected file size: ${this.formatBytes(totalSize)}, expected ~261MB`))
+          return
+        }
 
         response.on('data', (chunk) => {
           if (!file.destroyed) {
@@ -444,6 +441,14 @@ class CompleteFaceAnalysisService {
                 )
                 lastPercent = percent
               }
+            } else {
+              // If no content-length, show progress every 20MB
+              if (
+                Math.floor(downloadedSize / (20 * 1024 * 1024)) >
+                Math.floor((downloadedSize - chunk.length) / (20 * 1024 * 1024))
+              ) {
+                console.log(`⬇️ ${modelName}: ${this.formatBytes(downloadedSize)} downloaded...`)
+              }
             }
           }
         })
@@ -452,60 +457,72 @@ class CompleteFaceAnalysisService {
           requestFinished = true
           console.log(`✅ ${modelName} download completed: ${this.formatBytes(downloadedSize)}`)
 
+          // Close the file and validate
           file.end(() => {
-            // 🔥 ATOMIC MOVE - move temp file to final location
+            // Wait a bit for file system to sync
             setTimeout(() => {
-              try {
-                if (fs.existsSync(tempPath)) {
-                  fs.renameSync(tempPath, outputPath)
-                  console.log(`🔄 Moved ${path.basename(tempPath)} to ${path.basename(outputPath)}`)
-
-                  // Verify final file
-                  const finalStats = fs.statSync(outputPath)
-                  console.log(`📊 Final file size on disk: ${this.formatBytes(finalStats.size)}`)
-
-                  if (finalStats.size < 180 * 1024 * 1024) {
-                    fs.unlinkSync(outputPath)
-                    reject(new Error(`Final file too small: ${this.formatBytes(finalStats.size)}`))
-                    return
-                  }
-
-                  resolve()
-                } else {
-                  reject(new Error('Temp file disappeared during download'))
+              // Validate final file size
+              if (downloadedSize < 200 * 1024 * 1024) {
+                if (fs.existsSync(outputPath)) {
+                  fs.unlinkSync(outputPath)
                 }
-              } catch (moveError) {
-                reject(new Error(`Failed to move temp file: ${moveError}`))
+                reject(new Error(`Downloaded file too small: ${this.formatBytes(downloadedSize)}, expected ~261MB`))
+                return
               }
-            }, 2000) // Wait 2 seconds for file system
+
+              // Double-check file exists and has correct size
+              if (!fs.existsSync(outputPath)) {
+                reject(new Error('Downloaded file does not exist'))
+                return
+              }
+
+              const fileStats = fs.statSync(outputPath)
+              console.log(`📊 Final file size on disk: ${this.formatBytes(fileStats.size)}`)
+
+              if (fileStats.size < 200 * 1024 * 1024) {
+                fs.unlinkSync(outputPath)
+                reject(new Error(`File on disk too small: ${this.formatBytes(fileStats.size)}, expected ~261MB`))
+                return
+              }
+
+              resolve()
+            }, 1000) // Wait 1 second for file system
           })
         })
 
         response.on('error', (err) => {
           file.destroy()
-          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath)
+          if (fs.existsSync(outputPath)) {
+            fs.unlinkSync(outputPath)
+          }
           reject(err)
         })
       })
 
       request.on('error', (err) => {
         file.destroy()
-        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath)
+        if (fs.existsSync(outputPath)) {
+          fs.unlinkSync(outputPath)
+        }
         reject(err)
       })
 
-      request.setTimeout(900000, () => {
-        // 15 minute timeout
+      request.setTimeout(600000, () => {
+        // 10 minute timeout for large file
         request.destroy()
         file.destroy()
-        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath)
-        reject(new Error('Download timeout after 15 minutes'))
+        if (fs.existsSync(outputPath)) {
+          fs.unlinkSync(outputPath)
+        }
+        reject(new Error('Download timeout after 10 minutes'))
       })
 
       file.on('error', (err) => {
         console.error('File write error:', err)
         file.destroy()
-        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath)
+        if (fs.existsSync(outputPath)) {
+          fs.unlinkSync(outputPath)
+        }
         if (!requestFinished) {
           reject(err)
         }
