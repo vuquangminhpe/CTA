@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client'
 
-const socket = io('https://server-aql1.onrender.com', {
+const socket = io('http://139.59.250.30', {
   transports: ['websocket'],
   autoConnect: false,
   reconnection: true,
