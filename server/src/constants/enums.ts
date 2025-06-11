@@ -75,3 +75,27 @@ export enum NotificationStatus {
   Unread,
   Read
 }
+
+export enum FeedbackStatus {
+  Pending = 'pending',
+  InProgress = 'in_progress',
+  Resolved = 'resolved',
+  Closed = 'closed'
+}
+
+export enum FeedbackPriority {
+  Low = 'low',
+  Medium = 'medium',
+  High = 'high',
+  Urgent = 'urgent'
+}
+
+export enum FeedbackCategory {
+  TechnicalIssue = 'technical_issue',
+  FeatureRequest = 'feature_request',
+  UserInterface = 'user_interface',
+  Performance = 'performance',
+  ContentSuggestion = 'content_suggestion',
+  SystemBug = 'system_bug',
+  Other = 'other'
+}

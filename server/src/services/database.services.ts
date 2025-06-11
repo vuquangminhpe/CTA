@@ -2,6 +2,7 @@ import { MongoClient, Db, Collection } from 'mongodb'
 import User from '../models/schemas/User.schema'
 import RefreshToken from '../models/schemas/RefreshToken.schema'
 import VideoStatus from '../models/schemas/VideoStatus.schema'
+import Feedback from '../models/schemas/Feedback.schema'
 
 import { envConfig } from '../constants/config'
 import Question from '../models/schemas/Question.schema'
@@ -55,11 +56,24 @@ class DatabaseService {
       this.examSessions.createIndex({ student_id: 1 })
       this.examSessions.createIndex({ exam_id: 1 })
     }
-  }
-  async indexVideoStatus() {
+  }  async indexVideoStatus() {
     const exits = await this.users.indexExists('name_1')
     if (!exits) {
       this.videoStatus.createIndex({ name: 1 }, { unique: true })
+    }
+  }
+
+  async indexFeedbacks() {
+    const exists = await this.feedbacks.indexExists(['teacher_id_1', 'status_1', 'priority_1'])
+    if (!exists) {
+      this.feedbacks.createIndex({ teacher_id: 1 })
+      this.feedbacks.createIndex({ admin_id: 1 })
+      this.feedbacks.createIndex({ status: 1 })
+      this.feedbacks.createIndex({ priority: 1 })
+      this.feedbacks.createIndex({ category: 1 })
+      this.feedbacks.createIndex({ created_at: -1 })
+      this.feedbacks.createIndex({ updated_at: -1 })
+      this.feedbacks.createIndex({ tags: 1 })
     }
   }
 
@@ -110,9 +124,11 @@ class DatabaseService {
 
   get sessionLogs(): Collection<any> {
     return this.db.collection('session_logs')
-  }
-  get examViolations(): Collection<any> {
+  }  get examViolations(): Collection<any> {
     return this.db.collection('exam_violations')
+  }
+  get feedbacks(): Collection<Feedback> {
+    return this.db.collection(envConfig.feedbacksCollection)
   }
   async indexEmbeddings() {
     try {
@@ -158,14 +174,27 @@ class DatabaseService {
       if (!sessionLogIndexes.some((index) => index.name === 'session_id_1')) {
         await this.sessionLogs.createIndex({ session_id: 1 })
         await this.sessionLogs.createIndex({ timestamp: -1 })
-      }
-
-      // Index for exam violations
+      }      // Index for exam violations
       const violationIndexes = await this.examViolations.listIndexes().toArray()
       if (!violationIndexes.some((index) => index.name === 'session_id_1')) {
         await this.examViolations.createIndex({ session_id: 1 })
         await this.examViolations.createIndex({ student_id: 1 })
         await this.examViolations.createIndex({ timestamp: -1 })
+      }
+
+      // Index for feedbacks
+      const feedbackIndexes = await this.feedbacks.listIndexes().toArray()
+      if (!feedbackIndexes.some((index) => index.name === 'teacher_id_1')) {
+        await this.feedbacks.createIndex({ teacher_id: 1 })
+        await this.feedbacks.createIndex({ admin_id: 1 })
+        await this.feedbacks.createIndex({ status: 1 })
+        await this.feedbacks.createIndex({ priority: 1 })
+        await this.feedbacks.createIndex({ category: 1 })
+        await this.feedbacks.createIndex({ created_at: -1 })
+        await this.feedbacks.createIndex({ updated_at: -1 })
+        await this.feedbacks.createIndex({ tags: 1 })
+        await this.feedbacks.createIndex({ 'messages.sender_id': 1 })
+        await this.feedbacks.createIndex({ 'messages.created_at': -1 })
       }
 
       console.log('Embedding and logging indexes created successfully')

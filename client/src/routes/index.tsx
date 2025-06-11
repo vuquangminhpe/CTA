@@ -29,6 +29,8 @@ import UserManagement from '@/pages/Admin/UserManagement'
 import MasterExamManagement from '@/components/Admin/MasterExamManagement'
 import ExamStatistics from '@/pages/Admin/ExamStatistics'
 import TeacherManagement from '@/components/Admin/TeacherManagement'
+import FeedbackPage from '../pages/Teacher/FeedbackPage'
+import AdminFeedbackManagement from '../pages/Admin/AdminFeedbackManagement'
 
 const AppRoutes = () => {
   const { role } = useContext(AuthContext)
@@ -76,19 +78,17 @@ const AppRoutes = () => {
 
             {/* Individual exam routes */}
             <Route path='/teacher/exams/:examId' element={<ExamManagement />} />
-            <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />
-            <Route path='/teacher/exams/:examId/class-results' element={<ClassExamResults />} />
+            <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />            <Route path='/teacher/exams/:examId/class-results' element={<ClassExamResults />} />
             <Route path='/teacher/exams/:examId/monitor' element={<ExamMonitor />} />
             <Route path='/teacher/monitoring' element={<MonitoringDashboard />} />
+            <Route path='/teacher/feedback' element={<FeedbackPage />} />
           </Route>
 
           {/* Student routes */}
           <Route element={<StudentRoute />}>
             <Route path='/student' element={<StudentDashboard />} />
             <Route path='/exam/:examCode' element={<ExamPage />} />
-          </Route>
-
-          {/* Admin routes */}
+          </Route>          {/* Admin routes */}
           <Route element={<AdminRoute />}>
             <Route path='/admin' element={<AdminDashboard />} />
             <Route path='/admin/teacher-management' element={<TeacherManagement />} />
@@ -96,6 +96,7 @@ const AppRoutes = () => {
             <Route path='/admin/master-exams-management' element={<MasterExamManagement />} />
             <Route path='/admin/statistics' element={<ExamStatistics />} />
             <Route path='/admin/student-management' element={<UserManagement />} />
+            <Route path='/admin/feedback-management' element={<AdminFeedbackManagement />} />
           </Route>
         </Route>
       </Route>

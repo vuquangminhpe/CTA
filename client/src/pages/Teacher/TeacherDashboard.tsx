@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useContext } from 'react'
 import { Tab } from '@headlessui/react'
+import { useNavigate } from 'react-router-dom'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import {
   Plus,
   HelpCircle,
@@ -18,20 +20,10 @@ import {
   Target,
   Award,
   TrendingUp,
-  Star
+  Star,
+  MessageCircle
 } from 'lucide-react'
-import QuestionForm from '../../components/Teacher/QuestionForm'
-import QuestionList from '../../components/Teacher/QuestionList'
-import ExamGenerator from '../../components/Teacher/ExamGenerator'
-import QRCodeList from '../../components/Teacher/QRCodeList'
-import BulkQuestionImport from '../../components/Teacher/BulkQuestionImport'
-import questionApi from '../../apis/question.api'
-import examApi from '../../apis/exam.api'
-import { AuthContext } from '../../Contexts/auth.context'
 import { toast } from 'sonner'
-import ExamList from '../../components/Teacher/ExamList'
-import { useNavigate } from 'react-router-dom'
-import MasterExamForm from '../../components/Teacher/MasterExamForm'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,10 +34,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger
-} from '@/components/ui/alert-dialog'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import StudentSearchComponent from '@/components/Teacher/StudentSearchComponent'
-import StudentRegistrationForm from '@/components/Teacher/StudentRegistrationForm'
+} from '../../components/ui/alert-dialog'
+import QuestionForm from '../../components/Teacher/QuestionForm'
+import QuestionList from '../../components/Teacher/QuestionList'
+import ExamGenerator from '../../components/Teacher/ExamGenerator'
+import QRCodeList from '../../components/Teacher/QRCodeList'
+import BulkQuestionImport from '../../components/Teacher/BulkQuestionImport'
+import ExamList from '../../components/Teacher/ExamList'
+import MasterExamForm from '../../components/Teacher/MasterExamForm'
+import StudentRegistrationForm from '../../components/Teacher/StudentRegistrationForm'
+import StudentSearchComponent from '../../components/Teacher/StudentSearchComponent'
+import FeedbackWidget from '../../components/Teacher/FeedbackWidget'
+import QuickFeedbackButton from '../../components/Teacher/QuickFeedbackButton'
+import questionApi from '../../apis/question.api'
+import examApi from '../../apis/exam.api'
+import { AuthContext } from '../../Contexts/auth.context'
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
@@ -305,13 +308,19 @@ const TeacherDashboard = () => {
       icon: UserPlus,
       description: 'Tạo tài khoản',
       color: 'from-indigo-500 to-blue-400'
-    },
-    {
+    },    {
       id: 'student-search',
       name: 'Tìm kiếm học sinh',
       icon: Search,
       description: 'Tra cứu thông tin',
       color: 'from-teal-500 to-cyan-400'
+    },
+    {
+      id: 'feedback',
+      name: 'Hệ thống Feedback',
+      icon: MessageCircle,
+      description: 'Gửi góp ý',
+      color: 'from-pink-500 to-rose-400'
     },
     {
       id: 'monitoring',
@@ -376,19 +385,16 @@ const TeacherDashboard = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        <Tab.Group className='space-y-8'>
-          {/* Modern Tab Navigation */}
+        </div>        <Tab.Group className='space-y-8'>          {/* Modern Tab Navigation */}
           <Tab.List className='backdrop-blur-xl bg-white/60 border border-white/20 rounded-2xl p-2 shadow-xl shadow-blue-500/5'>
-            <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2'>
+            <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 sm:gap-2'>
               {tabItems.map((tab, index) => (
                 <Tab key={tab.id + index} className='focus:outline-none'>
                   {({ selected }) => (
                     <div
                       onClick={tab.onClick}
                       className={classNames(
-                        'group relative overflow-hidden rounded-xl p-4 transition-all duration-300 cursor-pointer',
+                        'group relative overflow-hidden rounded-xl p-2 sm:p-3 transition-all duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] xl:min-h-[100px]',
                         selected
                           ? 'bg-white shadow-lg shadow-blue-500/20 scale-105'
                           : 'hover:bg-white/50 hover:shadow-md hover:scale-102'
@@ -396,30 +402,28 @@ const TeacherDashboard = () => {
                     >
                       <div
                         className={`absolute inset-0 bg-gradient-to-r ${tab.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
-                      ></div>
-
-                      <div className='relative z-10 flex flex-col items-center text-center'>
+                      ></div>                      <div className='relative z-10 flex flex-col items-center text-center justify-center h-full'>
                         <div
                           className={classNames(
-                            'w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-all duration-300',
+                            'w-7 h-7 sm:w-8 sm:h-8 xl:w-10 xl:h-10 rounded-xl flex items-center justify-center mb-1 sm:mb-2 transition-all duration-300',
                             selected
                               ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
                               : 'bg-gray-100 text-gray-600 group-hover:bg-gradient-to-r group-hover:from-gray-200 group-hover:to-gray-100'
                           )}
                         >
-                          <tab.icon className='w-5 h-5' />
+                          <tab.icon className='w-3 h-3 sm:w-4 sm:h-4 xl:w-5 xl:h-5' />
                         </div>
 
                         <div
                           className={classNames(
-                            'text-sm font-bold transition-colors duration-300',
+                            'text-[10px] sm:text-xs xl:text-sm font-bold transition-colors duration-300 leading-tight text-center px-0.5 sm:px-1',
                             selected ? 'text-gray-900' : 'text-gray-700 group-hover:text-gray-900'
                           )}
                         >
                           {tab.name}
                         </div>
 
-                        <div className='text-xs text-gray-500 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
+                        <div className='text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden lg:block xl:block text-center px-0.5 sm:px-1'>
                           {tab.description}
                         </div>
                       </div>
@@ -783,6 +787,128 @@ const TeacherDashboard = () => {
                 </div>
                 <div className='backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl p-6'>
                   <StudentSearchComponent />
+                </div>              </div>
+            </Tab.Panel>
+
+            {/* Feedback Panel */}
+            <Tab.Panel className='space-y-8'>
+              <div className='space-y-6'>
+                <div className='flex items-center space-x-4 mb-8'>
+                  <div className='p-4 bg-gradient-to-r from-pink-500 to-rose-400 rounded-2xl'>
+                    <MessageCircle className='w-6 h-6 text-white' />
+                  </div>
+                  <div>
+                    <h2 className='text-3xl font-black text-gray-900'>Hệ thống Feedback</h2>
+                    <p className='text-gray-600 font-medium'>Gửi góp ý, báo cáo vấn đề và theo dõi phản hồi</p>
+                  </div>
+                  <div className='ml-auto'>
+                    <QuickFeedbackButton 
+                      variant="default" 
+                      size="lg"
+                      onSuccess={() => {
+                        toast.success('Feedback đã được gửi thành công!')
+                      }}
+                    />
+                  </div>
+                </div>
+                
+                <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+                  {/* Feedback Widget */}
+                  <div className='lg:col-span-1'>
+                    <FeedbackWidget maxItems={8} />
+                  </div>
+                  
+                  {/* Quick Actions */}
+                  <div className='lg:col-span-2'>
+                    <div className='backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl p-6 h-full'>
+                      <h3 className='text-xl font-bold text-gray-900 mb-4'>Hành động nhanh</h3>
+                      <div className='grid grid-cols-2 gap-4'>
+                        <div 
+                          className='p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border border-blue-100/50 cursor-pointer hover:shadow-lg transition-all duration-300 group'
+                          onClick={() => navigate('/teacher/feedback')}
+                        >
+                          <div className='flex items-center justify-between mb-3'>
+                            <div className='p-2 bg-blue-500 rounded-xl group-hover:scale-110 transition-transform'>
+                              <MessageCircle className='w-5 h-5 text-white' />
+                            </div>
+                            <span className='text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full'>
+                              Mới
+                            </span>
+                          </div>
+                          <h4 className='font-bold text-gray-900 mb-1'>Xem tất cả Feedback</h4>
+                          <p className='text-sm text-gray-600'>Quản lý và theo dõi tất cả feedback của bạn</p>
+                        </div>
+
+                        <div 
+                          className='p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100/50 cursor-pointer hover:shadow-lg transition-all duration-300 group'
+                          onClick={() => {
+                            const element = document.querySelector('[data-feedback-button]')
+                            if (element) {
+                              (element as HTMLElement).click()
+                            }
+                          }}
+                        >
+                          <div className='flex items-center justify-between mb-3'>
+                            <div className='p-2 bg-green-500 rounded-xl group-hover:scale-110 transition-transform'>
+                              <Plus className='w-5 h-5 text-white' />
+                            </div>
+                          </div>
+                          <h4 className='font-bold text-gray-900 mb-1'>Tạo Feedback mới</h4>
+                          <p className='text-sm text-gray-600'>Gửi góp ý hoặc báo cáo vấn đề mới</p>
+                        </div>
+
+                        <div 
+                          className='p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-100/50 cursor-pointer hover:shadow-lg transition-all duration-300 group'
+                          onClick={() => {
+                            toast.info('Tính năng đang được phát triển')
+                          }}
+                        >
+                          <div className='flex items-center justify-between mb-3'>
+                            <div className='p-2 bg-purple-500 rounded-xl group-hover:scale-110 transition-transform'>
+                              <TrendingUp className='w-5 h-5 text-white' />
+                            </div>
+                            <span className='text-xs font-medium text-purple-600 bg-purple-100 px-2 py-1 rounded-full'>
+                              Sắp có
+                            </span>
+                          </div>
+                          <h4 className='font-bold text-gray-900 mb-1'>Thống kê Feedback</h4>
+                          <p className='text-sm text-gray-600'>Xem báo cáo và phân tích feedback</p>
+                        </div>
+
+                        <div 
+                          className='p-4 bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl border border-orange-100/50 cursor-pointer hover:shadow-lg transition-all duration-300 group'
+                          onClick={() => {
+                            window.open('mailto:support@example.com?subject=Hỗ trợ khẩn cấp', '_blank')
+                          }}
+                        >
+                          <div className='flex items-center justify-between mb-3'>
+                            <div className='p-2 bg-orange-500 rounded-xl group-hover:scale-110 transition-transform'>
+                              <Award className='w-5 h-5 text-white' />
+                            </div>
+                            <span className='text-xs font-medium text-orange-600 bg-orange-100 px-2 py-1 rounded-full'>
+                              24/7
+                            </span>
+                          </div>
+                          <h4 className='font-bold text-gray-900 mb-1'>Hỗ trợ khẩn cấp</h4>
+                          <p className='text-sm text-gray-600'>Liên hệ trực tiếp khi cần hỗ trợ gấp</p>
+                        </div>
+                      </div>
+
+                      {/* Tips Section */}
+                      <div className='mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100'>
+                        <h4 className='font-bold text-gray-900 mb-2 flex items-center'>
+                          <Sparkles className='w-4 h-4 mr-2 text-blue-500' />
+                          Mẹo sử dụng Feedback hiệu quả
+                        </h4>
+                        <ul className='text-sm text-gray-600 space-y-1'>
+                          <li>• Mô tả chi tiết vấn đề để nhận được hỗ trợ nhanh nhất</li>
+                          <li>• Sử dụng tags để phân loại feedback dễ dàng</li>
+                          <li>• Chọn mức độ ưu tiên phù hợp với tình huống</li>
+                          <li>• Theo dõi thường xuyên để cập nhật tình trạng xử lý</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Tab.Panel>

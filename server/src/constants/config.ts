@@ -20,6 +20,7 @@ export const envConfig = {
   usersCollection: process.env.DB_USERS_COLLECTION as string,
   refreshCollection: process.env.DB_REFRESH_TOKENS_COLLECTION as string,
   VideoStatusCollection: process.env.DB_VIDEO_STATUS_COLLECTION as string,
+  feedbacksCollection: process.env.DB_FEEDBACKS_COLLECTION as string,
   region: process.env.AWS_REGION,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,

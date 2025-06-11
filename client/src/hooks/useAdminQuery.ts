@@ -10,7 +10,7 @@ export const useTeachers = (page = 1, limit = 10, search = '') => {
     queryKey: ['admin', 'teachers', page, limit, search],
     queryFn: async () => {
       const response = await adminApi.getTeachers({ page, limit, search })
-      console.log(response.data.result)
+     
 
       return response.data.result
     },

@@ -45,6 +45,7 @@ export interface TokenPayload extends JwtPayload {
   user_id: string
   token_type: TokenType
   verify: UserVerifyStatus
+  role?: string
 }
 
 export interface UserReq {

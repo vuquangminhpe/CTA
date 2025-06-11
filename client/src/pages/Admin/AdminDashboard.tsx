@@ -1,6 +1,8 @@
 import { Tab } from '@headlessui/react'
-import { UserPlus, Users, FileText, BarChart2 } from 'lucide-react'
+import { UserPlus, Users, FileText, BarChart2, MessageCircle } from 'lucide-react'
 import ExamStatistics from './ExamStatistics'
+import AdminFeedbackDashboard from '../../components/Admin/AdminFeedbackDashboard'
+import FeedbackManagement from '../../components/Admin/FeedbackManagement'
 import { useTeachers } from '../../hooks/useAdminQuery'
 import { useStudents } from '../../hooks/useAdminQuery'
 import { useMasterExams } from '../../hooks/useAdminQuery'
@@ -24,7 +26,7 @@ const AdminDashboard = () => {
   const { data: teachersData } = useTeachers(1, 10)
   const { data: studentsData } = useStudents(1, 10)
   const { data: masterExamsData } = useMasterExams(1, 100)
-  console.log(teachersData, studentsData, masterExamsData)
+
 
   // Combine the data to create dashboard stats
   useEffect(() => {
@@ -154,9 +156,7 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Tabs for Different Admin Functions */}
+      )}      {/* Tabs for Different Admin Functions */}
       <div className='mt-8'>
         <Tab.Group>
           <Tab.List className='flex space-x-1 rounded-xl bg-blue-50 p-1'>
@@ -169,6 +169,27 @@ const AdminDashboard = () => {
               }
             >
               Admin Dashboard
+            </Tab>            <Tab
+              className={({ selected }) =>
+                classNames(
+                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5 flex items-center justify-center space-x-2',
+                  selected ? 'bg-white shadow text-blue-700' : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                )
+              }
+            >
+              <MessageCircle className='w-4 h-4' />
+              <span>Feedback Dashboard</span>
+            </Tab>
+            <Tab
+              className={({ selected }) =>
+                classNames(
+                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5 flex items-center justify-center space-x-2',
+                  selected ? 'bg-white shadow text-blue-700' : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                )
+              }
+            >
+              <MessageCircle className='w-4 h-4' />
+              <span>Feedback Management</span>
             </Tab>
             <Tab
               onClick={() => navigate('/admin/teacher-management')}
@@ -219,6 +240,12 @@ const AdminDashboard = () => {
           <Tab.Panels className='mt-4'>
             <Tab.Panel className='rounded-xl bg-white p-4'>
               <ExamStatistics />
+            </Tab.Panel>
+            <Tab.Panel className='rounded-xl bg-gray-50 p-4'>
+              <AdminFeedbackDashboard />
+            </Tab.Panel>
+            <Tab.Panel className='rounded-xl bg-gray-50 p-4'>
+              <FeedbackManagement />
             </Tab.Panel>
           </Tab.Panels>
         </Tab.Group>
