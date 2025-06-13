@@ -5,6 +5,7 @@ import { ProtectedRoute, TeacherRoute, StudentRoute, AdminRoute, GuestRoute } fr
 import { UserRole } from '../types/User.type'
 
 // Pages
+import Home from '../pages/Home/Home'
 import Login from '../pages/Auth/Login'
 import Register from '../pages/Auth/Register'
 import TeacherDashboard from '../pages/Teacher/TeacherDashboard'
@@ -33,26 +34,26 @@ import FeedbackPage from '../pages/Teacher/FeedbackPage'
 import AdminFeedbackManagement from '../pages/Admin/AdminFeedbackManagement'
 
 const AppRoutes = () => {
-  const { role } = useContext(AuthContext)
-
-  // Helper function to redirect to the appropriate dashboard based on role
+  const { role } = useContext(AuthContext)  // Helper function to redirect to the appropriate dashboard based on role
   const redirectBasedOnRole = () => {
     switch (role) {
       case UserRole.Teacher as any:
-        return <Navigate to='/teacher' />
+        return <Navigate to='/teacher' replace />
       case UserRole.Student as any:
-        return <Navigate to='/student' />
+        return <Navigate to='/student' replace />
       case UserRole.Admin as any:
-        return <Navigate to='/admin' />
+        return <Navigate to='/admin' replace />
       default:
-        return <Navigate to='/login' />
+        return <Navigate to='/login' replace />
     }
   }
-
   return (
     <Routes>
-      {/* Index route - redirect based on role */}
-      <Route path='/' element={redirectBasedOnRole()} />
+      {/* Home route - accessible to all */}
+      <Route path='/' element={<Home />} />
+
+      {/* Dashboard route - redirect based on role */}
+      <Route path='/dashboard' element={redirectBasedOnRole()} />
 
       {/* Auth routes - accessible to guests */}
       <Route element={<GuestRoute />}>

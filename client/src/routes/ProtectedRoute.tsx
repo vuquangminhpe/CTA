@@ -53,6 +53,20 @@ export const AdminRoute = () => {
 
 // Route for guest users only (logged out)
 export const GuestRoute = () => {
-  const { isAuthenticated } = useContext(AuthContext)
-  return !isAuthenticated ? <Outlet /> : <Navigate to='/' />
+  const { isAuthenticated, role } = useContext(AuthContext)
+  
+  if (!isAuthenticated) {
+    return <Outlet />
+  }
+  
+  // If authenticated, redirect to appropriate dashboard
+  if (role === UserRole.Teacher) {
+    return <Navigate to='/teacher' replace />
+  } else if (role === UserRole.Student) {
+    return <Navigate to='/student' replace />
+  } else if (role === UserRole.Admin) {
+    return <Navigate to='/admin' replace />
+  } else {
+    return <Navigate to='/' replace />
+  }
 }
