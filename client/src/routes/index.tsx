@@ -44,7 +44,7 @@ const AppRoutes = () => {
       case UserRole.Admin as any:
         return <Navigate to='/admin' replace />
       default:
-        return <Navigate to='/login' replace />
+        return <Navigate to='/' replace />
     }
   }
   return (
