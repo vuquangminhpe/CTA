@@ -10,9 +10,20 @@ import { clearLocalStorage } from '@/utils/auth';
 
 function Home() {
   const navigate = useNavigate();
-  const { isAuthenticated, role, reset } = useContext(AuthContext);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isAuthenticated, role, reset } = useContext(AuthContext);  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);  const [currentBanner, setCurrentBanner] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const banners = ['/banner1.png', '/banner2.png', '/banner3.png', '/banner4.png'];
+
+  // Handle scroll for header transparency
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Check if user is already logged in and redirect to appropriate dashboard
   useEffect(() => {
@@ -31,12 +42,66 @@ function Home() {
           break;
       }
     }
-  }, [isAuthenticated, role, navigate]);
+  }, [isAuthenticated, role, navigate]);  // Auto-change banner every 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentBanner((prev) => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [banners.length]);
+
+  // Handle swipe/drag functionality
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setStartX(e.clientX);
+    setIsDragging(true);
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const endX = e.clientX;
+    const diff = startX - endX;
+    
+    if (Math.abs(diff) > 50) { // Minimum swipe distance
+      if (diff > 0) {
+        // Swiped left - next banner
+        setCurrentBanner((prev) => (prev + 1) % banners.length);
+      } else {
+        // Swiped right - previous banner
+        setCurrentBanner((prev) => (prev - 1 + banners.length) % banners.length);
+      }
+    }
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const endX = e.changedTouches[0].clientX;
+    const diff = startX - endX;
+    
+    if (Math.abs(diff) > 50) { // Minimum swipe distance
+      if (diff > 0) {
+        // Swiped left - next banner
+        setCurrentBanner((prev) => (prev + 1) % banners.length);
+      } else {
+        // Swiped right - previous banner
+        setCurrentBanner((prev) => (prev - 1 + banners.length) % banners.length);
+      }
+    }
+    setIsDragging(false);
+  };
+
   // Debug function for navigation
   const handleNavigation = (destination: string) => {
     console.log('Navigating to:', destination);
     navigate(destination);
-  };  // Handle logout
+  };
+
+  // Handle logout
   const handleLogout = () => {
     // Clear auth state using utility function
     clearLocalStorage();
@@ -44,7 +109,6 @@ function Home() {
     // Navigate to login page
     navigate('/login', { replace: true });
   };
-
   // Intersection Observer for scroll animations
   useEffect(() => {
     const observerOptions = {
@@ -65,15 +129,6 @@ function Home() {
     animateElements.forEach(el => observer.observe(el));
 
     return () => observer.disconnect();
-  }, [isLoading]);
-
-  useEffect(() => {
-    // Simulate loading time for the GIF
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000); // Adjust this time based on your GIF duration
-
-    return () => clearTimeout(timer);
   }, []);
 
   const features = [
@@ -106,46 +161,44 @@ function Home() {
       title: "Giám sát chống gian lận",
       description: "Hệ thống giám sát tiên tiến với nhiều biện pháp ngăn chặn gian lận hiệu quả",
       icon: "🛡️"
-    }
-  ];
+    }  ];
 
-  if (isLoading) {
-    return (
-      <div className={`loading-screen ${!isLoading ? 'fade-out' : ''}`}>
-        <img 
-          src="/output-onlinegiftools.gif" 
-          alt="Loading..." 
-        />
-      </div>
-    );
-  }
   return (
     <>
       <Helmet>
-        <title>ExamEdge - Hệ thống quản lý thi cử thông minh</title>
-        <meta name="description" content="Phần mềm web quản lý thi cử toàn diện cho học sinh cấp 1, 2, 3. Hỗ trợ giáo viên và nhà trường tổ chức thi, phân tích kết quả, cá nhân hóa bài tập và giám sát chống gian lận." />
+        <title>Thionl - Hệ thống quản lý thi cử thông minh</title>        <meta name="description" content="Phần mềm web quản lý thi cử toàn diện cho học sinh cấp 1, 2, 3. Hỗ trợ giáo viên và nhà trường tổ chức thi, phân tích kết quả, cá nhân hóa bài tập và giám sát chống gian lận." />
         <meta name="keywords" content="quản lý thi cử, thi online, giáo dục, chống gian lận, phân tích học sinh" />
-        <meta property="og:title" content="ExamEdge - Hệ thống quản lý thi cử thông minh" />
+        <meta property="og:title" content="Thionl - Hệ thống quản lý thi cử thông minh" />
         <meta property="og:description" content="Giải pháp toàn diện cho việc quản lý thi cử hiện đại" />
         <meta property="og:type" content="website" />
       </Helmet>
       
-      <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-lg sticky top-0 z-50">
+      <div className="min-h-screen bg-gray-50">      {/* Header */}
+      <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+        isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
+      }`}>
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <img src="/Logo.png" alt="ExamEdge Logo" className="h-10 w-auto" />
-              <h1 className="text-2xl font-bold text-gray-800">ExamEdge</h1>
-            </div>            <nav className="hidden md:flex space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-purple-600 transition">Tính năng</a>
-              <a href="#about" className="text-gray-600 hover:text-purple-600 transition">Giới thiệu</a>
-              <a href="#contact" className="text-gray-600 hover:text-purple-600 transition">Liên hệ</a>
+          <div className="flex items-center justify-between">            <div className="flex items-center space-x-3">
+              <img src="/logo2.png" alt="Thionl Logo" className="h-10 w-auto" />
+              <h1 className={`text-2xl font-bold transition-colors duration-300 ${
+                isScrolled ? 'text-gray-800' : 'text-white'
+              }`}>Thionl</h1>
+            </div><nav className="hidden md:flex space-x-8">
+              <a href="#features" className={`transition ${
+                isScrolled ? 'text-gray-600 hover:text-purple-600' : 'text-white hover:text-purple-200'
+              }`}>Tính năng</a>
+              <a href="#about" className={`transition ${
+                isScrolled ? 'text-gray-600 hover:text-purple-600' : 'text-white hover:text-purple-200'
+              }`}>Giới thiệu</a>
+              <a href="#contact" className={`transition ${
+                isScrolled ? 'text-gray-600 hover:text-purple-600' : 'text-white hover:text-purple-200'
+              }`}>Liên hệ</a>
             </nav>            <div className="flex items-center space-x-4">
               {!isAuthenticated ? (
                 <button 
-                  className="btn-primary text-white px-6 py-2 rounded-lg font-semibold" 
+                  className={`btn-primary px-6 py-2 rounded-lg font-semibold transition ${
+                    isScrolled ? 'text-white' : 'text-purple-600 bg-white'
+                  }`} 
                   onClick={() => handleNavigation('/login')}
                 >
                   Bắt đầu ngay
@@ -153,23 +206,30 @@ function Home() {
               ) : (
                 <div className="flex items-center space-x-3">
                   <button 
-                    className="btn-primary text-white px-6 py-2 rounded-lg font-semibold" 
+                    className={`btn-primary px-6 py-2 rounded-lg font-semibold transition ${
+                      isScrolled ? 'text-white' : 'text-purple-600 bg-white'
+                    }`} 
                     onClick={() => handleNavigation('/dashboard')}
                   >
                     Vào Dashboard
                   </button>
                   <button 
-                    className="text-gray-600 hover:text-red-600 px-3 py-2 rounded-lg border border-gray-300 hover:border-red-300 transition" 
+                    className={`px-3 py-2 rounded-lg border transition ${
+                      isScrolled 
+                        ? 'text-gray-600 hover:text-red-600 border-gray-300 hover:border-red-300' 
+                        : 'text-white hover:text-red-200 border-white hover:border-red-200'
+                    }`} 
                     onClick={handleLogout}
                   >
                     Đăng xuất
                   </button>
                 </div>
               )}
-              
-              {/* Mobile menu button */}
+                {/* Mobile menu button */}
               <button 
-                className="md:hidden text-gray-600 p-2"
+                className={`md:hidden p-2 transition ${
+                  isScrolled ? 'text-gray-600' : 'text-white'
+                }`}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,13 +288,109 @@ function Home() {
             </div>
           )}
         </div>
-      </header>
+      </header>      {/* Hero Banner Carousel - Full Screen with Horizontal Thumbnails */}
+      <section className="relative h-screen overflow-hidden">
+        <div 
+          id="horizontal-thumbnails" 
+          className="relative w-full h-full"
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="carousel h-full">
+            {/* Main Banner Display - Full Screen */}
+            <div className="carousel-body h-full relative overflow-hidden cursor-grab active:cursor-grabbing select-none">
+              {banners.map((banner, index) => (
+                <div
+                  key={index}
+                  className={`carousel-slide absolute inset-0 transition-all duration-700 ease-in-out ${
+                    index === currentBanner 
+                      ? 'opacity-100 transform translate-x-0' 
+                      : index < currentBanner 
+                        ? 'opacity-0 transform -translate-x-full'
+                        : 'opacity-0 transform translate-x-full'
+                  }`}
+                >
+                  <div className="flex size-full justify-center">
+                    <img
+                      src={banner}
+                      alt={`Banner ${index + 1}`}
+                      className="size-full object-cover"
+                      draggable={false}
+                    />
+                    {/* Darker overlay for better contrast */}
+                    <div className="absolute inset-0 bg-black/40"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-      {/* Hero Section */}
-      <section className="hero-gradient text-white py-20">
+            {/* Horizontal Thumbnail Navigation - Overlay */}
+            <div className="carousel-pagination absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 bg-black/60 backdrop-blur-md rounded-xl px-6 py-3">
+              <div className="flex justify-center items-center gap-3">
+                {banners.map((banner, index) => (
+                  <img
+                    key={index}
+                    src={banner}
+                    alt={`Thumbnail ${index + 1}`}
+                    className={`h-12 w-16 md:h-14 md:w-20 object-cover rounded-lg cursor-pointer transition-all duration-300 ${
+                      index === currentBanner 
+                        ? 'opacity-100 ring-2 ring-white scale-110 shadow-lg' 
+                        : 'opacity-50 hover:opacity-80'
+                    }`}
+                    onClick={() => setCurrentBanner(index)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation Arrows */}
+            <button
+              type="button"
+              className="carousel-prev absolute left-5 top-1/2 transform -translate-y-1/2 size-12 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110 z-20"
+              onClick={() => setCurrentBanner((prev) => (prev - 1 + banners.length) % banners.length)}
+            >
+              <svg className="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="sr-only">Previous</span>
+            </button>
+
+            <button
+              type="button"
+              className="carousel-next absolute right-5 top-1/2 transform -translate-y-1/2 size-12 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110 z-20"
+              onClick={() => setCurrentBanner((prev) => (prev + 1) % banners.length)}
+            >
+              <svg className="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <span className="sr-only">Next</span>
+            </button>
+
+            {/* Progress Dots */}
+            <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
+              {banners.map((_, index) => (
+                <button
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentBanner 
+                      ? 'bg-white scale-125' 
+                      : 'bg-white/50 hover:bg-white/75'
+                  }`}
+                  onClick={() => setCurrentBanner(index)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Hero Content Section - Below Banner */}
+      <section className="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-700 text-white py-20">
         <div className="container mx-auto px-6 text-center">
-          <div className="fade-in">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">
               <BlurText
                 text="Hệ thống quản lý thi cử thông minh"
                 delay={100}
@@ -244,18 +400,22 @@ function Home() {
               />
             </h1>
             <ScrollReveal baseOpacity={0.3}>
-              Phát triển một phần mềm web quản lý thi cử toàn diện cho học sinh cấp 1, 2, 3. 
-              Hỗ trợ giáo viên và nhà trường tổ chức thi, phân tích kết quả, cá nhân hóa bài tập 
-              và giám sát chống gian lận một cách hiệu quả.
-            </ScrollReveal>            <div className="mt-8 space-x-4">
+              <p className="text-lg md:text-xl mb-10 leading-relaxed opacity-90">
+                Phát triển một phần mềm web quản lý thi cử toàn diện cho học sinh cấp 1, 2, 3. 
+                Hỗ trợ giáo viên và nhà trường tổ chức thi, phân tích kết quả, cá nhân hóa bài tập 
+                và giám sát chống gian lận một cách hiệu quả.
+              </p>
+            </ScrollReveal>
+            
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <button 
-                className="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
+                className="bg-white text-purple-600 px-10 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition transform hover:scale-105 shadow-lg"
                 onClick={() => handleNavigation(isAuthenticated ? '/dashboard' : '/login')}
               >
                 {isAuthenticated ? 'Vào Dashboard' : 'Tìm hiểu thêm'}
               </button>
               <button 
-                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition"
+                className="border-2 border-white text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-purple-600 transition transform hover:scale-105"
                 onClick={() => handleNavigation(isAuthenticated ? '/dashboard' : '/register')}
               >
                 {isAuthenticated ? 'Quản lý' : 'Xem demo'}
@@ -297,16 +457,15 @@ function Home() {
       {/* About Section */}
       <section id="about" className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="animate-on-scroll">
+          <div className="text-center mb-16">            <div className="animate-on-scroll">
               <ScrollReveal>
-                <h2 className="text-4xl font-bold text-gray-800 mb-4">Về ExamEdge</h2>
+                <h2 className="text-4xl font-bold text-gray-800 mb-4">Về Thionl</h2>
               </ScrollReveal>
             </div>
             <div className="animate-on-scroll">
               <ScrollReveal>
                 <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                  ExamEdge được phát triển với mục tiêu hiện đại hóa hệ thống giáo dục Việt Nam, 
+                  Thionl được phát triển với mục tiêu hiện đại hóa hệ thống giáo dục Việt Nam, 
                   mang đến giải pháp công nghệ tiên tiến cho việc quản lý và tổ chức thi cử.
                 </p>
               </ScrollReveal>
@@ -353,13 +512,12 @@ function Home() {
       {/* Product Demo Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="animate-on-scroll">
+          <div className="text-center mb-16">            <div className="animate-on-scroll">
               <h2 className="text-4xl font-bold text-gray-800 mb-4">Giao diện sản phẩm</h2>
             </div>
             <div className="animate-on-scroll">
               <p className="text-xl text-gray-600">
-                Khám phá giao diện thân thiện và hiện đại của ExamEdge
+                Khám phá giao diện thân thiện và hiện đại của Thionl
               </p>
             </div>
           </div>
@@ -579,14 +737,13 @@ function Home() {
                 Sẵn sàng cải thiện hệ thống giáo dục của bạn?
               </h2>
             </ScrollReveal>
-          </div>
-          <div className="animate-on-scroll">
-            <ScrollReveal>
-              <p className="text-xl mb-8 opacity-90">
-                Tham gia cùng hàng nghìn trường học đã tin tưởng sử dụng ExamEdge
-              </p>
-            </ScrollReveal>
-          </div>          <div className="animate-on-scroll">
+          </div>            <div className="animate-on-scroll">
+              <ScrollReveal>
+                <p className="text-xl mb-8 opacity-90">
+                  Tham gia cùng hàng nghìn trường học đã tin tưởng sử dụng Thionl
+                </p>
+              </ScrollReveal>
+            </div><div className="animate-on-scroll">
             <button 
               className="bg-white text-purple-600 px-10 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition"
               onClick={() => handleNavigation(isAuthenticated ? '/dashboard' : '/register')}
@@ -600,11 +757,10 @@ function Home() {
       {/* Footer */}
       <footer id="contact" className="bg-gray-800 text-white py-12">
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
+          <div className="grid md:grid-cols-4 gap-8">            <div>
               <div className="flex items-center space-x-3 mb-4">
-                <img src="/Logo.png" alt="ExamEdge Logo" className="h-8 w-auto" />
-                <h3 className="text-xl font-bold">ExamEdge</h3>
+                <img src="/logo2.png" alt="Thionl Logo" className="h-8 w-auto" />
+                <h3 className="text-xl font-bold">Thionl</h3>
               </div>
               <p className="text-gray-400">
                 Hệ thống quản lý thi cử thông minh, hiện đại và an toàn cho giáo dục Việt Nam.
@@ -633,15 +789,13 @@ function Home() {
             
             <div>
               <h4 className="font-semibold mb-4">Liên hệ</h4>
-              <div className="space-y-2 text-gray-400">
-                <p>Email: info@examedge.vn</p>
+              <div className="space-y-2 text-gray-400">                <p>Email: info@thionl.vn</p>
                 <p>Hotline: (+84) 886-286-998</p>
                 <p>Địa chỉ: Hà Nội, Việt Nam</p>
               </div>
             </div>
-          </div>
-            <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 ExamEdge. Tất cả quyền được bảo lưu.</p>
+          </div>            <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2025 Thionl. Tất cả quyền được bảo lưu.</p>
           </div>
         </div>
       </footer>
