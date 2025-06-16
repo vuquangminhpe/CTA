@@ -79,7 +79,8 @@ const AppRoutes = () => {
 
             {/* Individual exam routes */}
             <Route path='/teacher/exams/:examId' element={<ExamManagement />} />
-            <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />            <Route path='/teacher/exams/:examId/class-results' element={<ClassExamResults />} />
+            <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />            
+            <Route path='/teacher/exams/:examId/class-results' element={<ClassExamResults />} />
             <Route path='/teacher/exams/:examId/monitor' element={<ExamMonitor />} />
             <Route path='/teacher/monitoring' element={<MonitoringDashboard />} />
             <Route path='/teacher/feedback' element={<FeedbackPage />} />
