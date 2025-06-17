@@ -121,7 +121,7 @@ const Register = () => {
               </div>
               <div>
                 <label htmlFor='name' className='block text-sm font-medium text-gray-700 mb-1'>
-                  Tên đầy đủ của học sinh
+                  Tên đầy đủ của giáo viên
                 </label>
                 <div className='relative'>
                   <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
@@ -136,7 +136,7 @@ const Register = () => {
                     value={formData.name}
                     onChange={handleChange}
                     className='appearance-none block w-full px-3 py-3 pl-10 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 text-sm'
-                    placeholder='Nhập tên học sinh'
+                    placeholder='Nhập tên giáo viên'
                   />
                 </div>
               </div>
@@ -209,7 +209,7 @@ const Register = () => {
 
               <div>
                 <label htmlFor='confirm_password' className='block text-sm font-medium text-gray-700 mb-1'>
-                  Lớp học của bạn
+                  Trường bạn đang tham gia dạy học
                 </label>
                 <div className='relative'>
                   <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
@@ -242,7 +242,7 @@ const Register = () => {
                     value={formData.class}
                     onChange={handleChange}
                     className='appearance-none block w-full rounded-xl px-3 py-3 pl-10 pr-10 border border-gray-300  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 text-sm'
-                    placeholder='Điền vào lớp học của bạn'
+                    placeholder='Điền vào trường của bạn'
                   />
                 </div>
               </div>
