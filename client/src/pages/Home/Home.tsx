@@ -1,5 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react'
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+  useMemo,
+  useContext
+} from 'react'
 import {
   ChevronDown,
   BookOpen,
@@ -26,6 +35,9 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import path from '@/constants/path'
+import { getAccessTokenFromLS } from '@/utils/auth'
+import { AppContext } from '@/Contexts/app.context'
+import { UserRole } from '@/constants/enum'
 
 // Utility function
 function cn(...classes: string[]) {
@@ -484,7 +496,7 @@ const UltraStunningHomepage = () => {
       bgColor: 'bg-pink-50'
     }
   ]
-
+  const profile = useContext(AppContext).profile
   return (
     <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50  text-gray-900 overflow-x-hidden relative'>
       {/* Interactive Mouse Animation Background */}
@@ -564,16 +576,25 @@ const UltraStunningHomepage = () => {
             </div>
 
             <div className='flex items-center space-x-4'>
-              <button className='hidden md:block relative px-6 py-3 border-2 border-cyan-300/60 text-cyan-700 rounded-2xl hover:bg-white/20 hover:border-cyan-400/80 transition-all duration-300 group overflow-hidden font-semibold backdrop-blur-sm'>
-                <span onClick={() => navigate(path.login)} className='relative z-10'>
-                  Đăng nhập
-                </span>
-                <div className='absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700' />
-              </button>
+              {!getAccessTokenFromLS() && (
+                <button className='hidden md:block relative px-6 py-3 border-2 border-cyan-300/60 text-cyan-700 rounded-2xl hover:bg-white/20 hover:border-cyan-400/80 transition-all duration-300 group overflow-hidden font-semibold backdrop-blur-sm'>
+                  <span onClick={() => navigate(path.login)} className='relative z-10'>
+                    Đăng nhập
+                  </span>
+                  <div className='absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700' />
+                </button>
+              )}
 
               <button className='relative px-8 py-3 bg-gradient-to-r from-cyan-500/90 via-blue-500/90 to-teal-500/90 backdrop-blur-sm text-white rounded-2xl font-bold hover:shadow-2xl hover:shadow-cyan-300/50 transform hover:-translate-y-1 hover:scale-105 transition-all duration-500 group overflow-hidden border border-white/20'>
                 <span className='relative z-10 flex items-center space-x-2'>
-                  <span onClick={() => navigate(path.register)}>Đăng ký dùng ngay bây giờ</span>
+                  {!getAccessTokenFromLS() && (
+                    <span onClick={() => navigate(path.register)}>Đăng ký dùng ngay bây giờ</span>
+                  )}
+                  {getAccessTokenFromLS() && (
+                    <span onClick={() => navigate(profile?.role === UserRole.Teacher ? '/teacher' : '/student')}>
+                      Quay lại bảng điều khiển
+                    </span>
+                  )}
                   <ArrowRight className='w-5 h-5 group-hover:translate-x-1 transition-transform' />
                 </span>
                 <div className='absolute inset-0 bg-gradient-to-r from-teal-500/90 via-blue-500/90 to-cyan-500/90 opacity-0 group-hover:opacity-100 transition-opacity duration-500' />

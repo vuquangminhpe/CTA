@@ -24,6 +24,10 @@ interface GeminiResponse {
 
 const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerate, onCancel, exam_id }) => {
   const [count, setCount] = useState(5)
+  const [mon_hoc, setMonHoc] = useState('')
+  const [sachgiaoKhoa, setSachGiaoKhoa] = useState('')
+  const [lop, setLop] = useState('')
+  const [cauhoidanhchohocsinh, setCauHoiDanhChoHocSinh] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleGenerate = async () => {
@@ -36,7 +40,11 @@ const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerat
       toast.loading('Đang tạo câu hỏi...')
 
       const response = await http.post<GeminiResponse>('/gemini/generate/text', {
-        count: count
+        count: count,
+        mon_hoc,
+        sachgiaoKhoa,
+        lop,
+        cauhoidanhchohocsinh
       })
 
       const { questions, answers } = response.data.data.result
@@ -209,9 +217,62 @@ const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerat
               max={20}
               value={count}
               onChange={(e) => setCount(parseInt(e.target.value) || 5)}
+              placeholder='Nhập số lượng câu hỏi (tối đa 20)'
               className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md'
             />
             <p className='mt-1 text-xs text-gray-500'>Số lượng câu hỏi tối đa là 20</p>
+          </div>
+          <div>
+            <label htmlFor='mon_hoc' className='block text-sm font-medium text-gray-700 mb-1'>
+              Môn học
+            </label>
+            <input
+              type='text'
+              id='mon_hoc'
+              value={mon_hoc}
+              onChange={(e) => setMonHoc(e.target.value)}
+              placeholder='Ví dụ: Toán, Văn, Anh...'
+              className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md'
+            />
+          </div>
+          <div>
+            <label htmlFor='sachgiaoKhoa' className='block text-sm font-medium text-gray-700 mb-1'>
+              Sách giáo khoa
+            </label>
+            <input
+              type='text'
+              id='sachgiaoKhoa'
+              value={sachgiaoKhoa}
+              onChange={(e) => setSachGiaoKhoa(e.target.value)}
+              placeholder='Tên sách giáo khoa hoặc tài liệu tham khảo'
+              className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md'
+            />
+          </div>
+          <div>
+            <label htmlFor='lop' className='block text-sm font-medium text-gray-700 mb-1'>
+              Lớp
+            </label>
+            <input
+              type='text'
+              id='lop'
+              value={lop}
+              onChange={(e) => setLop(e.target.value)}
+              placeholder='Ví dụ: 10, 11, 12...'
+              className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md'
+            />
+          </div>
+          <div>
+            <label htmlFor='cauhoidanhchohocsinh' className='block text-sm font-medium text-gray-700 mb-1'>
+              Câu hỏi dành cho học sinh
+            </label>
+            <input
+              type='text'
+              id='cauhoidanhchohocsinh'
+              value={cauhoidanhchohocsinh}
+              onChange={(e) => setCauHoiDanhChoHocSinh(e.target.value)}
+              placeholder='Nhập nội dung hoặc chủ đề câu hỏi'
+              className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md'
+            />
           </div>
         </div>
 

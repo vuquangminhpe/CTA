@@ -19,9 +19,9 @@ const ExamGenerator = ({ onSubmit, questionCount = 0, fetchQuestions, setMasterE
     title: '',
     quantity: 10,
     question_count: Math.min(5, questionCount),
-    duration: 30, // minutes
-    start_time: null, // New field for scheduled start time
-    master_exam_id: '' // New field for selecting master exam
+    duration: 30,
+    start_time: null,
+    master_exam_id: ''
   })
   const [masterExams, setMasterExams] = useState<MasterExam[]>([])
   const [isLoadingMasterExams, setIsLoadingMasterExams] = useState(false)
@@ -119,7 +119,7 @@ const ExamGenerator = ({ onSubmit, questionCount = 0, fetchQuestions, setMasterE
           </div>
 
           <div>
-            <label htmlFor='master_exam_id' className='block text-sm font-medium text-gray-700 flex items-center'>
+            <label htmlFor='master_exam_id' className=' text-sm font-medium text-gray-700 flex items-center'>
               <BookOpen className='w-4 h-4 mr-1 text-gray-500' />
               Thuộc kỳ thi chính
             </label>

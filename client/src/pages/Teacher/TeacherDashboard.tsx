@@ -21,7 +21,8 @@ import {
   Award,
   TrendingUp,
   Star,
-  MessageCircle
+  MessageCircle,
+  Wallet
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -109,7 +110,6 @@ const TeacherDashboard = () => {
       setQuestions(response.data.result as any)
     } catch (error) {
       console.error('Error fetching questions:', error)
-      toast.error('Failed to load questions')
     } finally {
       setIsLoading(false)
     }
@@ -308,7 +308,8 @@ const TeacherDashboard = () => {
       icon: UserPlus,
       description: 'Tạo tài khoản',
       color: 'from-indigo-500 to-blue-400'
-    },    {
+    },
+    {
       id: 'student-search',
       name: 'Tìm kiếm học sinh',
       icon: Search,
@@ -329,6 +330,14 @@ const TeacherDashboard = () => {
       description: 'Theo dõi hệ thống',
       color: 'from-rose-500 to-pink-400',
       onClick: () => navigate('/teacher/monitoring')
+    },
+    {
+      id: 'payment',
+      name: 'Mua các gói sử dụng',
+      icon: Wallet,
+      description: 'Các gói sử dụng',
+      color: 'from-yellow-500 to-yellow-400',
+      onClick: () => navigate('/teacher/payment')
     }
   ]
 
@@ -385,7 +394,10 @@ const TeacherDashboard = () => {
               </div>
             </div>
           </div>
-        </div>        <Tab.Group className='space-y-8'>          {/* Modern Tab Navigation */}
+        </div>{' '}
+        <Tab.Group className='space-y-8'>
+          {' '}
+          {/* Modern Tab Navigation */}
           <Tab.List className='backdrop-blur-xl bg-white/60 border border-white/20 rounded-2xl p-2 shadow-xl shadow-blue-500/5'>
             <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 sm:gap-2'>
               {tabItems.map((tab, index) => (
@@ -402,7 +414,8 @@ const TeacherDashboard = () => {
                     >
                       <div
                         className={`absolute inset-0 bg-gradient-to-r ${tab.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
-                      ></div>                      <div className='relative z-10 flex flex-col items-center text-center justify-center h-full'>
+                      ></div>{' '}
+                      <div className='relative z-10 flex flex-col items-center text-center justify-center h-full'>
                         <div
                           className={classNames(
                             'w-7 h-7 sm:w-8 sm:h-8 xl:w-10 xl:h-10 rounded-xl flex items-center justify-center mb-1 sm:mb-2 transition-all duration-300',
@@ -433,7 +446,6 @@ const TeacherDashboard = () => {
               ))}
             </div>
           </Tab.List>
-
           <Tab.Panels>
             {/* Question Bank Panel */}
             <Tab.Panel>
@@ -787,7 +799,8 @@ const TeacherDashboard = () => {
                 </div>
                 <div className='backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl p-6'>
                   <StudentSearchComponent />
-                </div>              </div>
+                </div>{' '}
+              </div>
             </Tab.Panel>
 
             {/* Feedback Panel */}
@@ -802,28 +815,28 @@ const TeacherDashboard = () => {
                     <p className='text-gray-600 font-medium'>Gửi góp ý, báo cáo vấn đề và theo dõi phản hồi</p>
                   </div>
                   <div className='ml-auto'>
-                    <QuickFeedbackButton 
-                      variant="default" 
-                      size="lg"
+                    <QuickFeedbackButton
+                      variant='default'
+                      size='lg'
                       onSuccess={() => {
                         toast.success('Feedback đã được gửi thành công!')
                       }}
                     />
                   </div>
                 </div>
-                
+
                 <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
                   {/* Feedback Widget */}
                   <div className='lg:col-span-1'>
                     <FeedbackWidget maxItems={8} />
                   </div>
-                  
+
                   {/* Quick Actions */}
                   <div className='lg:col-span-2'>
                     <div className='backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl p-6 h-full'>
                       <h3 className='text-xl font-bold text-gray-900 mb-4'>Hành động nhanh</h3>
                       <div className='grid grid-cols-2 gap-4'>
-                        <div 
+                        <div
                           className='p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border border-blue-100/50 cursor-pointer hover:shadow-lg transition-all duration-300 group'
                           onClick={() => navigate('/teacher/feedback')}
                         >
@@ -839,12 +852,12 @@ const TeacherDashboard = () => {
                           <p className='text-sm text-gray-600'>Quản lý và theo dõi tất cả feedback của bạn</p>
                         </div>
 
-                        <div 
+                        <div
                           className='p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100/50 cursor-pointer hover:shadow-lg transition-all duration-300 group'
                           onClick={() => {
                             const element = document.querySelector('[data-feedback-button]')
                             if (element) {
-                              (element as HTMLElement).click()
+                              ;(element as HTMLElement).click()
                             }
                           }}
                         >
@@ -857,7 +870,7 @@ const TeacherDashboard = () => {
                           <p className='text-sm text-gray-600'>Gửi góp ý hoặc báo cáo vấn đề mới</p>
                         </div>
 
-                        <div 
+                        <div
                           className='p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-100/50 cursor-pointer hover:shadow-lg transition-all duration-300 group'
                           onClick={() => {
                             toast.info('Tính năng đang được phát triển')
@@ -875,7 +888,7 @@ const TeacherDashboard = () => {
                           <p className='text-sm text-gray-600'>Xem báo cáo và phân tích feedback</p>
                         </div>
 
-                        <div 
+                        <div
                           className='p-4 bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl border border-orange-100/50 cursor-pointer hover:shadow-lg transition-all duration-300 group'
                           onClick={() => {
                             window.open('mailto:support@example.com?subject=Hỗ trợ khẩn cấp', '_blank')
