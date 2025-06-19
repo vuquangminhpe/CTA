@@ -1,13 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Tab } from '@headlessui/react'
-import { UserPlus, Users, FileText, BarChart2, MessageCircle } from 'lucide-react'
+import { UserPlus, Users, FileText, BarChart2, MessageCircle, CreditCard, Package } from 'lucide-react'
 import ExamStatistics from './ExamStatistics'
 import AdminFeedbackDashboard from '../../components/Admin/AdminFeedbackDashboard'
 import FeedbackManagement from '../../components/Admin/FeedbackManagement'
+import PaymentStatistics from '../../components/Admin/PaymentStatistics'
 import { useTeachers } from '../../hooks/useAdminQuery'
 import { useStudents } from '../../hooks/useAdminQuery'
 import { useMasterExams } from '../../hooks/useAdminQuery'
+import { usePaymentStatistics } from '../../hooks/usePayment'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { formatCurrency } from '../../utils/format'
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
@@ -18,15 +22,18 @@ const AdminDashboard = () => {
     totalUsers: 0,
     totalTeachers: 0,
     totalExams: 0,
-    completedExams: 0
+    completedExams: 0,
+    totalRevenue: 0,
+    pendingPayments: 0
   })
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
+
   // Fetch data from existing endpoints
   const { data: teachersData } = useTeachers(1, 10)
   const { data: studentsData } = useStudents(1, 10)
   const { data: masterExamsData } = useMasterExams(1, 100)
-
+  const { data: paymentStats } = usePaymentStatistics()
 
   // Combine the data to create dashboard stats
   useEffect(() => {
@@ -50,30 +57,36 @@ const AdminDashboard = () => {
         })
       }
 
+      // Get payment statistics
+      const totalRevenue = paymentStats?.total_revenue || 0
+      const pendingPayments = paymentStats?.by_status.find((s: any) => s._id === 'pending')?.count || 0
+
       setDashboardStats({
         totalUsers,
         totalTeachers,
         totalExams,
-        completedExams
+        completedExams,
+        totalRevenue,
+        pendingPayments
       })
 
       setIsLoading(false)
     }
-  }, [teachersData, studentsData, masterExamsData])
+  }, [teachersData, studentsData, masterExamsData, paymentStats])
 
   return (
     <div className='max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8'>
       <div className='sm:flex sm:items-center sm:justify-between'>
         <div>
           <h1 className='text-3xl font-bold text-gray-900'>Admin Dashboard</h1>
-          <p className='mt-2 text-sm text-gray-700'>Manage users, monitor exams, and analyze system usage</p>
+          <p className='mt-2 text-sm text-gray-700'>Manage users, monitor exams, payments and analyze system usage</p>
         </div>
       </div>
 
       {/* Statistics Cards */}
       {isLoading ? (
-        <div className='mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4'>
-          {[...Array(4)].map((_, index) => (
+        <div className='mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-6'>
+          {[...Array(6)].map((_, index) => (
             <div key={index} className='bg-white overflow-hidden shadow rounded-lg animate-pulse'>
               <div className='px-4 py-5 sm:p-6'>
                 <div className='h-4 bg-gray-200 rounded w-3/4 mb-4'></div>
@@ -83,7 +96,7 @@ const AdminDashboard = () => {
           ))}
         </div>
       ) : (
-        <div className='mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4'>
+        <div className='mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-6'>
           <div className='bg-white overflow-hidden shadow rounded-lg'>
             <div className='px-4 py-5 sm:p-6'>
               <div className='flex items-center'>
@@ -155,8 +168,48 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
+
+          <div className='bg-white overflow-hidden shadow rounded-lg'>
+            <div className='px-4 py-5 sm:p-6'>
+              <div className='flex items-center'>
+                <div className='flex-shrink-0 bg-purple-100 rounded-md p-3'>
+                  <CreditCard className='h-6 w-6 text-purple-600' />
+                </div>
+                <div className='ml-5 w-0 flex-1'>
+                  <dl>
+                    <dt className='text-sm font-medium text-gray-500 truncate'>Total Revenue</dt>
+                    <dd>
+                      <div className='text-lg font-medium text-gray-900'>
+                        {formatCurrency(dashboardStats.totalRevenue)}
+                      </div>
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className='bg-white overflow-hidden shadow rounded-lg'>
+            <div className='px-4 py-5 sm:p-6'>
+              <div className='flex items-center'>
+                <div className='flex-shrink-0 bg-orange-100 rounded-md p-3'>
+                  <Package className='h-6 w-6 text-orange-600' />
+                </div>
+                <div className='ml-5 w-0 flex-1'>
+                  <dl>
+                    <dt className='text-sm font-medium text-gray-500 truncate'>Pending Payments</dt>
+                    <dd>
+                      <div className='text-lg font-medium text-gray-900'>{dashboardStats.pendingPayments}</div>
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}      {/* Tabs for Different Admin Functions */}
+      )}
+
+      {/* Tabs for Different Admin Functions */}
       <div className='mt-8'>
         <Tab.Group>
           <Tab.List className='flex space-x-1 rounded-xl bg-blue-50 p-1'>
@@ -168,8 +221,22 @@ const AdminDashboard = () => {
                 )
               }
             >
-              Admin Dashboard
-            </Tab>            <Tab
+              System Overview
+            </Tab>
+
+            <Tab
+              className={({ selected }) =>
+                classNames(
+                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5 flex items-center justify-center space-x-2',
+                  selected ? 'bg-white shadow text-blue-700' : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                )
+              }
+            >
+              <CreditCard className='w-4 h-4' />
+              <span>Payment Analytics</span>
+            </Tab>
+
+            <Tab
               className={({ selected }) =>
                 classNames(
                   'w-full rounded-lg py-2.5 text-sm font-medium leading-5 flex items-center justify-center space-x-2',
@@ -180,6 +247,7 @@ const AdminDashboard = () => {
               <MessageCircle className='w-4 h-4' />
               <span>Feedback Dashboard</span>
             </Tab>
+
             <Tab
               className={({ selected }) =>
                 classNames(
@@ -191,6 +259,7 @@ const AdminDashboard = () => {
               <MessageCircle className='w-4 h-4' />
               <span>Feedback Management</span>
             </Tab>
+
             <Tab
               onClick={() => navigate('/admin/teacher-management')}
               className={({ selected }) =>
@@ -202,6 +271,7 @@ const AdminDashboard = () => {
             >
               Teacher Management
             </Tab>
+
             <Tab
               onClick={() => navigate('/admin/student-management')}
               className={({ selected }) =>
@@ -213,6 +283,7 @@ const AdminDashboard = () => {
             >
               Student Management
             </Tab>
+
             <Tab
               onClick={() => navigate('/admin/master-exams-management')}
               className={({ selected }) =>
@@ -224,6 +295,19 @@ const AdminDashboard = () => {
             >
               Master Exams
             </Tab>
+
+            <Tab
+              onClick={() => navigate('/admin/payment-management')}
+              className={({ selected }) =>
+                classNames(
+                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
+                  selected ? 'bg-white shadow text-blue-700' : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                )
+              }
+            >
+              Payment Management
+            </Tab>
+
             <Tab
               onClick={() => navigate('/admin/statistics')}
               className={({ selected }) =>
@@ -241,9 +325,15 @@ const AdminDashboard = () => {
             <Tab.Panel className='rounded-xl bg-white p-4'>
               <ExamStatistics />
             </Tab.Panel>
+
+            <Tab.Panel className='rounded-xl bg-gray-50 p-4'>
+              <PaymentStatistics />
+            </Tab.Panel>
+
             <Tab.Panel className='rounded-xl bg-gray-50 p-4'>
               <AdminFeedbackDashboard />
             </Tab.Panel>
+
             <Tab.Panel className='rounded-xl bg-gray-50 p-4'>
               <FeedbackManagement />
             </Tab.Panel>

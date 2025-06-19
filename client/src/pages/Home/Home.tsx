@@ -549,7 +549,11 @@ const UltraStunningHomepage = () => {
             <div className='flex items-center space-x-4'>
               <div className='relative group cursor-pointer'>
                 <div className='w-14 h-14 bg-gradient-to-r from-cyan-500/80 via-blue-500/80 to-teal-500/80 backdrop-blur-sm rounded-2xl flex items-center justify-center transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 shadow-lg shadow-cyan-200/50 border border-white/20'>
-                  <BookOpen className='w-8 h-8 text-white' />
+                  <img
+                    src={'https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/MD.jpg'}
+                    alt=''
+                    className='size-full rounded-2xl text-white'
+                  />
                 </div>
                 <div className='absolute inset-0 bg-gradient-to-r from-cyan-500/50 via-blue-500/50 to-teal-500/50 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500' />
               </div>
@@ -562,7 +566,7 @@ const UltraStunningHomepage = () => {
             </div>
 
             <div className='hidden md:flex items-center space-x-8'>
-              {['Tính năng', 'Giới thiệu', 'Đánh giá', 'Liên hệ'].map((item, index) => (
+              {['Tính năng', 'Giới thiệu', 'Liên hệ'].map((item, index) => (
                 <a
                   key={index}
                   href={`#${item.toLowerCase().replace(' ', '')}`}
@@ -943,9 +947,14 @@ const UltraStunningHomepage = () => {
                 <div className='relative transform group-hover:scale-105 group-hover:-rotate-3 transition-all duration-700'>
                   <div className='absolute inset-0 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-3xl blur-2xl'></div>
                   <img
-                    src='/pic1.png'
+                    src='https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/Screenshot+2025-06-20+031327.png'
                     alt='Giao diện AI tạo đề thi'
                     className='relative w-full h-auto rounded-3xl shadow-2xl shadow-purple-300/50 border-4 border-white'
+                  />
+                  <img
+                    src='https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/Screenshot+2025-06-20+031342.png'
+                    alt='Giao diện AI tạo đề thi'
+                    className='relative w-full h-auto mt-5 rounded-3xl shadow-2xl shadow-purple-300/50 border-4 border-white'
                   />
                   <div className='absolute inset-0 bg-gradient-to-tr from-purple-500/10 via-transparent to-pink-500/10 rounded-3xl group-hover:opacity-0 transition-opacity duration-700' />
                 </div>
@@ -1041,9 +1050,15 @@ const UltraStunningHomepage = () => {
                 <div className='relative transform group-hover:scale-105 group-hover:rotate-3 transition-all duration-700'>
                   <div className='absolute inset-0 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-3xl blur-2xl'></div>
                   <img
-                    src='/pic2.png'
+                    src='https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/Screenshot+2025-06-20+031922.png'
                     alt='Giao diện bảo mật AI'
                     className='relative w-full h-auto rounded-3xl shadow-2xl shadow-cyan-300/50 border-4 border-white'
+                  />
+
+                  <img
+                    src='https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/Screenshot+2025-06-20+032458.png'
+                    alt='Giao diện bảo mật AI'
+                    className='relative w-full h-auto rounded-3xl shadow-2xl shadow-cyan-300/50 border-4 border-white mt-5'
                   />
                   <div className='absolute inset-0 bg-gradient-to-tl from-cyan-500/10 via-transparent to-blue-500/10 rounded-3xl group-hover:opacity-0 transition-opacity duration-700' />
                 </div>
@@ -1110,7 +1125,7 @@ const UltraStunningHomepage = () => {
               <button className='group relative px-16 py-8 bg-gradient-to-r from-cyan-500 via-blue-500 to-teal-500 text-white rounded-3xl text-2xl font-black hover:shadow-2xl hover:shadow-cyan-300/50 transform hover:-translate-y-3 hover:scale-110 transition-all duration-500 overflow-hidden'>
                 <span className='relative z-10 flex items-center justify-center space-x-4'>
                   <Sparkles className='w-8 h-8 group-hover:rotate-180 transition-transform duration-500' />
-                  <span>Đăng ký ngay</span>
+                  <span onClick={() => navigate('/register')}>Đăng ký ngay</span>
                   <ArrowRight className='w-8 h-8 group-hover:translate-x-3 transition-transform duration-300' />
                 </span>
                 <div className='absolute inset-0 bg-gradient-to-r from-teal-500 via-blue-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500' />

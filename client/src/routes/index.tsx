@@ -32,9 +32,14 @@ import ExamStatistics from '@/pages/Admin/ExamStatistics'
 import TeacherManagement from '@/components/Admin/TeacherManagement'
 import FeedbackPage from '../pages/Teacher/FeedbackPage'
 import AdminFeedbackManagement from '../pages/Admin/AdminFeedbackManagement'
+// New Payment Pages
+import PaymentPage from '../pages/Teacher/PaymentPage'
+import AdminPaymentManagement from '../pages/Admin/AdminPaymentManagement'
 
 const AppRoutes = () => {
-  const { role } = useContext(AuthContext)  // Helper function to redirect to the appropriate dashboard based on role
+  const { role } = useContext(AuthContext)
+
+  // Helper function to redirect to the appropriate dashboard based on role
   const redirectBasedOnRole = () => {
     switch (role) {
       case UserRole.Teacher as any:
@@ -47,6 +52,7 @@ const AppRoutes = () => {
         return <Navigate to='/' replace />
     }
   }
+
   return (
     <Routes>
       {/* Home route - accessible to all */}
@@ -71,26 +77,29 @@ const AppRoutes = () => {
             {/* Master exam routes */}
             <Route path='/teacher/master-exams' element={<MasterExamsList />} />
             <Route path='/teacher/master-exams/:masterExamId' element={<MasterExamView />} />
-
             <Route path='/teacher/master-exams/:masterExamId/monitor' element={<MasterExamMonitor />} />
             <Route path='/teacher/master-exams/:masterExamId/results' element={<MasterExamResults />} />
-
             <Route path='/teacher/master-exams/:masterExamId/classes/:className' element={<ClassResultsList />} />
 
             {/* Individual exam routes */}
             <Route path='/teacher/exams/:examId' element={<ExamManagement />} />
-            <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />            
+            <Route path='/teacher/exams/:examId/results' element={<ExamResultsPage />} />
             <Route path='/teacher/exams/:examId/class-results' element={<ClassExamResults />} />
             <Route path='/teacher/exams/:examId/monitor' element={<ExamMonitor />} />
             <Route path='/teacher/monitoring' element={<MonitoringDashboard />} />
             <Route path='/teacher/feedback' element={<FeedbackPage />} />
+
+            {/* Payment routes for teachers */}
+            <Route path='/teacher/payment' element={<PaymentPage />} />
           </Route>
 
           {/* Student routes */}
           <Route element={<StudentRoute />}>
             <Route path='/student' element={<StudentDashboard />} />
             <Route path='/exam/:examCode' element={<ExamPage />} />
-          </Route>          {/* Admin routes */}
+          </Route>
+
+          {/* Admin routes */}
           <Route element={<AdminRoute />}>
             <Route path='/admin' element={<AdminDashboard />} />
             <Route path='/admin/teacher-management' element={<TeacherManagement />} />
@@ -99,6 +108,9 @@ const AppRoutes = () => {
             <Route path='/admin/statistics' element={<ExamStatistics />} />
             <Route path='/admin/student-management' element={<UserManagement />} />
             <Route path='/admin/feedback-management' element={<AdminFeedbackManagement />} />
+
+            {/* Payment management routes for admin */}
+            <Route path='/admin/payment-management' element={<AdminPaymentManagement />} />
           </Route>
         </Route>
       </Route>

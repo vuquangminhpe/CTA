@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useContext } from 'react'
+import { useState, useEffect, useContext, Fragment } from 'react'
 import { Tab } from '@headlessui/react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
@@ -22,7 +22,9 @@ import {
   TrendingUp,
   Star,
   MessageCircle,
-  Wallet
+  Wallet,
+  PersonStanding,
+  ListStart
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -333,11 +335,27 @@ const TeacherDashboard = () => {
     },
     {
       id: 'payment',
-      name: 'Mua các gói sử dụng',
+      name: 'Mua các gói sử dụng hạn mức',
       icon: Wallet,
       description: 'Các gói sử dụng',
       color: 'from-yellow-500 to-yellow-400',
       onClick: () => navigate('/teacher/payment')
+    },
+    {
+      id: 'statistics',
+      name: 'Thống kê theo từng lớp (chuẩn BGD)',
+      icon: ListStart,
+      description: 'Thống kê cá nhân',
+      color: 'from-green-500 to-green-400',
+      isNonActive: true
+    },
+    {
+      id: 'cs',
+      name: 'Cá nhân hóa đề thi',
+      icon: PersonStanding,
+      description: 'Các gói sử dụng',
+      color: 'from-purple-500 to-purple-400',
+      isNonActive: true
     }
   ]
 
@@ -401,46 +419,53 @@ const TeacherDashboard = () => {
           <Tab.List className='backdrop-blur-xl bg-white/60 border border-white/20 rounded-2xl p-2 shadow-xl shadow-blue-500/5'>
             <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 sm:gap-2'>
               {tabItems.map((tab, index) => (
-                <Tab key={tab.id + index} className='focus:outline-none'>
+                <Tab key={tab.id + index} className='focus:outline-none relative'>
                   {({ selected }) => (
-                    <div
-                      onClick={tab.onClick}
-                      className={classNames(
-                        'group relative overflow-hidden rounded-xl p-2 sm:p-3 transition-all duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] xl:min-h-[100px]',
-                        selected
-                          ? 'bg-white shadow-lg shadow-blue-500/20 scale-105'
-                          : 'hover:bg-white/50 hover:shadow-md hover:scale-102'
+                    <Fragment>
+                      {tab.isNonActive === true && (
+                        <div className='absolute top-0 right-0 p-1 text-cyan-400 translate-x-2 border text-sm border-cyan-500 rounded-xl font-semibold transition-all hover:-translate-y-3'>
+                          Sắp ra mắt
+                        </div>
                       )}
-                    >
                       <div
-                        className={`absolute inset-0 bg-gradient-to-r ${tab.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
-                      ></div>{' '}
-                      <div className='relative z-10 flex flex-col items-center text-center justify-center h-full'>
+                        onClick={tab.onClick}
+                        className={classNames(
+                          'group relative overflow-hidden rounded-xl p-2 sm:p-3 transition-all duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] xl:min-h-[100px]',
+                          selected
+                            ? 'bg-white shadow-lg shadow-blue-500/20 scale-105'
+                            : 'hover:bg-white/50 hover:shadow-md hover:scale-102'
+                        )}
+                      >
                         <div
-                          className={classNames(
-                            'w-7 h-7 sm:w-8 sm:h-8 xl:w-10 xl:h-10 rounded-xl flex items-center justify-center mb-1 sm:mb-2 transition-all duration-300',
-                            selected
-                              ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
-                              : 'bg-gray-100 text-gray-600 group-hover:bg-gradient-to-r group-hover:from-gray-200 group-hover:to-gray-100'
-                          )}
-                        >
-                          <tab.icon className='w-3 h-3 sm:w-4 sm:h-4 xl:w-5 xl:h-5' />
-                        </div>
+                          className={`absolute inset-0 bg-gradient-to-r ${tab.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+                        ></div>{' '}
+                        <div className='relative z-10 flex flex-col items-center text-center justify-center h-full'>
+                          <div
+                            className={classNames(
+                              'w-7 h-7 sm:w-8 sm:h-8 xl:w-10 xl:h-10 rounded-xl flex items-center justify-center mb-1 sm:mb-2 transition-all duration-300',
+                              selected
+                                ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                                : 'bg-gray-100 text-gray-600 group-hover:bg-gradient-to-r group-hover:from-gray-200 group-hover:to-gray-100'
+                            )}
+                          >
+                            <tab.icon className='w-3 h-3 sm:w-4 sm:h-4 xl:w-5 xl:h-5' />
+                          </div>
 
-                        <div
-                          className={classNames(
-                            'text-[10px] sm:text-xs xl:text-sm font-bold transition-colors duration-300 leading-tight text-center px-0.5 sm:px-1',
-                            selected ? 'text-gray-900' : 'text-gray-700 group-hover:text-gray-900'
-                          )}
-                        >
-                          {tab.name}
-                        </div>
+                          <div
+                            className={classNames(
+                              'text-[10px] sm:text-xs xl:text-sm font-bold transition-colors duration-300 leading-tight text-center px-0.5 sm:px-1',
+                              selected ? 'text-gray-900' : 'text-gray-700 group-hover:text-gray-900'
+                            )}
+                          >
+                            {tab.name}
+                          </div>
 
-                        <div className='text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden lg:block xl:block text-center px-0.5 sm:px-1'>
-                          {tab.description}
+                          <div className='text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden lg:block xl:block text-center px-0.5 sm:px-1'>
+                            {tab.description}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </Fragment>
                   )}
                 </Tab>
               ))}
