@@ -263,7 +263,7 @@ interface MouseAnimateProps {
 
 const MouseAnimate: React.FC<MouseAnimateProps> = ({ className }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [points, setPoints] = useState<Point[]>([])
+  const [, setPoints] = useState<Point[]>([])
   const mousePosRef = useRef<MousePosition>({ x: 0, y: 0 })
   const animationRef = useRef<number>()
   const navigate = useNavigate()
@@ -1131,7 +1131,10 @@ const UltraStunningHomepage = () => {
                 <div className='absolute inset-0 bg-gradient-to-r from-teal-500 via-blue-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500' />
               </button>
 
-              <button className='px-16 py-8 border-4 border-cyan-400 text-cyan-700 rounded-3xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-500 text-2xl font-black'>
+              <button
+                onClick={() => window.open('https://www.facebook.com/profile.php?id=61577453490643', '_blank')}
+                className='px-16 py-8 border-4 border-cyan-400 text-cyan-700 rounded-3xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-500 text-2xl font-black'
+              >
                 📞 Tư vấn 1-1 miễn phí
               </button>
             </div>

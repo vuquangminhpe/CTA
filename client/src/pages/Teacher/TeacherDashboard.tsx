@@ -277,6 +277,21 @@ const TeacherDashboard = () => {
 
   const tabItems = [
     {
+      id: 'student-registration',
+      name: 'Đăng ký học sinh',
+      icon: UserPlus,
+      description: 'Tạo tài khoản',
+      color: 'from-indigo-500 to-blue-400'
+    },
+    {
+      id: 'master-exams',
+      name: 'Kỳ thi chính',
+      icon: BookOpen,
+      description: 'Quản lý kỳ thi',
+      color: 'from-orange-500 to-red-400'
+    },
+
+    {
       id: 'questions',
       name: 'Ngân hàng câu hỏi',
       icon: Book,
@@ -291,26 +306,21 @@ const TeacherDashboard = () => {
       color: 'from-purple-500 to-pink-400'
     },
     {
+      id: 'monitoring',
+      name: 'Giám sát toàn cục',
+      icon: Eye,
+      description: 'Theo dõi hệ thống',
+      color: 'from-rose-500 to-pink-400',
+      onClick: () => navigate('/teacher/monitoring')
+    },
+    {
       id: 'exam-list',
       name: 'Danh sách bài thi',
       icon: FileText,
       description: 'Xem tất cả',
       color: 'from-green-500 to-emerald-400'
     },
-    {
-      id: 'master-exams',
-      name: 'Kỳ thi chính',
-      icon: BookOpen,
-      description: 'Quản lý kỳ thi',
-      color: 'from-orange-500 to-red-400'
-    },
-    {
-      id: 'student-registration',
-      name: 'Đăng ký học sinh',
-      icon: UserPlus,
-      description: 'Tạo tài khoản',
-      color: 'from-indigo-500 to-blue-400'
-    },
+
     {
       id: 'student-search',
       name: 'Tìm kiếm học sinh',
@@ -325,14 +335,7 @@ const TeacherDashboard = () => {
       description: 'Gửi góp ý',
       color: 'from-pink-500 to-rose-400'
     },
-    {
-      id: 'monitoring',
-      name: 'Giám sát toàn cục',
-      icon: Eye,
-      description: 'Theo dõi hệ thống',
-      color: 'from-rose-500 to-pink-400',
-      onClick: () => navigate('/teacher/monitoring')
-    },
+
     {
       id: 'payment',
       name: 'Mua các gói sử dụng hạn mức',
