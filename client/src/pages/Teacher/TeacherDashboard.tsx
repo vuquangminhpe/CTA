@@ -302,7 +302,7 @@ const TeacherDashboard = () => {
       name: 'Kỳ thi chính',
       icon: BookOpen,
       description: 'Quản lý kỳ thi',
-      color: 'from-orange-500 to-red-400'
+      color: 'from-fuchsia-400 to-red-400'
     },
     {
       id: 'student-registration',
@@ -423,7 +423,7 @@ const TeacherDashboard = () => {
                   {({ selected }) => (
                     <Fragment>
                       {tab.isNonActive === true && (
-                        <div className='absolute top-0 right-0 p-1 text-cyan-400 translate-x-2 border text-sm border-cyan-500 rounded-xl font-semibold transition-all hover:-translate-y-3'>
+                        <div className='absolute z-[1000] top-0 right-0 p-1 text-cyan-400 translate-x-2 border text-sm border-cyan-500 rounded-xl font-semibold transition-all hover:-translate-y-3'>
                           Sắp ra mắt
                         </div>
                       )}
@@ -685,7 +685,7 @@ const TeacherDashboard = () => {
                     <div className='flex gap-3'>
                       <button
                         onClick={() => setIsMasterExamFormOpen(true)}
-                        className='inline-flex items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-red-400 text-white rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold'
+                        className='inline-flex text-black items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-red-400  rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold'
                       >
                         <Plus className='w-5 h-5 mr-2' />
                         Tạo kỳ thi mới
@@ -718,7 +718,7 @@ const TeacherDashboard = () => {
                       </p>
                       <button
                         onClick={() => navigate('/teacher/master-exams')}
-                        className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-orange-500 to-red-400 text-white rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold text-lg'
+                        className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-orange-500 to-red-400 text-black rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold text-lg'
                       >
                         <BookOpen className='w-6 h-6 mr-2' />
                         Xem tất cả kỳ thi
