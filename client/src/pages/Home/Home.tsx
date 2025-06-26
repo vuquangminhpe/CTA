@@ -40,7 +40,17 @@ import { AppContext } from '@/Contexts/app.context'
 import { UserRole } from '@/constants/enum'
 import { usePackages } from '@/hooks/usePayment'
 import { PackageType } from '@/apis/payment.api'
-
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog'
+import VideoHLSPlayer from '@/components/Custom/VideoHLSPlayer'
 // Utility function
 function cn(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
@@ -278,7 +288,6 @@ const MouseAnimate: React.FC<MouseAnimateProps> = ({ className }) => {
       color: COLORS[Math.floor(Math.random() * COLORS.length)]
     }))
   }, [])
-
   const updatePoints = useCallback((width: number, height: number, currentPoints: Point[]): Point[] => {
     return currentPoints.map((point) => {
       const newX = point.x + point.vx
@@ -455,6 +464,7 @@ const UltraStunningHomepage = () => {
     }, 4000)
     return () => clearInterval(timer)
   }, [banners.length])
+  const [activeVideoDemo, setActiveVideoDemo] = useState(false)
 
   const features = [
     {
@@ -801,7 +811,7 @@ const UltraStunningHomepage = () => {
                 <div className='w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg'>
                   <Play className='w-8 h-8 text-white ml-1' />
                 </div>
-                <span>Xem Demo</span>
+                <span onClick={() => setActiveVideoDemo(true)}>Xem Demo</span>
               </button>
             </div>
 
@@ -1449,7 +1459,18 @@ const UltraStunningHomepage = () => {
           </div>
         </div>
       </footer>
-
+      <Dialog open={activeVideoDemo} onOpenChange={setActiveVideoDemo}>
+        <DialogContent className='sm:max-w-[1080px]'>
+          <div className='w-full max-h-[70vh]'>
+            <VideoHLSPlayer
+              src={
+                'https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/videos-hls/%5CPd-5QNwShO_z_JTAjLRse/master.m3u8'
+              }
+              classNames='w-full h-full'
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Custom Styles */}
       <style>{`
         @keyframes float {
