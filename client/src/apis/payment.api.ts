@@ -5,7 +5,7 @@ import http from '../utils/http'
 // Enums
 export enum PackageType {
   SINGLE = 'single',
-  TEAM_3 = 'team_3',
+  TEAM_4 = 'team_4',
   TEAM_7 = 'team_7'
 }
 

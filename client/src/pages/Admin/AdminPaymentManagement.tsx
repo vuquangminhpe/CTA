@@ -639,7 +639,9 @@ const AdminPaymentManagement = () => {
 
                 {selectedPayment.teacher_usernames && selectedPayment.teacher_usernames.length > 0 && (
                   <div>
-                    <label className='block text-sm font-medium text-gray-600 mb-2'>Username giáo viên</label>
+                    <label className='block text-sm font-medium text-gray-600 mb-2'>
+                      Tên giáo viên ( tên đăng nhập của giáo viên, ví dụ: vuquanghai)
+                    </label>
                     <div className='space-y-2'>
                       {selectedPayment.teacher_usernames.map((username: string, index: number) => (
                         <div key={index} className='px-3 py-2 bg-gray-100 rounded-xl text-gray-900'>
@@ -736,7 +738,7 @@ const AdminPaymentManagement = () => {
                       className='w-full px-4 py-3 bg-white/80 backdrop-blur border border-gray-200/50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-300'
                     >
                       <option value={PackageType.SINGLE}>Gói đơn</option>
-                      <option value={PackageType.TEAM_3}>Gói 3 người</option>
+                      <option value={PackageType.TEAM_3}>Gói 4 Người</option>
                       <option value={PackageType.TEAM_7}>Gói 7 người</option>
                     </select>
                   </div>

@@ -1242,7 +1242,7 @@ const UltraStunningHomepage = () => {
                 .filter((pkg) => pkg.active)
                 .sort((a, b) => a.price - b.price)
                 .map((pkg, index) => {
-                  const isPopular = pkg.type === PackageType.TEAM_3
+                  const isPopular = pkg.type === PackageType.TEAM_4
                   const gradients = [
                     'from-cyan-500 to-blue-500',
                     'from-purple-500 to-pink-500',
@@ -1278,13 +1278,13 @@ const UltraStunningHomepage = () => {
                           className={`w-20 h-20 mx-auto bg-gradient-to-r ${gradients[index % 3]} rounded-3xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-lg`}
                         >
                           {pkg.type === PackageType.SINGLE && <Users className='w-8 h-8 text-white' />}
-                          {pkg.type === PackageType.TEAM_3 && <Award className='w-8 h-8 text-white' />}
+                          {pkg.type === PackageType.TEAM_4 && <Award className='w-8 h-8 text-white' />}
                           {pkg.type === PackageType.TEAM_7 && <TrendingUp className='w-8 h-8 text-white' />}
                         </div>
                         <h3 className={`text-2xl font-black ${textColors[index % 3]} mb-2`}>{pkg.name}</h3>
                         <p className='text-gray-600'>
                           {pkg.type === PackageType.SINGLE && 'Dành cho giáo viên cá nhân'}
-                          {pkg.type === PackageType.TEAM_3 && 'Dành cho nhóm nhỏ 3 giáo viên'}
+                          {pkg.type === PackageType.TEAM_4 && 'Dành cho nhóm nhỏ 4 giáo viên'}
                           {pkg.type === PackageType.TEAM_7 && 'Dành cho nhóm lớn 7 giáo viên'}
                         </p>
                       </div>

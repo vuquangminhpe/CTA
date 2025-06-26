@@ -56,7 +56,7 @@ export const formatPackageType = (type: string): string => {
     case 'single':
       return 'Gói Đơn'
     case 'team_3':
-      return 'Gói 3 Người'
+      return 'Gói 4 Người'
     case 'team_7':
       return 'Gói 7 Người'
     default:

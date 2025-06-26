@@ -36,6 +36,7 @@ const PaymentPage = () => {
 
   // React Query hooks
   const { data: packages, isLoading: packagesLoading } = usePackages()
+
   const { data: userPayments, isLoading: paymentsLoading } = useUserPayments({
     page: 1,
     limit: 10,
@@ -441,7 +442,8 @@ const PaymentPage = () => {
                       {selectedPackage.type !== PackageType.SINGLE && (
                         <div className='mb-6'>
                           <label className='block text-sm font-bold text-gray-900 mb-3'>
-                            Username giáo viên ({selectedPackage.max_teachers} tối đa)
+                            Tên giáo viên ( tên đăng nhập của giáo viên, ví dụ: vuquanghai) (
+                            {selectedPackage.max_teachers} tối đa)
                           </label>
                           <div className='space-y-3'>
                             {teacherUsernames.map((username, index) => (
@@ -450,7 +452,7 @@ const PaymentPage = () => {
                                   type='text'
                                   value={username}
                                   onChange={(e) => handleUsernameChange(index, e.target.value)}
-                                  placeholder={`Username giáo viên ${index + 1}`}
+                                  placeholder={`Tên giáo viên ( tên đăng nhập của giáo viên, ví dụ: vuquanghai) ${index + 1}`}
                                   className='flex-1 px-4 py-3 bg-white/80 backdrop-blur border border-gray-200/50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-300'
                                 />
                                 {index > 0 && (
