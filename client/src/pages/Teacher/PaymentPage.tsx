@@ -127,7 +127,7 @@ const PaymentPage = () => {
       case PackageType.TEAM_3:
         return 'from-purple-500 to-pink-400'
       case PackageType.TEAM_7:
-        return 'from-orange-500 to-red-400'
+        return 'from-cyan-500 to-red-400'
       default:
         return 'from-gray-500 to-gray-400'
     }
@@ -354,7 +354,7 @@ const PaymentPage = () => {
                         </div>
 
                         <button
-                          className={`w-full py-3 px-6 bg-gradient-to-r ${getPackageColor(pkg.type)} text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105`}
+                          className={`w-full py-3 px-6 bg-gradient-to-r ${getPackageColor(pkg.type)} text-black rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105`}
                         >
                           Chọn gói này
                         </button>

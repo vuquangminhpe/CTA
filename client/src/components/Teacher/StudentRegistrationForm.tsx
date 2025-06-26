@@ -401,8 +401,8 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
                     <th className='text-left py-3 px-2 font-medium text-gray-700 w-20'>Tuổi *</th>
                     <th className='text-left py-3 px-2 font-medium text-gray-700 w-24'>Giới tính *</th>
                     <th className='text-left py-3 px-2 font-medium text-gray-700 min-w-[120px]'>SĐT</th>
-                    <th className='text-left py-3 px-2 font-medium text-gray-700 min-w-[140px]'>Username</th>
-                    <th className='text-left py-3 px-2 font-medium text-gray-700 min-w-[140px]'>Password</th>
+                    <th className='text-left py-3 px-2 font-medium text-gray-700 min-w-[140px] hidden'>Username</th>
+                    <th className='text-left py-3 px-2 font-medium text-gray-700 min-w-[140px] hidden'>Password</th>
                     <th className='text-left py-3 px-2 font-medium text-gray-700 min-w-[150px]'>Ảnh khuôn mặt *</th>
                     <th className='text-left py-3 px-2 font-medium text-gray-700 w-12'>Xóa</th>
                   </tr>
@@ -478,7 +478,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
                       </td>
 
                       {/* Username */}
-                      <td className='py-3 px-2'>
+                      <td className='py-3 px-2 hidden'>
                         <div className='flex'>
                           <input
                             type='text'
@@ -497,7 +497,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
                       </td>
 
                       {/* Password */}
-                      <td className='py-3 px-2'>
+                      <td className='py-3 px-2 hidden'>
                         <div className='flex'>
                           <input
                             type={showPasswords[index] ? 'text' : 'password'}

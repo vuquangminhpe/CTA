@@ -397,19 +397,6 @@ const TeacherDashboard = () => {
                   </div>
                 )}
               </div>
-
-              <div className='mt-6 lg:mt-0 lg:ml-8'>
-                <div className='grid grid-cols-2 gap-4'>
-                  <div className='text-center p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border border-blue-100/50'>
-                    <div className='text-2xl font-bold text-blue-600'>{questions.length}</div>
-                    <div className='text-sm text-gray-600 font-medium'>Câu hỏi</div>
-                  </div>
-                  <div className='text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100/50'>
-                    <div className='text-2xl font-bold text-green-600'>{registeredStudents.length}</div>
-                    <div className='text-sm text-gray-600 font-medium'>Học sinh</div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>{' '}
