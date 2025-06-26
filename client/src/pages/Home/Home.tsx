@@ -38,6 +38,8 @@ import path from '@/constants/path'
 import { getAccessTokenFromLS } from '@/utils/auth'
 import { AppContext } from '@/Contexts/app.context'
 import { UserRole } from '@/constants/enum'
+import { usePackages } from '@/hooks/usePayment'
+import { PackageType } from '@/apis/payment.api'
 
 // Utility function
 function cn(...classes: string[]) {
@@ -413,6 +415,15 @@ const UltraStunningHomepage = () => {
   const heroRef = useRef(null)
   const navigate = useNavigate()
   const banners = ['/banner1.png', '/banner2.png', '/banner3.png', '/banner4.png']
+  const { data: packages } = usePackages()
+
+  // Smooth scroll function
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
 
   // Advanced mouse tracking with smooth interpolation
   useEffect(() => {
@@ -566,16 +577,21 @@ const UltraStunningHomepage = () => {
             </div>
 
             <div className='hidden md:flex items-center space-x-8'>
-              {['Tính năng', 'Giới thiệu', 'Liên hệ'].map((item, index) => (
-                <a
+              {[
+                { name: 'Tính năng', id: 'features' },
+                { name: 'Bảng giá', id: 'pricing' },
+                { name: 'Giới thiệu', id: 'hero' },
+                { name: 'Liên hệ', id: 'contact' }
+              ].map((item, index) => (
+                <button
                   key={index}
-                  href={`#${item.toLowerCase().replace(' ', '')}`}
-                  className='relative group px-4 py-2 text-gray-700/90 hover:text-cyan-600 transition-all duration-300 font-medium drop-shadow-sm'
+                  onClick={() => scrollToSection(item.id)}
+                  className='relative z-10 group px-4 py-2 text-gray-700/90 hover:text-cyan-600 backdrop-blur-sm transition-all duration-300 font-medium drop-shadow-sm'
                 >
-                  {item}
-                  <div className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
-                  <div className='absolute inset-0 bg-white/0 group-hover:bg-white/20 rounded-lg transition-all duration-300 backdrop-blur-sm' />
-                </a>
+                  {item.name}
+                  <div className='absolute bottom-0 translate-y-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
+                  <div className=' bg-white/0 group-hover:bg-white/20 rounded-lg transition-all duration-300 backdrop-blur-sm' />
+                </button>
               ))}
             </div>
 
@@ -630,21 +646,32 @@ const UltraStunningHomepage = () => {
           }}
         />
         <div className='relative flex flex-col items-center justify-center h-full space-y-8 text-2xl'>
-          {['Tính năng', 'Giới thiệu', 'Đánh giá', 'Liên hệ'].map((item, index) => (
-            <a
+          {[
+            { name: 'Tính năng', id: 'features' },
+            { name: 'Bảng giá', id: 'pricing' },
+            { name: 'Giới thiệu', id: 'hero' },
+            { name: 'Liên hệ', id: 'contact' }
+          ].map((item, index) => (
+            <button
               key={index}
-              href={`#${item.toLowerCase()}`}
-              onClick={() => setIsMenuOpen(false)}
+              onClick={() => {
+                scrollToSection(item.id)
+                setIsMenuOpen(false)
+              }}
               className='text-gray-700 hover:text-cyan-600 transition-colors font-semibold drop-shadow-sm'
             >
-              {item}
-            </a>
+              {item.name}
+            </button>
           ))}
         </div>
       </div>
 
       {/* Revolutionary Hero Section */}
-      <section ref={heroRef} className='relative min-h-screen flex items-center justify-center overflow-hidden'>
+      <section
+        id='hero'
+        ref={heroRef}
+        className='relative min-h-screen flex items-center justify-center overflow-hidden'
+      >
         {/* Hero Background with 3D Parallax Images */}
         <div className='absolute inset-0 perspective-1000'>
           <div className='relative w-full h-full preserve-3d'>
@@ -1080,7 +1107,10 @@ const UltraStunningHomepage = () => {
       </section>
 
       {/* Mega CTA Section */}
-      <section className='relative py-32 bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50 overflow-hidden'>
+      <section
+        id='contact'
+        className='relative py-32 bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50 overflow-hidden'
+      >
         <div className='absolute inset-0 bg-white/30' />
 
         {/* Animated Background Elements */}
@@ -1160,6 +1190,171 @@ const UltraStunningHomepage = () => {
                 <span className='font-bold text-lg'>Rất nhiều giáo viên tin dùng</span>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Premium Pricing Section */}
+      <section
+        id='pricing'
+        className='relative py-32 bg-gradient-to-b from-white via-blue-50 to-cyan-50 overflow-hidden'
+      >
+        {/* Background Animation */}
+        <div className='absolute inset-0 overflow-hidden'>
+          <div className='absolute top-20 left-20 w-72 h-72 bg-gradient-to-r from-purple-400/10 to-pink-400/10 rounded-full blur-3xl animate-pulse' />
+          <div className='absolute bottom-32 right-32 w-96 h-96 bg-gradient-to-r from-blue-400/10 to-teal-400/10 rounded-full blur-3xl animate-pulse delay-1000' />
+        </div>
+
+        <div className='relative max-w-7xl mx-auto px-6'>
+          <div className='text-center mb-20'>
+            <div className='inline-block mb-8'>
+              <div className='text-cyan-600 text-lg font-bold mb-2 flex items-center justify-center space-x-2'>
+                <Sparkles className='w-5 h-5' />
+                <span>Bảng giá linh hoạt</span>
+                <Sparkles className='w-5 h-5' />
+              </div>
+              <h2 className='text-5xl md:text-7xl font-black leading-tight'>
+                <span className='bg-gradient-to-r from-cyan-600 via-blue-600 to-teal-600 bg-clip-text text-transparent'>
+                  Lựa chọn gói
+                </span>
+                <br />
+                <span className='text-gray-800'>phù hợp với bạn</span>
+              </h2>
+            </div>
+            <p className='text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed'>
+              Từ cá nhân đến doanh nghiệp, chúng tôi có gói dịch vụ phù hợp cho mọi nhu cầu giáo dục
+            </p>
+          </div>
+
+          {packages && packages.length > 0 ? (
+            <div className='grid lg:grid-cols-3 gap-10'>
+              {packages
+                .filter((pkg) => pkg.active)
+                .sort((a, b) => a.price - b.price)
+                .map((pkg, index) => {
+                  const isPopular = pkg.type === PackageType.TEAM_3
+                  const gradients = [
+                    'from-cyan-500 to-blue-500',
+                    'from-purple-500 to-pink-500',
+                    'from-emerald-500 to-teal-500'
+                  ]
+                  const bgColors = ['bg-cyan-50', 'bg-purple-50', 'bg-emerald-50']
+                  const textColors = ['text-cyan-600', 'text-purple-600', 'text-emerald-600']
+
+                  return (
+                    <div
+                      key={pkg._id}
+                      className={`group relative p-10 ${bgColors[index % 3]} border-2 ${
+                        isPopular ? 'border-purple-300 scale-105' : 'border-gray-200'
+                      } rounded-3xl hover:border-purple-400 hover:-translate-y-4 hover:shadow-2xl hover:shadow-purple-200/50 transition-all duration-700 overflow-hidden`}
+                    >
+                      {/* Popular Badge */}
+                      {isPopular && (
+                        <div className='absolute top-3 w-52 left-1/2 transform -translate-x-1/2'>
+                          <div className='bg-gradient-to-r w-full from-purple-500 to-pink-500 text-white px-8 py-2 rounded-full font-bold text-sm shadow-lg animate-pulse'>
+                            🔥 PHỔ BIẾN NHẤT
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Background Gradient Effect */}
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${gradients[index % 3]} opacity-0 group-hover:opacity-10 transition-opacity duration-700 rounded-3xl`}
+                      />
+
+                      {/* Package Type Icon */}
+                      <div className='text-center mb-8'>
+                        <div
+                          className={`w-20 h-20 mx-auto bg-gradient-to-r ${gradients[index % 3]} rounded-3xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-lg`}
+                        >
+                          {pkg.type === PackageType.SINGLE && <Users className='w-8 h-8 text-white' />}
+                          {pkg.type === PackageType.TEAM_3 && <Award className='w-8 h-8 text-white' />}
+                          {pkg.type === PackageType.TEAM_7 && <TrendingUp className='w-8 h-8 text-white' />}
+                        </div>
+                        <h3 className={`text-2xl font-black ${textColors[index % 3]} mb-2`}>{pkg.name}</h3>
+                        <p className='text-gray-600'>
+                          {pkg.type === PackageType.SINGLE && 'Dành cho giáo viên cá nhân'}
+                          {pkg.type === PackageType.TEAM_3 && 'Dành cho nhóm nhỏ 3 giáo viên'}
+                          {pkg.type === PackageType.TEAM_7 && 'Dành cho nhóm lớn 7 giáo viên'}
+                        </p>
+                      </div>
+
+                      {/* Price */}
+                      <div className='text-center mb-8'>
+                        <div className='flex items-center justify-center space-x-2 mb-2'>
+                          <span className='text-5xl font-black text-gray-800'>{pkg.price.toLocaleString('vi-VN')}</span>
+                          <div className='text-left'>
+                            <div className='text-lg font-bold text-gray-800'>VNĐ</div>
+                            <div className='text-sm text-gray-500'>/{pkg.duration_months} tháng</div>
+                          </div>
+                        </div>
+                        <div className='text-gray-500'>
+                          ~{Math.round(pkg.price / pkg.duration_months).toLocaleString('vi-VN')} VNĐ/tháng
+                        </div>
+                      </div>
+
+                      {/* Features */}
+                      <div className='space-y-4 mb-10'>
+                        <div className='flex items-center space-x-3'>
+                          <CheckCircle className={`w-5 h-5 ${textColors[index % 3]}`} />
+                          <span className='text-gray-700 font-medium'>Tối đa {pkg.max_teachers} giáo viên</span>
+                        </div>
+
+                        {pkg.features.map((feature, featureIndex) => (
+                          <div key={featureIndex} className='flex items-center space-x-3'>
+                            <CheckCircle className={`w-5 h-5 ${textColors[index % 3]}`} />
+                            <span className='text-gray-700 font-medium'>{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* CTA Button */}
+                      <button
+                        className={`w-full py-4 bg-gradient-to-r ${gradients[index % 3]} text-white rounded-2xl font-bold text-lg hover:shadow-xl hover:shadow-purple-300/50 transform hover:-translate-y-1 hover:scale-105 transition-all duration-500 group-hover:scale-110`}
+                        onClick={() =>
+                          navigate(
+                            getAccessTokenFromLS()
+                              ? profile?.role === UserRole.Teacher
+                                ? '/teacher'
+                                : '/student'
+                              : '/register'
+                          )
+                        }
+                      >
+                        {getAccessTokenFromLS() ? 'Chọn gói này' : 'Đăng ký ngay'}
+                      </button>
+
+                      {/* Hover Lines */}
+                      <div
+                        className={`absolute top-0 left-0 w-0 h-2 bg-gradient-to-r ${gradients[index % 3]} group-hover:w-full transition-all duration-700 rounded-t-3xl`}
+                      />
+                      <div
+                        className={`absolute bottom-0 right-0 w-0 h-2 bg-gradient-to-r ${gradients[index % 3]} group-hover:w-full transition-all duration-700 delay-200 rounded-b-3xl`}
+                      />
+
+                      {/* Floating Badge */}
+                      <div
+                        className={`absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r ${gradients[index % 3]} rounded-full opacity-0 group-hover:opacity-100 animate-ping transition-opacity duration-500`}
+                      />
+                    </div>
+                  )
+                })}
+            </div>
+          ) : (
+            <div className='text-center py-20'>
+              <div className='text-gray-500 text-xl'>Đang tải bảng giá...</div>
+            </div>
+          )}
+
+          {/* Bottom CTA */}
+          <div className='text-center mt-20'>
+            <p className='text-gray-600 text-lg mb-8'>Cần tư vấn thêm? Chúng tôi luôn sẵn sàng hỗ trợ bạn!</p>
+            <button
+              onClick={() => window.open('https://www.facebook.com/profile.php?id=61577453490643', '_blank')}
+              className='px-8 py-4 border-2 border-cyan-400 text-cyan-700 rounded-2xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-300 font-bold text-lg'
+            >
+              💬 Chat với chúng tôi
+            </button>
           </div>
         </div>
       </section>
