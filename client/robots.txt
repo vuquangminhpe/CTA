@@ -1,0 +1,40 @@
+# Robots.txt for Hệ thống kiểm tra trực tuyến
+# Website: https://thionl.site
+
+User-agent: *
+
+# Allow public pages
+Allow: /
+Allow: /login
+Allow: /register
+
+# Block protected/private areas
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /exam/
+Disallow: /unauthorized
+
+# Block dynamic routes with parameters
+Disallow: /teacher/exams/
+Disallow: /teacher/master-exams/
+Disallow: /admin/admin-master-exams/
+
+# Allow static assets
+Allow: /assets/
+Allow: /static/
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.gif
+Allow: /*.svg
+Allow: /*.ico
+
+# Sitemap location
+Sitemap: https://thionl.site/sitemap.xml
+
+# Crawl delay (optional - giảm tải server)
+Crawl-delay: 1
