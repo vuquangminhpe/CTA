@@ -807,11 +807,14 @@ const UltraStunningHomepage = () => {
                 <div className='absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700' />
               </button>
 
-              <button className='group flex items-center space-x-4 px-12 py-6 bg-white/80 backdrop-blur-xl border-2 border-cyan-200 rounded-3xl hover:border-blue-400 hover:bg-white/90 hover:shadow-xl hover:shadow-cyan-200/50 transition-all duration-500 text-xl font-bold text-gray-700'>
+              <button
+                onClick={() => setActiveVideoDemo(true)}
+                className='group flex items-center space-x-4 px-12 py-6 bg-white/80 backdrop-blur-xl border-2 border-cyan-200 rounded-3xl hover:border-blue-400 hover:bg-white/90 hover:shadow-xl hover:shadow-cyan-200/50 transition-all duration-500 text-xl font-bold text-gray-700'
+              >
                 <div className='w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg'>
                   <Play className='w-8 h-8 text-white ml-1' />
                 </div>
-                <span onClick={() => setActiveVideoDemo(true)}>Xem Demo</span>
+                <span>Xem Demo</span>
               </button>
             </div>
 
