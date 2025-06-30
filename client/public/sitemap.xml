@@ -4,7 +4,7 @@
   <!-- Trang chủ - Priority cao nhất -->
   <url>
     <loc>https://thionl.site/</loc>
-    <lastmod>2025-06-12</lastmod>
+    <lastmod>2025-06-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -12,7 +12,7 @@
   <!-- Trang đăng nhập - Quan trọng cho SEO -->
   <url>
     <loc>https://thionl.site/login</loc>
-    <lastmod>2025-06-12</lastmod>
+    <lastmod>2025-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -20,7 +20,7 @@
   <!-- Trang đăng ký - Quan trọng cho SEO -->
   <url>
     <loc>https://thionl.site/register</loc>
-    <lastmod>2025-06-12</lastmod>
+    <lastmod>2025-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -30,28 +30,28 @@
   <!--
   <url>
     <loc>https://thionl.site/about</loc>
-    <lastmod>2025-06-12</lastmod>
+    <lastmod>2025-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
     <loc>https://thionl.site/contact</loc>
-    <lastmod>2025-06-12</lastmod>
+    <lastmod>2025-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
     <loc>https://thionl.site/privacy-policy</loc>
-    <lastmod>2025-06-12</lastmod>
+    <lastmod>2025-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <url>
     <loc>https://thionl.site/terms-of-service</loc>
-    <lastmod>2025-06-12</lastmod>
+    <lastmod>2025-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
