@@ -35,6 +35,7 @@ import AdminFeedbackManagement from '../pages/Admin/AdminFeedbackManagement'
 // New Payment Pages
 import PaymentPage from '../pages/Teacher/PaymentPage'
 import AdminPaymentManagement from '../pages/Admin/AdminPaymentManagement'
+import GradeStatisticsPage from '../pages/Teacher/GradeStatisticsPage'
 
 const AppRoutes = () => {
   const { role } = useContext(AuthContext)
@@ -89,6 +90,10 @@ const AppRoutes = () => {
             <Route path='/teacher/monitoring' element={<MonitoringDashboard />} />
             <Route path='/teacher/feedback' element={<FeedbackPage />} />
 
+            {/*  statistics grade*/}
+            <Route path='/teacher/statistics' element={<GradeStatisticsPage />} />
+
+            {/* Master exam management */}
             {/* Payment routes for teachers */}
             <Route path='/teacher/payment' element={<PaymentPage />} />
           </Route>

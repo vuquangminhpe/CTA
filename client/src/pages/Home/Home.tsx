@@ -466,7 +466,7 @@ const UltraStunningHomepage = () => {
     },
     {
       icon: <Monitor className='w-8 h-8' />,
-      title: 'Thi online siêu bảo mật',
+      title: 'Thi online bảo mật cao',
       description: 'Hệ thống chống gian lận đa lớp với nhận diện khuôn mặt và giám sát hành vi real-time',
       gradient: 'from-blue-500 via-cyan-500 to-teal-500',
       delay: 'delay-200',
@@ -490,15 +490,15 @@ const UltraStunningHomepage = () => {
     },
     {
       icon: <Shield className='w-8 h-8' />,
-      title: ' Bảo mật',
-      description: 'Bảo mật cấp độ  đảm bảo tính toàn vẹn dữ liệu và chống giả mạo kết quả',
+      title: 'Kết nối',
+      description: 'Kết nối, chia sẻ các câu hỏi với các giáo viên khác trong hệ thống thông qua',
       gradient: 'from-violet-500 via-purple-500 to-indigo-500',
       delay: 'delay-500',
       bgColor: 'bg-violet-50'
     },
     {
       icon: <Sparkles className='w-8 h-8' />,
-      title: 'Kết nối, thống kê với các nền tảng giáo dục hiện có',
+      title: 'Thống kê, tự động nhận xét theo chuẩn BGD',
       description:
         'Thiết kế lớp, phân tích điểm, tự động đưa ra nhận xét chuẩn format và theo luật hiện hành của Bộ Giáo Dục ban hành (Chuẩn format như smas,...)',
       gradient: 'from-pink-500 via-rose-500 to-red-500',
@@ -770,7 +770,7 @@ const UltraStunningHomepage = () => {
               trong giáo dục,
               <span className='font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent'>
                 {' '}
-                cá nhân hóa 100%{' '}
+                cá nhân hóa{' '}
               </span>
               lộ trình học tập và
               <span className='font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent'>
@@ -825,8 +825,8 @@ const UltraStunningHomepage = () => {
                   bg: 'bg-blue-100'
                 },
                 {
-                  number: '99.2%',
-                  label: 'Độ chính xác AI',
+                  number: '99%',
+                  label: 'Độ chính xác',
                   icon: <Brain className='w-6 h-6' />,
                   color: 'text-teal-600',
                   bg: 'bg-teal-100'
@@ -990,7 +990,7 @@ const UltraStunningHomepage = () => {
 
                 {/* Advanced Floating UI Elements */}
                 <div className='absolute -top-6 -right-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-4 rounded-2xl font-black text-lg animate-pulse shadow-xl shadow-green-200'>
-                  🤖 AI 99.9% chính xác
+                  🤖 AI tạo câu hỏi chính xác đến 99%
                 </div>
                 <div className='absolute -bottom-8 -left-8 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-2xl font-black text-lg animate-pulse delay-500 shadow-xl shadow-blue-200'>
                   ⚡ Tạo đề trong 10 giây
@@ -1012,13 +1012,13 @@ const UltraStunningHomepage = () => {
                   </h3>
                   <p className='text-xl text-gray-600 leading-relaxed mb-10'>
                     Công nghệ tiên tiến phân tích hàng triệu dữ liệu giáo dục, tự động tạo đề thi chuẩn ma trận với độ
-                    chính xác 99.9%. Giáo viên chỉ cần click một nút và đề thi hoàn hảo đã sẵn sàng!
+                    chính xác 99%. Giáo viên chỉ cần click một nút và đề thi hoàn hảo đã sẵn sàng!
                   </p>
                 </div>
 
                 <div className='grid grid-cols-1 gap-6'>
                   {[
-                    { icon: '⚡', title: '', desc: 'Tạo đề trong 10 giây, chuẩn 100%' },
+                    { icon: '⚡', title: '', desc: 'Tạo đề trong 10 giây' },
                     { icon: '🎨', title: '', desc: 'Đa dạng hóa câu hỏi tự động' }
                   ].map((item, i) => (
                     <div
@@ -1048,8 +1048,8 @@ const UltraStunningHomepage = () => {
                   </div>
 
                   <p className='text-xl text-gray-600 leading-relaxed mb-10'>
-                    Hệ thống bảo mật đa lớp với AI giám sát 24/7, verification. Chống gian lận 100% với công nghệ nhận
-                    diện khuôn mặt và thống kê liên tục trong quá trình thi.
+                    Hệ thống bảo mật với AI giám sát 24/7, verification. Chống gian lận với công nghệ nhận diện khuôn
+                    mặt và thống kê liên tục trong quá trình thi.
                   </p>
                 </div>
 
@@ -1094,7 +1094,7 @@ const UltraStunningHomepage = () => {
 
                 {/* Enhanced Floating UI Elements */}
                 <div className='absolute -top-6 -left-6 bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-4 rounded-2xl font-black text-lg animate-pulse shadow-xl shadow-red-200'>
-                  🔒 100% bảo mật
+                  🔒 Bảo mật tuyệt đối
                 </div>
                 <div className='absolute -bottom-8 -right-8 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-8 py-4 rounded-2xl font-black text-lg animate-pulse delay-700 shadow-xl shadow-purple-200'>
                   🤖 AI thống kê
@@ -1164,7 +1164,7 @@ const UltraStunningHomepage = () => {
               </button>
 
               <button
-                onClick={() => window.open('https://www.facebook.com/profile.php?id=61577453490643', '_blank')}
+                onClick={() => window.open('https://www.facebook.com/messages/t/673510559185195', '_blank')}
                 className='px-16 py-8 border-4 border-cyan-400 text-cyan-700 rounded-3xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-500 text-2xl font-black'
               >
                 📞 Tư vấn 1-1 miễn phí
@@ -1352,7 +1352,7 @@ const UltraStunningHomepage = () => {
           <div className='text-center mt-20'>
             <p className='text-gray-600 text-lg mb-8'>Cần tư vấn thêm? Chúng tôi luôn sẵn sàng hỗ trợ bạn!</p>
             <button
-              onClick={() => window.open('https://www.facebook.com/profile.php?id=61577453490643', '_blank')}
+              onClick={() => window.open('https://www.facebook.com/messages/t/673510559185195', '_blank')}
               className='px-8 py-4 border-2 border-cyan-400 text-cyan-700 rounded-2xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-300 font-bold text-lg'
             >
               💬 Chat với chúng tôi

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Book, Save, TrendingUp, Users, FileSpreadsheet, Filter, RefreshCw } from 'lucide-react'
+import { Book, Save, TrendingUp, Users, FileSpreadsheet, Filter, RefreshCw, History } from 'lucide-react'
 import GradeTable from '../../components/Teacher/GradeTable'
 import GradeFilters from '../../components/Teacher/GradeFilters'
 import gradesApi from '../../apis/grades.api'
@@ -205,14 +205,24 @@ const GradeStatisticsPage: React.FC = () => {
             </div>
 
             <div className='flex items-center gap-4'>
-              <button
-                onClick={() => refetch()}
-                disabled={isLoading}
-                className='inline-flex items-center px-6 py-3 bg-white/80 text-gray-700 border border-gray-200/50 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold disabled:opacity-50'
-              >
-                <RefreshCw className={`w-5 h-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                Làm mới
-              </button>
+              <div className='w-full flex justify-between items-center'>
+                <button
+                  onClick={() => refetch()}
+                  disabled={isLoading}
+                  className='inline-flex items-center px-6 py-3 bg-white/80 text-gray-700 border border-gray-200/50 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold disabled:opacity-50'
+                >
+                  <RefreshCw className={`w-5 h-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Làm mới
+                </button>
+                <button
+                  onClick={() => window.history.back()}
+                  disabled={isLoading}
+                  className='inline-flex items-center px-6 py-3 bg-white/80 text-gray-700 border border-gray-200/50 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold disabled:opacity-50'
+                >
+                  <History className={`w-5 h-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Quay lại
+                </button>
+              </div>
 
               {hasUnsavedChanges && (
                 <button

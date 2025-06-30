@@ -23,7 +23,6 @@ import {
   Star,
   MessageCircle,
   Wallet,
-  PersonStanding,
   ListStart
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -277,6 +276,20 @@ const TeacherDashboard = () => {
 
   const tabItems = [
     {
+      id: 'student-registration',
+      name: 'Đăng ký học sinh',
+      icon: UserPlus,
+      description: 'Tạo tài khoản',
+      color: 'from-indigo-500 to-blue-400'
+    },
+    {
+      id: 'master-exams',
+      name: 'Kỳ thi chính',
+      icon: BookOpen,
+      description: 'Quản lý kỳ thi',
+      color: 'from-fuchsia-400 to-red-400'
+    },
+    {
       id: 'questions',
       name: 'Ngân hàng câu hỏi',
       icon: Book,
@@ -298,18 +311,12 @@ const TeacherDashboard = () => {
       color: 'from-green-500 to-emerald-400'
     },
     {
-      id: 'master-exams',
-      name: 'Kỳ thi chính',
-      icon: BookOpen,
-      description: 'Quản lý kỳ thi',
-      color: 'from-fuchsia-400 to-red-400'
-    },
-    {
-      id: 'student-registration',
-      name: 'Đăng ký học sinh',
-      icon: UserPlus,
-      description: 'Tạo tài khoản',
-      color: 'from-indigo-500 to-blue-400'
+      id: 'monitoring',
+      name: 'Giám sát toàn cục',
+      icon: Eye,
+      description: 'Theo dõi hệ thống',
+      color: 'from-rose-500 to-pink-400',
+      onClick: () => navigate('/teacher/monitoring')
     },
     {
       id: 'student-search',
@@ -323,16 +330,10 @@ const TeacherDashboard = () => {
       name: 'Hệ thống Feedback',
       icon: MessageCircle,
       description: 'Gửi góp ý',
-      color: 'from-pink-500 to-rose-400'
+      color: 'from-pink-500 to-rose-400',
+      onClick: () => navigate('/teacher/feedback')
     },
-    {
-      id: 'monitoring',
-      name: 'Giám sát toàn cục',
-      icon: Eye,
-      description: 'Theo dõi hệ thống',
-      color: 'from-rose-500 to-pink-400',
-      onClick: () => navigate('/teacher/monitoring')
-    },
+
     {
       id: 'payment',
       name: 'Mua các gói sử dụng hạn mức',
@@ -347,16 +348,18 @@ const TeacherDashboard = () => {
       icon: ListStart,
       description: 'Thống kê cá nhân',
       color: 'from-green-500 to-green-400',
-      isNonActive: true
-    },
-    {
-      id: 'cs',
-      name: 'Cá nhân hóa đề thi',
-      icon: PersonStanding,
-      description: 'Các gói sử dụng',
-      color: 'from-purple-500 to-purple-400',
-      isNonActive: true
+      onClick: () => navigate('/teacher/statistics'),
+      isNonActive: false
     }
+    // },
+    // {
+    //   id: 'cs',
+    //   name: 'Cá nhân hóa đề thi',
+    //   icon: PersonStanding,
+    //   description: 'Các gói sử dụng',
+    //   color: 'from-purple-500 to-purple-400',
+    //   isNonActive: true
+    // }
   ]
 
   return (
@@ -406,7 +409,7 @@ const TeacherDashboard = () => {
           <Tab.List className='backdrop-blur-xl bg-white/60 border border-white/20 rounded-2xl p-2 shadow-xl shadow-blue-500/5'>
             <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 sm:gap-2'>
               {tabItems.map((tab, index) => (
-                <Tab key={tab.id + index} className='focus:outline-none relative'>
+                <Tab onClick={tab.onClick} key={tab.id + index} className='focus:outline-none relative'>
                   {({ selected }) => (
                     <Fragment>
                       {tab.isNonActive === true && (
@@ -415,7 +418,6 @@ const TeacherDashboard = () => {
                         </div>
                       )}
                       <div
-                        onClick={tab.onClick}
                         className={classNames(
                           'group relative overflow-hidden rounded-xl p-2 sm:p-3 transition-all duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] xl:min-h-[100px]',
                           selected
@@ -459,6 +461,147 @@ const TeacherDashboard = () => {
             </div>
           </Tab.List>
           <Tab.Panels>
+            {/* Student Registration Panel */}
+            <Tab.Panel>
+              <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-indigo-500/10'>
+                <div className='space-y-8'>
+                  <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6'>
+                    <div className='flex items-center'>
+                      <div className='w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-400 rounded-2xl flex items-center justify-center mr-4'>
+                        <UserPlus className='w-6 h-6 text-white' />
+                      </div>
+                      <div>
+                        <h2 className='text-3xl font-black text-gray-900'>Đăng ký học sinh</h2>
+                        <p className='text-gray-600 font-medium'>Tạo tài khoản và đăng ký thông tin học sinh</p>
+                      </div>
+                    </div>
+                    {registeredStudents.length > 0 && (
+                      <div className='flex items-center bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/50 rounded-2xl px-6 py-3'>
+                        <Users className='w-5 h-5 text-green-600 mr-2' />
+                        <span className='text-green-800 font-semibold'>
+                          Đã đăng ký: {registeredStudents.length} học sinh
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {showStudentRegistration ? (
+                    <div className='backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl p-6'>
+                      <StudentRegistrationForm
+                        onSuccess={handleStudentRegistrationSuccess as any}
+                        onCancel={() => setShowStudentRegistration(false)}
+                      />
+                    </div>
+                  ) : (
+                    <div className='text-center py-16 backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl'>
+                      <div className='w-20 h-20 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-3xl flex items-center justify-center mx-auto mb-6'>
+                        <UserPlus className='w-10 h-10 text-indigo-600' />
+                      </div>
+                      <h3 className='text-2xl font-bold text-gray-900 mb-3'>Đăng ký học sinh mới</h3>
+                      <p className='text-lg text-gray-600 mb-8 max-w-md mx-auto'>
+                        Tạo tài khoản học sinh với thông tin cá nhân và ảnh khuôn mặt để tăng tính bảo mật.
+                      </p>
+                      <button
+                        onClick={() => setShowStudentRegistration(true)}
+                        className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-blue-400 text-white rounded-2xl hover:from-indigo-600 hover:to-blue-500 transition-all duration-300 shadow-lg hover:shadow-indigo-500/25 hover:scale-105 font-semibold text-lg'
+                      >
+                        <UserPlus className='w-6 h-6 mr-2' />
+                        Bắt đầu đăng ký
+                      </button>
+
+                      {/* Recent registrations */}
+                      {registeredStudents.length > 0 && (
+                        <div className='mt-12'>
+                          <h4 className='text-xl font-bold text-gray-900 mb-6'>Học sinh đã đăng ký gần đây</h4>
+                          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                            {registeredStudents.slice(-6).map((student, index) => (
+                              <div
+                                key={index}
+                                className='backdrop-blur-sm bg-white/80 border border-white/40 rounded-2xl p-4 hover:bg-white/90 transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-lg'
+                              >
+                                <div className='flex justify-between items-start'>
+                                  <div className='flex-1'>
+                                    <h5 className='font-bold text-gray-900 text-lg'>{student.name}</h5>
+                                    <p className='text-sm text-indigo-600 font-medium'>@{student.username}</p>
+                                    <p className='text-sm text-gray-600 mt-2'>
+                                      {student.gender} • {student.age} tuổi • Lớp {student.class}
+                                    </p>
+                                  </div>
+                                  <div className='w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-400 rounded-xl flex items-center justify-center'>
+                                    <UserPlus className='w-4 h-4 text-white' />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Tab.Panel>
+
+            {/* Master Exams Panel */}
+            <Tab.Panel>
+              <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-orange-500/10'>
+                <div className='space-y-8'>
+                  <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6'>
+                    <div className='flex items-center'>
+                      <div className='w-12 h-12 bg-gradient-to-br from-orange-500 to-red-400 rounded-2xl flex items-center justify-center mr-4'>
+                        <BookOpen className='w-6 h-6 text-white' />
+                      </div>
+                      <div>
+                        <h2 className='text-3xl font-black text-gray-900'>Kỳ thi chính</h2>
+                        <p className='text-gray-600 font-medium'>Quản lý các kỳ thi chính của bạn</p>
+                      </div>
+                    </div>
+                    <div className='flex gap-3'>
+                      <button
+                        onClick={() => setIsMasterExamFormOpen(true)}
+                        className='inline-flex text-black items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-red-400  rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold'
+                      >
+                        <Plus className='w-5 h-5 mr-2' />
+                        Tạo kỳ thi mới
+                      </button>
+                      <button
+                        onClick={() => navigate('/teacher/master-exams')}
+                        className='inline-flex items-center px-6 py-3 bg-white/80 text-gray-700 border border-gray-200/50 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold'
+                      >
+                        <BookOpen className='w-5 h-5 mr-2' />
+                        Xem tất cả
+                      </button>
+                    </div>
+                  </div>
+
+                  {isMasterExamFormOpen ? (
+                    <div className='backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl p-6'>
+                      <MasterExamForm
+                        onSuccess={handleMasterExamSuccess}
+                        onCancel={() => setIsMasterExamFormOpen(false)}
+                      />
+                    </div>
+                  ) : (
+                    <div className='text-center py-16 backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl'>
+                      <div className='w-20 h-20 bg-gradient-to-br from-orange-100 to-red-100 rounded-3xl flex items-center justify-center mx-auto mb-6'>
+                        <BookOpen className='w-10 h-10 text-orange-600' />
+                      </div>
+                      <h3 className='text-2xl font-bold text-gray-900 mb-3'>Quản lý kỳ thi chính</h3>
+                      <p className='text-lg text-gray-600 mb-8 max-w-md mx-auto'>
+                        Kỳ thi chính giúp bạn tổ chức và nhóm các bài kiểm tra theo học kỳ hoặc mục đích cụ thể.
+                      </p>
+                      <button
+                        onClick={() => navigate('/teacher/master-exams')}
+                        className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-orange-500 to-red-400 text-black rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold text-lg'
+                      >
+                        <BookOpen className='w-6 h-6 mr-2' />
+                        Xem tất cả kỳ thi
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Tab.Panel>
             {/* Question Bank Panel */}
             <Tab.Panel>
               <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-blue-500/10'>
@@ -654,167 +797,6 @@ const TeacherDashboard = () => {
                 </div>
               </div>
             </Tab.Panel>
-
-            {/* Master Exams Panel */}
-            <Tab.Panel>
-              <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-orange-500/10'>
-                <div className='space-y-8'>
-                  <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6'>
-                    <div className='flex items-center'>
-                      <div className='w-12 h-12 bg-gradient-to-br from-orange-500 to-red-400 rounded-2xl flex items-center justify-center mr-4'>
-                        <BookOpen className='w-6 h-6 text-white' />
-                      </div>
-                      <div>
-                        <h2 className='text-3xl font-black text-gray-900'>Kỳ thi chính</h2>
-                        <p className='text-gray-600 font-medium'>Quản lý các kỳ thi chính của bạn</p>
-                      </div>
-                    </div>
-                    <div className='flex gap-3'>
-                      <button
-                        onClick={() => setIsMasterExamFormOpen(true)}
-                        className='inline-flex text-black items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-red-400  rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold'
-                      >
-                        <Plus className='w-5 h-5 mr-2' />
-                        Tạo kỳ thi mới
-                      </button>
-                      <button
-                        onClick={() => navigate('/teacher/master-exams')}
-                        className='inline-flex items-center px-6 py-3 bg-white/80 text-gray-700 border border-gray-200/50 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold'
-                      >
-                        <BookOpen className='w-5 h-5 mr-2' />
-                        Xem tất cả
-                      </button>
-                    </div>
-                  </div>
-
-                  {isMasterExamFormOpen ? (
-                    <div className='backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl p-6'>
-                      <MasterExamForm
-                        onSuccess={handleMasterExamSuccess}
-                        onCancel={() => setIsMasterExamFormOpen(false)}
-                      />
-                    </div>
-                  ) : (
-                    <div className='text-center py-16 backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl'>
-                      <div className='w-20 h-20 bg-gradient-to-br from-orange-100 to-red-100 rounded-3xl flex items-center justify-center mx-auto mb-6'>
-                        <BookOpen className='w-10 h-10 text-orange-600' />
-                      </div>
-                      <h3 className='text-2xl font-bold text-gray-900 mb-3'>Quản lý kỳ thi chính</h3>
-                      <p className='text-lg text-gray-600 mb-8 max-w-md mx-auto'>
-                        Kỳ thi chính giúp bạn tổ chức và nhóm các bài kiểm tra theo học kỳ hoặc mục đích cụ thể.
-                      </p>
-                      <button
-                        onClick={() => navigate('/teacher/master-exams')}
-                        className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-orange-500 to-red-400 text-black rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold text-lg'
-                      >
-                        <BookOpen className='w-6 h-6 mr-2' />
-                        Xem tất cả kỳ thi
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Tab.Panel>
-
-            {/* Student Registration Panel */}
-            <Tab.Panel>
-              <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-indigo-500/10'>
-                <div className='space-y-8'>
-                  <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6'>
-                    <div className='flex items-center'>
-                      <div className='w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-400 rounded-2xl flex items-center justify-center mr-4'>
-                        <UserPlus className='w-6 h-6 text-white' />
-                      </div>
-                      <div>
-                        <h2 className='text-3xl font-black text-gray-900'>Đăng ký học sinh</h2>
-                        <p className='text-gray-600 font-medium'>Tạo tài khoản và đăng ký thông tin học sinh</p>
-                      </div>
-                    </div>
-                    {registeredStudents.length > 0 && (
-                      <div className='flex items-center bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/50 rounded-2xl px-6 py-3'>
-                        <Users className='w-5 h-5 text-green-600 mr-2' />
-                        <span className='text-green-800 font-semibold'>
-                          Đã đăng ký: {registeredStudents.length} học sinh
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {showStudentRegistration ? (
-                    <div className='backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl p-6'>
-                      <StudentRegistrationForm
-                        onSuccess={handleStudentRegistrationSuccess as any}
-                        onCancel={() => setShowStudentRegistration(false)}
-                      />
-                    </div>
-                  ) : (
-                    <div className='text-center py-16 backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl'>
-                      <div className='w-20 h-20 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-3xl flex items-center justify-center mx-auto mb-6'>
-                        <UserPlus className='w-10 h-10 text-indigo-600' />
-                      </div>
-                      <h3 className='text-2xl font-bold text-gray-900 mb-3'>Đăng ký học sinh mới</h3>
-                      <p className='text-lg text-gray-600 mb-8 max-w-md mx-auto'>
-                        Tạo tài khoản học sinh với thông tin cá nhân và ảnh khuôn mặt để tăng tính bảo mật.
-                      </p>
-                      <button
-                        onClick={() => setShowStudentRegistration(true)}
-                        className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-blue-400 text-white rounded-2xl hover:from-indigo-600 hover:to-blue-500 transition-all duration-300 shadow-lg hover:shadow-indigo-500/25 hover:scale-105 font-semibold text-lg'
-                      >
-                        <UserPlus className='w-6 h-6 mr-2' />
-                        Bắt đầu đăng ký
-                      </button>
-
-                      {/* Recent registrations */}
-                      {registeredStudents.length > 0 && (
-                        <div className='mt-12'>
-                          <h4 className='text-xl font-bold text-gray-900 mb-6'>Học sinh đã đăng ký gần đây</h4>
-                          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                            {registeredStudents.slice(-6).map((student, index) => (
-                              <div
-                                key={index}
-                                className='backdrop-blur-sm bg-white/80 border border-white/40 rounded-2xl p-4 hover:bg-white/90 transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-lg'
-                              >
-                                <div className='flex justify-between items-start'>
-                                  <div className='flex-1'>
-                                    <h5 className='font-bold text-gray-900 text-lg'>{student.name}</h5>
-                                    <p className='text-sm text-indigo-600 font-medium'>@{student.username}</p>
-                                    <p className='text-sm text-gray-600 mt-2'>
-                                      {student.gender} • {student.age} tuổi • Lớp {student.class}
-                                    </p>
-                                  </div>
-                                  <div className='w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-400 rounded-xl flex items-center justify-center'>
-                                    <UserPlus className='w-4 h-4 text-white' />
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Tab.Panel>
-
-            {/* Student Search Panel */}
-            <Tab.Panel>
-              <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-teal-500/10'>
-                <div className='flex items-center mb-8'>
-                  <div className='w-12 h-12 bg-gradient-to-br from-teal-500 to-cyan-400 rounded-2xl flex items-center justify-center mr-4'>
-                    <Search className='w-6 h-6 text-white' />
-                  </div>
-                  <div>
-                    <h2 className='text-3xl font-black text-gray-900'>Tìm kiếm học sinh</h2>
-                    <p className='text-gray-600 font-medium'>Tra cứu thông tin học sinh trong hệ thống</p>
-                  </div>
-                </div>
-                <div className='backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl p-6'>
-                  <StudentSearchComponent />
-                </div>{' '}
-              </div>
-            </Tab.Panel>
-
             {/* Feedback Panel */}
             <Tab.Panel className='space-y-8'>
               <div className='space-y-6'>
@@ -935,6 +917,23 @@ const TeacherDashboard = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </Tab.Panel>
+            {/* Student Search Panel */}
+            <Tab.Panel>
+              <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-teal-500/10'>
+                <div className='flex items-center mb-8'>
+                  <div className='w-12 h-12 bg-gradient-to-br from-teal-500 to-cyan-400 rounded-2xl flex items-center justify-center mr-4'>
+                    <Search className='w-6 h-6 text-white' />
+                  </div>
+                  <div>
+                    <h2 className='text-3xl font-black text-gray-900'>Tìm kiếm học sinh</h2>
+                    <p className='text-gray-600 font-medium'>Tra cứu thông tin học sinh trong hệ thống</p>
+                  </div>
+                </div>
+                <div className='backdrop-blur-xl bg-white/50 border border-white/30 rounded-3xl p-6'>
+                  <StudentSearchComponent />
+                </div>{' '}
               </div>
             </Tab.Panel>
           </Tab.Panels>
