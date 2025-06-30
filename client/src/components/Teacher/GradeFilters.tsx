@@ -13,7 +13,8 @@ interface GradeFiltersProps {
 }
 
 const GradeFilters: React.FC<GradeFiltersProps> = ({ filters, subjects, onChange }) => {
-  // Danh sách lớp học mẫu (có thể lấy từ API)
+  console.log(subjects)
+
   const classList = [
     '1A',
     '1B',

@@ -12,4 +12,5 @@ export interface User {
   role: UserRole
   created_at: string
   updated_at: string
+  teacher_level?: string
 }

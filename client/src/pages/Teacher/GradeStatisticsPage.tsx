@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // client/src/pages/Teacher/GradeStatisticsPage.tsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Book, Save, TrendingUp, Users, FileSpreadsheet, Filter, RefreshCw, History } from 'lucide-react'
 import GradeTable from '../../components/Teacher/GradeTable'
 import GradeFilters from '../../components/Teacher/GradeFilters'
 import gradesApi from '../../apis/grades.api'
+import { AppContext } from '@/Contexts/app.context'
 
 interface GradeFilters {
   className: string
@@ -17,6 +18,8 @@ interface GradeFilters {
 
 const GradeStatisticsPage: React.FC = () => {
   const queryClient = useQueryClient()
+  const isProfile = useContext(AppContext).profile
+  console.log(isProfile)
 
   // State cho filters
   const [filters, setFilters] = useState<GradeFilters>({
@@ -33,7 +36,7 @@ const GradeStatisticsPage: React.FC = () => {
   // Query lấy danh sách môn học
   const { data: subjectsData } = useQuery({
     queryKey: ['subjects'],
-    queryFn: () => gradesApi.getSubjects(),
+    queryFn: () => gradesApi.getSubjects(isProfile?.teacher_level),
     staleTime: 30 * 60 * 1000 // 30 phút
   })
 
