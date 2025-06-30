@@ -26,11 +26,9 @@ import {
   Brain,
   Heart,
   CheckCircle,
-  Camera,
   Monitor,
   BarChart3,
   Target,
-  Gamepad2,
   Sparkles
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -40,16 +38,7 @@ import { AppContext } from '@/Contexts/app.context'
 import { UserRole } from '@/constants/enum'
 import { usePackages } from '@/hooks/usePayment'
 import { PackageType } from '@/apis/payment.api'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import VideoHLSPlayer from '@/components/Custom/VideoHLSPlayer'
 // Utility function
 function cn(...classes: string[]) {
