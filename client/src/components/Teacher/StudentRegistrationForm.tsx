@@ -356,7 +356,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
                 <button
                   key={className}
                   onClick={() => handleClassSelect(className)}
-                  className='p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-center'
+                  className='p-4 border-2 bg-white border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-center'
                 >
                   <div className='text-lg font-medium text-gray-900'>Lớp {className}</div>
                   <div className='text-sm text-gray-500 mt-1'>
@@ -370,7 +370,11 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
             </div>
 
             <div className='flex justify-between'>
-              <button type='button' onClick={onCancel} className='px-4 py-2 text-gray-600 hover:text-gray-800'>
+              <button
+                type='button'
+                onClick={onCancel}
+                className='px-4 bg-white border border-gray-200 py-2 text-gray-600 hover:text-gray-800'
+              >
                 Hủy
               </button>
             </div>
@@ -599,7 +603,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
               <button
                 type='button'
                 onClick={() => setStep('class')}
-                className='px-4 py-2 text-gray-600 hover:text-gray-800'
+                className='px-4 py-2 bg-white border border-gray-200 text-gray-600 hover:text-gray-800'
               >
                 Quay lại
               </button>
@@ -673,7 +677,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
                 type='button'
                 onClick={() => setStep('students')}
                 disabled={isRegistering}
-                className='px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50'
+                className='px-4 py-2 bg-white text-gray-600 border border-gray-200 hover:text-gray-800 disabled:opacity-50'
               >
                 Quay lại
               </button>

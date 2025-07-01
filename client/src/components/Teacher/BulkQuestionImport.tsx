@@ -205,7 +205,7 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
                   <button
                     type='button'
                     onClick={() => setRawText(getExampleText())}
-                    className='text-sm text-blue-600 hover:text-blue-800 flex items-center'
+                    className='text-sm text-blue-600 bg-white border border-gray-200 hover:text-blue-800 flex items-center'
                   >
                     <HelpCircle className='h-4 w-4 mr-1' />
                     Xem ví dụ
@@ -243,7 +243,7 @@ const BulkQuestionImport: React.FC<BulkQuestionImportProps> = ({ onSubmit, onCan
                   <button
                     type='button'
                     onClick={() => setIsAutoGeneratorOpen(true)}
-                    className='text-sm text-purple-600 hover:text-purple-800 flex items-center'
+                    className='text-sm bg-white border border-gray-200 text-purple-600 hover:text-purple-800 flex items-center'
                   >
                     <Wand2 className='h-4 w-4 mr-1' />
                     Tự động tạo câu hỏi

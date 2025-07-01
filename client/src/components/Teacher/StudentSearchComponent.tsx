@@ -219,7 +219,7 @@ const StudentSearchComponent: React.FC = () => {
           <nav className='flex space-x-8 px-6'>
             <button
               onClick={() => setActiveTab('text')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 bg-white border-b-2 font-medium text-sm ${
                 activeTab === 'text'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -230,7 +230,7 @@ const StudentSearchComponent: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('image')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 bg-white border-b-2 font-medium text-sm ${
                 activeTab === 'image'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -259,7 +259,7 @@ const StudentSearchComponent: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className='px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center'
+                  className='px-4 bg-white py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center'
                 >
                   <Filter className='w-4 h-4 mr-2' />
                   Bộ lọc
@@ -307,7 +307,7 @@ const StudentSearchComponent: React.FC = () => {
                       </button>
                       <button
                         onClick={() => cameraInputRef.current?.click()}
-                        className='px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center'
+                        className='px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center'
                       >
                         <Camera className='w-4 h-4 mr-2' />
                         Chụp ảnh
@@ -406,7 +406,7 @@ const StudentSearchComponent: React.FC = () => {
                 <div className='flex items-end'>
                   <button
                     onClick={() => setFilters({})}
-                    className='px-4 py-2 text-sm text-gray-600 hover:text-gray-800'
+                    className='px-4 py-2  bg-white border border-gray-200 text-sm text-gray-600 hover:text-gray-800'
                   >
                     Xóa bộ lọc
                   </button>

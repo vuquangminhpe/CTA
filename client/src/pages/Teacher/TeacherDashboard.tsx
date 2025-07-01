@@ -409,7 +409,11 @@ const TeacherDashboard = () => {
           <Tab.List className='backdrop-blur-xl bg-white/60 border border-white/20 rounded-2xl p-2 shadow-xl shadow-blue-500/5'>
             <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 sm:gap-2'>
               {tabItems.map((tab, index) => (
-                <Tab onClick={tab.onClick} key={tab.id + index} className='focus:outline-none relative'>
+                <Tab
+                  onClick={tab.onClick}
+                  key={tab.id + index}
+                  className='focus:outline-none relative bg-white border border-gray-50 rounded-xl'
+                >
                   {({ selected }) => (
                     <Fragment>
                       {tab.isNonActive === true && (
@@ -559,7 +563,7 @@ const TeacherDashboard = () => {
                     <div className='flex gap-3'>
                       <button
                         onClick={() => setIsMasterExamFormOpen(true)}
-                        className='inline-flex text-black items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-red-400  rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold'
+                        className='inline-flex bg-white text-black items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-red-400  rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold'
                       >
                         <Plus className='w-5 h-5 mr-2' />
                         Tạo kỳ thi mới
@@ -592,7 +596,7 @@ const TeacherDashboard = () => {
                       </p>
                       <button
                         onClick={() => navigate('/teacher/master-exams')}
-                        className='inline-flex items-center px-8 py-4 bg-gradient-to-r from-orange-500 to-red-400 text-black rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold text-lg'
+                        className='inline-flex bg-white items-center px-8 py-4 bg-gradient-to-r from-orange-500 to-red-400 text-black rounded-2xl hover:from-orange-600 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-orange-500/25 hover:scale-105 font-semibold text-lg'
                       >
                         <BookOpen className='w-6 h-6 mr-2' />
                         Xem tất cả kỳ thi

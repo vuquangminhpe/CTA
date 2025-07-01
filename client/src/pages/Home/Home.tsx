@@ -599,7 +599,7 @@ const UltraStunningHomepage = () => {
                   <button
                     key={index}
                     onClick={() => scrollToSection(item.id)}
-                    className='relative z-10 group px-4 py-2 text-gray-700/90 hover:text-cyan-600 backdrop-blur-sm transition-all duration-300 font-medium drop-shadow-sm text-sm lg:text-base'
+                    className='bg-white relative z-10 group px-4 py-2 text-gray-700/90 hover:text-cyan-600 backdrop-blur-sm transition-all duration-300 font-medium drop-shadow-sm text-sm lg:text-base'
                   >
                     {item.name}
                     <div className='absolute bottom-0 translate-y-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
@@ -610,7 +610,7 @@ const UltraStunningHomepage = () => {
 
               <div className='flex items-center space-x-2 sm:space-x-4'>
                 {!getAccessTokenFromLS() && (
-                  <button className='hidden md:block relative px-4 sm:px-6 py-2 sm:py-3 border-2 border-cyan-300/60 text-cyan-700 rounded-xl sm:rounded-2xl hover:bg-white/20 hover:border-cyan-400/80 transition-all duration-300 group overflow-hidden font-semibold backdrop-blur-sm text-sm lg:text-base'>
+                  <button className='bg-white hidden md:block relative px-4 sm:px-6 py-2 sm:py-3 border-2 border-cyan-300/60 text-cyan-700 rounded-xl sm:rounded-2xl hover:bg-white/20 hover:border-cyan-400/80 transition-all duration-300 group overflow-hidden font-semibold backdrop-blur-sm text-sm lg:text-base'>
                     <span onClick={() => navigate(path.login)} className='relative z-10'>
                       Đăng nhập
                     </span>
@@ -1152,9 +1152,9 @@ const UltraStunningHomepage = () => {
 
                 <button
                   onClick={() => window.open('https://www.facebook.com/messages/t/673510559185195', '_blank')}
-                  className='px-8 sm:px-16 py-4 sm:py-8 border-4 border-cyan-400 text-cyan-700 rounded-2xl sm:rounded-3xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-500 text-lg sm:text-2xl font-black'
+                  className='px-8 sm:px-16 bg-white py-4 sm:py-8 border-4 border-cyan-400 text-cyan-700 rounded-2xl sm:rounded-3xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-500 text-lg sm:text-2xl font-black'
                 >
-                  <span className='hidden sm:inline'>📞 Tư vấn 1-1 miễn phí</span>
+                  <span className=' hidden sm:inline'>📞 Tư vấn 1-1 miễn phí</span>
                   <span className='sm:hidden'>📞 Tư vấn miễn phí</span>
                 </button>
               </div>
@@ -1346,7 +1346,7 @@ const UltraStunningHomepage = () => {
               </p>
               <button
                 onClick={() => window.open('https://www.facebook.com/messages/t/673510559185195', '_blank')}
-                className='px-6 sm:px-8 py-3 sm:py-4 border-2 border-cyan-400 text-cyan-700 rounded-xl sm:rounded-2xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-300 font-bold text-base sm:text-lg'
+                className='bg-white px-6 sm:px-8 py-3 sm:py-4 border-2 border-cyan-400 text-cyan-700 rounded-xl sm:rounded-2xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-300 font-bold text-base sm:text-lg'
               >
                 💬 Chat với chúng tôi
               </button>

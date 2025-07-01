@@ -197,7 +197,7 @@ const AutoQuestionGenerator: React.FC<AutoQuestionGeneratorProps> = ({ onGenerat
 
   return (
     <div className='bg-white shadow-lg rounded-lg overflow-hidden max-w-md mx-auto'>
-      <div className='px-6 py-4 bg-blue-600 text-white flex justify-between items-center'>
+      <div className='px-6  py-4 bg-blue-600 text-white flex justify-between items-center'>
         <h3 className='text-lg font-medium'>Tự động tạo câu hỏi</h3>
         <button onClick={onCancel} className='text-white hover:text-white/60 focus:outline-none'>
           <X className='h-5 w-5 text-black' />

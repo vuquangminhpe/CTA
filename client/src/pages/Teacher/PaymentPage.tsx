@@ -512,7 +512,7 @@ const PaymentPage = () => {
             {/* Payment History Tab */}
             <Tab.Panel>
               <div className='backdrop-blur-xl bg-white/70 border border-white/20 rounded-3xl p-8 shadow-2xl shadow-blue-500/10'>
-                <div className='flex items-center mb-8'>
+                <div className='flex items-center  mb-8'>
                   <div className='w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-400 rounded-2xl flex items-center justify-center mr-4'>
                     <History className='w-6 h-6 text-white' />
                   </div>

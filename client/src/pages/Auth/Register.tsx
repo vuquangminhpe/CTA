@@ -208,7 +208,7 @@ const Register = () => {
                       />
                       <button
                         type='button'
-                        className='absolute inset-y-0 right-0 pr-4 flex items-center hover:bg-gray-50/50 rounded-r-2xl transition-colors'
+                        className='absolute inset-y-0 bg-gray-200 right-0 pr-4 flex items-center hover:bg-gray-50/50 rounded-r-2xl transition-colors'
                         onClick={togglePasswordVisibility}
                       >
                         {showPassword ? (
@@ -245,7 +245,7 @@ const Register = () => {
                       />
                       <button
                         type='button'
-                        className='absolute inset-y-0 right-0 pr-4 flex items-center hover:bg-gray-50/50 rounded-r-2xl transition-colors'
+                        className='absolute inset-y-0 right-0 bg-gray-200 pr-4 flex items-center hover:bg-gray-50/50 rounded-r-2xl transition-colors'
                         onClick={toggleConfirmPasswordVisibility}
                       >
                         {showConfirmPassword ? (

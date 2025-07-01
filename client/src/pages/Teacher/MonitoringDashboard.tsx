@@ -692,7 +692,7 @@ const MonitoringDashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab('violations')}
-                className={`flex-1 flex items-center justify-center px-6 py-4 rounded-xl transition-all duration-300 font-semibold ${
+                className={`flex-1 flex items-center bg-white border border-gray-100 justify-center px-6 py-4 rounded-xl transition-all duration-300 font-semibold ${
                   activeTab === 'violations'
                     ? 'bg-white shadow-lg text-blue-600 scale-105'
                     : 'text-gray-600 hover:bg-white/50'
@@ -703,7 +703,7 @@ const MonitoringDashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab('scores')}
-                className={`flex-1 flex items-center justify-center px-6 py-4 rounded-xl transition-all duration-300 font-semibold ${
+                className={`flex-1 flex items-center bg-white border border-gray-100 justify-center px-6 py-4 rounded-xl transition-all duration-300 font-semibold ${
                   activeTab === 'scores'
                     ? 'bg-white shadow-lg text-blue-600 scale-105'
                     : 'text-gray-600 hover:bg-white/50'
