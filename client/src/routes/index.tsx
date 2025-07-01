@@ -64,8 +64,22 @@ const AppRoutes = () => {
 
       {/* Auth routes - accessible to guests */}
       <Route element={<GuestRoute />}>
-        <Route path='/login' element={<Login />} />
-        <Route path='/register' element={<Register />} />
+        <Route
+          path='/login'
+          element={
+            <MainLayout>
+              <Login />
+            </MainLayout>
+          }
+        />
+        <Route
+          path='/register'
+          element={
+            <MainLayout>
+              <Register />
+            </MainLayout>
+          }
+        />
       </Route>
 
       {/* Protected routes - requires authentication */}
