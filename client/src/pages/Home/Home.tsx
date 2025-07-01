@@ -466,8 +466,8 @@ const UltraStunningHomepage = () => {
     },
     {
       icon: <Monitor className='w-6 h-6 sm:w-8 sm:h-8' />,
-      title: 'Thi online bảo mật cao',
-      description: 'Hệ thống chống gian lận đa lớp với nhận diện khuôn mặt và giám sát hành vi real-time',
+      title: 'Quản lý kỳ thi bảo mật cao',
+      description: 'Hệ thống chống gian lận với nhận diện khuôn mặt và giám sát hành vi theo thời gian thực',
       gradient: 'from-blue-500 via-cyan-500 to-teal-500',
       delay: 'delay-200',
       bgColor: 'bg-blue-50'
