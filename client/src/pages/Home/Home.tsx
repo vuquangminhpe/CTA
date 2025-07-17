@@ -1150,10 +1150,7 @@ const UltraStunningHomepage = () => {
                   <div className='absolute inset-0 bg-gradient-to-r from-teal-500 via-blue-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500' />
                 </button>
 
-                <button
-                  onClick={() => window.open('https://www.facebook.com/messages/t/673510559185195', '_blank')}
-                  className='px-8 sm:px-16 bg-white py-4 sm:py-8 border-4 border-cyan-400 text-cyan-700 rounded-2xl sm:rounded-3xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-500 text-lg sm:text-2xl font-black'
-                >
+                <button className='px-8 sm:px-16 bg-white py-4 sm:py-8 border-4 border-cyan-400 text-cyan-700 rounded-2xl sm:rounded-3xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-500 text-lg sm:text-2xl font-black'>
                   <span className=' hidden sm:inline'>📞 Tư vấn 1-1 miễn phí</span>
                   <span className='sm:hidden'>📞 Tư vấn miễn phí</span>
                 </button>
