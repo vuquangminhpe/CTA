@@ -216,7 +216,7 @@ export interface StudentGradeData {
   student_id: string
   student_name: string
   student_username: string
-  student_code?: string
+  user_code?: string
   scores: {
     TX: (number | null)[]
     GK: number | null

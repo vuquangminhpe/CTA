@@ -99,45 +99,6 @@ const MasterExamForm: React.FC<MasterExamFormProps> = ({ onSuccess, onCancel }) 
               </div>
             </div>
 
-            <div className='sm:col-span-2'>
-              <label htmlFor='description' className='block text-sm font-medium text-gray-700'>
-                Mô tả
-              </label>
-              <div className='mt-1'>
-                <textarea
-                  id='description'
-                  name='description'
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md'
-                  placeholder='Mô tả về kỳ thi này'
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor='exam_period' className='block text-sm font-medium text-gray-700'>
-                Học kỳ
-              </label>
-              <div className='mt-1'>
-                <select
-                  id='exam_period'
-                  name='exam_period'
-                  value={formData.exam_period}
-                  onChange={handleChange}
-                  className='shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md'
-                >
-                  <option value=''>Chọn học kỳ</option>
-                  <option value='Học kỳ 1'>Học kỳ 1</option>
-                  <option value='Học kỳ 2'>Học kỳ 2</option>
-                  <option value='Giữa kỳ 1'>Giữa kỳ 1</option>
-                  <option value='Giữa kỳ 2'>Giữa kỳ 2</option>
-                  <option value='Cuối năm'>Cuối năm</option>
-                </select>
-              </div>
-            </div>
-
             <div>
               <label htmlFor='start_time' className='block text-sm font-medium text-gray-700 flex items-center'>
                 <Calendar className='w-4 h-4 mr-1 text-gray-500' />

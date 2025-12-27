@@ -15,6 +15,7 @@ const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('scanner')
   const [scanLoading, setScanLoading] = useState(false)
   const [scanError, setScanError] = useState('')
+  const [studentCode, setStudentCode] = useState('')
   const { profile } = useContext(AuthContext) as any
   const navigate = useNavigate()
 
@@ -81,7 +82,23 @@ const StudentDashboard = () => {
     try {
       toast.loading('Đang bắt đầu kỳ thi...')
 
-      await examApi.startExam({ exam_code: examCode })
+      // Pass student_code if user is not authenticated
+      const requestBody: any = { exam_code: examCode }
+      if (!profile && studentCode) {
+        requestBody.user_code = studentCode
+      }
+
+      const response = await examApi.startExam(requestBody)
+      console.log(response.data.result.access_token)
+
+      // Save access_token if provided (for unauthenticated users)
+      if (response.data.result.access_token) {
+        try {
+          localStorage.setItem('access_token', response.data.result.access_token)
+        } catch (e) {
+          console.error('Could not save access_token to localStorage', e)
+        }
+      }
 
       toast.dismiss()
       toast.success('Bắt đầu kỳ thi thành công')
@@ -111,6 +128,12 @@ const StudentDashboard = () => {
     e.preventDefault()
     const form = e.target as HTMLFormElement
     const codeInput = form.elements.namedItem('examCode') as HTMLInputElement
+    const studentCodeInput = form.elements.namedItem('studentCode') as HTMLInputElement
+
+    // Update student code if provided
+    if (studentCodeInput && studentCodeInput.value) {
+      setStudentCode(studentCodeInput.value)
+    }
 
     if (codeInput && codeInput.value) {
       handleScan(codeInput.value)
@@ -216,21 +239,42 @@ const StudentDashboard = () => {
 
                 <div className='mt-8 border-t border-gray-200 pt-4'>
                   <h3 className='text-sm font-medium text-gray-700 mb-3'>Hoặc nhập mã kỳ thi thủ công:</h3>
-                  <form onSubmit={handleManualCode} className='flex items-center space-x-2'>
-                    <input
-                      type='text'
-                      name='examCode'
-                      placeholder='Nhập mã kỳ thi...'
-                      className='block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
-                      disabled={scanLoading}
-                    />
-                    <button
-                      type='submit'
-                      disabled={scanLoading}
-                      className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50'
-                    >
-                      {scanLoading ? 'Đang xử lý...' : 'Bắt đầu'}
-                    </button>
+                  <form onSubmit={handleManualCode} className='space-y-3'>
+                    {!profile && (
+                      <div>
+                        <label htmlFor='studentCode' className='block text-sm font-medium text-gray-700 mb-1'>
+                          Mã học sinh
+                        </label>
+                        <input
+                          type='text'
+                          name='studentCode'
+                          id='studentCode'
+                          placeholder='Nhập mã học sinh...'
+                          value={studentCode}
+                          onChange={(e) => setStudentCode(e.target.value)}
+                          className='block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
+                          disabled={scanLoading}
+                          required
+                        />
+                      </div>
+                    )}
+                    <div className='flex items-center space-x-2'>
+                      <input
+                        type='text'
+                        name='examCode'
+                        placeholder='Nhập mã kỳ thi...'
+                        className='block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
+                        disabled={scanLoading}
+                        required
+                      />
+                      <button
+                        type='submit'
+                        disabled={scanLoading}
+                        className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50'
+                      >
+                        {scanLoading ? 'Đang xử lý...' : 'Bắt đầu'}
+                      </button>
+                    </div>
                   </form>
 
                   {scanError && <div className='mt-2 text-sm text-red-600'>{scanError}</div>}

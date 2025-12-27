@@ -29,6 +29,8 @@ const ExamPage = () => {
   const [remainingTime, setRemainingTime] = useState(0)
   const [answers, setAnswers] = useState<any>({})
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<any>(0)
+  console.log(answers)
+  console.log(exam)
 
   // UI state
   const [isLoading, setIsLoading] = useState(true)
@@ -529,27 +531,29 @@ const ExamPage = () => {
           </div>
         )}
 
-        {/* Progress indicator (for desktop) */}
-        <ExamProgress
-          questions={exam.questions}
-          answers={answers}
-          currentQuestionIndex={currentQuestionIndex}
-          onNavigate={handleNavigate}
-        />
+        {/* Progress indicator - Question Navigator */}
+        <div className='mt-6'>
+          <ExamProgress
+            questions={exam.questions}
+            answers={answers}
+            currentQuestionIndex={currentQuestionIndex}
+            onNavigate={handleNavigate}
+          />
+        </div>
 
         {/* Current Question */}
         <div className='mb-8'>
           <ExamQuestion
             question={exam.questions[currentQuestionIndex]}
             questionIndex={currentQuestionIndex}
-            selectedAnswer={answers[exam.questions[currentQuestionIndex]._id]}
+            selectedAnswer={answers[exam?.questions[currentQuestionIndex]?._id]}
             onAnswerSelect={handleAnswerSelect}
           />
         </div>
 
         {/* Teacher Messages UI - keeping existing implementation */}
         {teacherMessages && teacherMessages.length > 0 && (
-          <div className='fixed top-4 left-24 z-50'>
+          <div className='fixed top-4 right-4 z-50'>
             <button
               onClick={() => setShowMessages(!showMessages)}
               className={`flex items-center rounded-md px-3 py-2 text-sm font-medium ${
@@ -574,7 +578,7 @@ const ExamPage = () => {
 
         {/* Teacher Messages panel - keeping existing implementation */}
         {showMessages && teacherMessages && (
-          <div className='fixed top-16 left-4 z-50 bg-white shadow-lg rounded-lg w-80 max-h-96 overflow-y-auto animate-fade-in-scale transition-all duration-300'>
+          <div className='fixed top-16 right-4 z-50 bg-white shadow-lg rounded-lg w-80 max-h-96 overflow-y-auto animate-fade-in-scale transition-all duration-300'>
             <div className='p-3 bg-blue-600 text-white border-b rounded-t-lg flex justify-between items-center'>
               <h3 className='font-medium flex items-center'>
                 <MessageSquare className='h-4 w-4 mr-2' />
@@ -627,7 +631,7 @@ const ExamPage = () => {
         {/* Floating notification for new messages - keeping existing implementation */}
         {hasNewMessage && !showMessages && (
           <div
-            className='fixed top-16 left-4 z-50 bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg rounded-lg p-4 max-w-xs animate-bounce-in transform transition-all duration-300 cursor-pointer text-white'
+            className='fixed top-16 right-4 z-50 bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg rounded-lg p-4 max-w-xs animate-bounce-in transform transition-all duration-300 cursor-pointer text-white'
             onClick={() => {
               setShowMessages(true)
               setHasNewMessage(false)

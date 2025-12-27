@@ -57,7 +57,7 @@ const Navbar = () => {
   return (
     <>
       {/* Main Navigation */}
-      <nav className='relative bg-white/95 backdrop-blur-md border-b border-blue-100 shadow-lg sticky top-0 z-50'>
+      <nav className='relative bg-white/95 backdrop-blur-md border-b border-blue-100 shadow-lg sticky top-0 z-[100]'>
         {/* Gradient overlay */}
         <div className='absolute inset-0 bg-gradient-to-r from-blue-50 via-white to-cyan-50 opacity-60'></div>
 
@@ -67,13 +67,6 @@ const Navbar = () => {
             <div className='flex items-center space-x-2 sm:space-x-4'>
               <Link to='/' className='flex items-center space-x-2 sm:space-x-4 group'>
                 <div className='relative group cursor-pointer'>
-                  <div className='w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-r from-cyan-500/80 via-blue-500/80 to-teal-500/80 backdrop-blur-sm rounded-xl sm:rounded-2xl flex items-center justify-center transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 shadow-lg shadow-cyan-200/50 border border-white/20'>
-                    <img
-                      src={'https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/MD.jpg'}
-                      alt='Thionl Logo'
-                      className='size-full rounded-xl sm:rounded-2xl text-white'
-                    />
-                  </div>
                   <div className='absolute inset-0 bg-gradient-to-r from-cyan-500/50 via-blue-500/50 to-teal-500/50 rounded-xl sm:rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500' />
                 </div>
                 <div className='hidden sm:block'>

@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useContext } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { ProtectedRoute, TeacherRoute, StudentRoute, AdminRoute, GuestRoute } from './ProtectedRoute'
+import { ProtectedRoute, TeacherRoute, AdminRoute, GuestRoute } from './ProtectedRoute'
 import { UserRole } from '../types/User.type'
 
 // Pages
-import Home from '../pages/Home/Home'
 import Login from '../pages/Auth/Login'
 import Register from '../pages/Auth/Register'
 import TeacherDashboard from '../pages/Teacher/TeacherDashboard'
@@ -56,8 +55,8 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {/* Home route - accessible to all */}
-      <Route path='/' element={<Home />} />
+      {/* Root path - redirect to student */}
+      <Route path='/' element={<Navigate to='/student' replace />} />
 
       {/* Dashboard route - redirect based on role */}
       <Route path='/dashboard' element={redirectBasedOnRole()} />
@@ -80,6 +79,12 @@ const AppRoutes = () => {
             </MainLayout>
           }
         />
+      </Route>
+
+      {/* Student routes - accessible to everyone without authentication */}
+      <Route element={<MainLayout />}>
+        <Route path='/student' element={<StudentDashboard />} />
+        <Route path='/exam/:examCode' element={<ExamPage />} />
       </Route>
 
       {/* Protected routes - requires authentication */}
@@ -110,12 +115,6 @@ const AppRoutes = () => {
             {/* Master exam management */}
             {/* Payment routes for teachers */}
             <Route path='/teacher/payment' element={<PaymentPage />} />
-          </Route>
-
-          {/* Student routes */}
-          <Route element={<StudentRoute />}>
-            <Route path='/student' element={<StudentDashboard />} />
-            <Route path='/exam/:examCode' element={<ExamPage />} />
           </Route>
 
           {/* Admin routes */}

@@ -29,7 +29,7 @@ export const StudentRoute = () => {
   const { isAuthenticated } = useContext(AuthContext)
 
   if (!isAuthenticated) {
-    return <Navigate to='/login' />
+    return <Navigate to='/' />
   }
 
   // Students, teachers, and admins can access student routes
@@ -54,11 +54,11 @@ export const AdminRoute = () => {
 // Route for guest users only (logged out)
 export const GuestRoute = () => {
   const { isAuthenticated, role } = useContext(AuthContext)
-  
+
   if (!isAuthenticated) {
     return <Outlet />
   }
-  
+
   // If authenticated, redirect to appropriate dashboard
   if (role === UserRole.Teacher) {
     return <Navigate to='/teacher' replace />

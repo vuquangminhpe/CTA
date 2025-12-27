@@ -30,7 +30,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
   const navigate = useNavigate()
   const { profile } = useContext(AuthContext) as any
   const [answers, setAnswers] = useState<Record<string, number>>({})
-  const [timeLeft, setTimeLeft] = useState(remainingTime)
+  const [timeLeft] = useState(remainingTime)
   const [socket, setSocket] = useState<Socket | null>(null)
   const [hasViolation, setHasViolation] = useState(false)
   const [violations, setViolations] = useState<any[]>([])
@@ -43,6 +43,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
   const [confirmAction, setConfirmAction] = useState<() => void>(() => () => {})
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [confirmMessage, setConfirmMessage] = useState<string>('')
+  console.log(answers)
 
   // Initialize socket connection
   useEffect(() => {

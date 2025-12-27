@@ -69,12 +69,14 @@ interface QRCodeResponse {
 
 interface StartExamRequest {
   exam_code: string
+  user_code?: string
 }
 
 interface StartExamResponse {
   session: ExamSession
   exam: ExamWithQuestions
   remaining_time: number
+  access_token?: string
 }
 
 interface SubmitExamRequest {

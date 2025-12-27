@@ -21,6 +21,8 @@ interface StudentData {
   username: string
   password: string
   faceImage: File | null
+  user_code?: string
+  email?: string
 }
 
 interface BulkStudentForm {
@@ -52,7 +54,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
     studentName: ''
   })
 
-  const teacherLevel = profile?.teacher_level || 'middle_school'
+  const teacherLevel = profile?.teacher_level || 'elementary'
 
   const {
     control,
@@ -148,6 +150,39 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
     setImagePreviewModal({ isOpen: false, imageUrl: '', studentName: '' })
   }
 
+  const downloadStudentsPDF = () => {
+    if (registeredStudents.length === 0) return
+
+    // Create text content for download
+    let content = `DANH SÁCH HỌC SINH LỚP ${selectedClass}\n`
+    content += `Ngày tạo: ${new Date().toLocaleDateString('vi-VN')}\n`
+    content += `Tổng số: ${registeredStudents.length} học sinh\n\n`
+    content += '='.repeat(80) + '\n\n'
+
+    registeredStudents.forEach((student, index) => {
+      content += `${index + 1}. ${student.name}\n`
+      content += `   - Mã học sinh: ${student.user_code || 'N/A'}\n`
+      content += `   - Username: ${student.username}\n`
+      content += `   - Password: ${student.password}\n`
+      content += `   - Email: ${student.email || 'N/A'}\n`
+      content += `   - Tuổi: ${student.age} - Giới tính: ${student.gender}\n`
+      if (student.phone) content += `   - SĐT: ${student.phone}\n`
+      content += '\n' + '-'.repeat(80) + '\n\n'
+    })
+
+    // Create blob and download
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Danh_sach_hoc_sinh_lop_${selectedClass}_${new Date().getTime()}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast.success('Đã tải xuống danh sách học sinh')
+  }
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
     toast.success(`Đã copy ${label}`)
@@ -179,11 +214,6 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
         errors.push(
           `Học sinh ${index + 1} (${student.name}): Tuổi thường cho lớp ${data.selectedClass} là từ ${minAge} đến ${maxAge}`
         )
-      }
-
-      // Check for required face image
-      if (!student.faceImage) {
-        errors.push(`Học sinh ${index + 1} (${student.name}): Chưa chọn ảnh khuôn mặt`)
       }
     })
 
@@ -263,8 +293,19 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
             throw new Error(`Failed to register ${student.name}`)
           }
 
-          successfulRegistrations.push(student)
-          toast.success(`Đã đăng ký thành công: ${student.name}`)
+          const result = await response.json()
+          const credentials = result.result?.credentials || {}
+
+          // Store student with credentials
+          const registeredStudent = {
+            ...student,
+            user_code: credentials.user_code,
+            email: credentials.email || student.phone ? `${student.phone}@student.school.edu.vn` : ''
+          }
+
+          console.log('Registered student credentials:', credentials)
+          successfulRegistrations.push(registeredStudent)
+          toast.success(`Đã đăng ký thành công: ${student.name} (Mã: ${credentials.user_code})`)
         } catch (error: any) {
           console.error(`Error registering ${student.name}:`, error)
           failedRegistrations.push(`${student.name}: ${error.message}`)
@@ -717,31 +758,68 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
               <h4 className='font-medium text-gray-900 mb-2'>Danh sách đã đăng ký:</h4>
               <div className='space-y-2 text-sm'>
                 {registeredStudents.map((student, index) => (
-                  <div key={index} className='flex justify-between items-center p-2 bg-white rounded border'>
-                    <span>{student.name}</span>
-                    <div className='text-xs text-gray-600'>
-                      <span className='font-mono mr-2'>{student.username}</span>
-                      <span className='font-mono'>{student.password}</span>
+                  <div key={index} className='p-3 bg-white rounded border'>
+                    <div className='flex justify-between items-center mb-1'>
+                      <span className='font-medium'>{student.name}</span>
+                      <span className='text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded'>{student.user_code}</span>
+                    </div>
+                    <div className='text-xs text-gray-600 space-y-0.5'>
+                      <div>
+                        <span className='font-semibold'>Username:</span>{' '}
+                        <span className='font-mono'>{student.username}</span>
+                      </div>
+                      <div>
+                        <span className='font-semibold'>Password:</span>{' '}
+                        <span className='font-mono'>{student.password}</span>
+                      </div>
+                      {student.email && (
+                        <div>
+                          <span className='font-semibold'>Email:</span> {student.email}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <button
-              type='button'
-              onClick={() => {
-                setStep('class')
-                setSelectedClass('')
-                setValue('students', [
-                  { name: '', age: 16, gender: 'nam', phone: '', username: '', password: '', faceImage: null }
-                ])
-                setRegisteredStudents([])
-              }}
-              className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              Đăng ký lớp khác
-            </button>
+            <div className='flex justify-center gap-4'>
+              <button
+                type='button'
+                onClick={downloadStudentsPDF}
+                className='px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center'
+              >
+                <svg
+                  xmlns='http://www.w3.org/2000/svg'
+                  className='h-5 w-5 mr-2'
+                  fill='none'
+                  viewBox='0 0 24 24'
+                  stroke='currentColor'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+                  />
+                </svg>
+                Tải xuống danh sách
+              </button>
+              <button
+                type='button'
+                onClick={() => {
+                  setStep('class')
+                  setSelectedClass('')
+                  setValue('students', [
+                    { name: '', age: 16, gender: 'nam', phone: '', username: '', password: '', faceImage: null }
+                  ])
+                  setRegisteredStudents([])
+                }}
+                className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
+              >
+                Đăng ký lớp khác
+              </button>
+            </div>
           </div>
         )}
       </div>
