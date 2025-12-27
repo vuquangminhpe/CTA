@@ -1,1645 +1,178 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  forwardRef,
-  useImperativeHandle,
-  useMemo,
-  useContext
-} from 'react'
-import {
-  ChevronDown,
-  BookOpen,
-  Users,
-  Award,
-  TrendingUp,
-  Play,
-  Star,
-  ArrowRight,
-  Menu,
-  X,
-  Globe,
-  Shield,
-  Zap,
-  Brain,
-  Heart,
-  CheckCircle,
-  Monitor,
-  BarChart3,
-  Target,
-  Sparkles
-} from 'lucide-react'
+import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { BookOpen, Users, Award, ArrowRight, CheckCircle } from 'lucide-react'
 import path from '@/constants/path'
 import { getAccessTokenFromLS } from '@/utils/auth'
-import { AppContext } from '@/Contexts/app.context'
-import { UserRole } from '@/constants/enum'
-import { usePackages } from '@/hooks/usePayment'
-import { PackageType } from '@/apis/payment.api'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import VideoHLSPlayer from '@/components/Custom/VideoHLSPlayer'
 import SEOComponent from '@/components/SEO/SEOComponent.tsx/SEOComponent'
 
-function cn(...classes: string[]) {
-  return classes.filter(Boolean).join(' ')
-}
-
-// Enhanced RotatingText Component with smooth animations
-const RotatingText = forwardRef((props, ref) => {
-  const {
-    texts,
-    rotationInterval = 3000,
-    staggerDuration = 0.1,
-    staggerFrom = 'first',
-    loop = true,
-    auto = true,
-    splitBy = 'characters',
-    onNext,
-    mainClassName,
-    splitLevelClassName,
-    elementLevelClassName,
-    style,
-    ...rest
-  } = props
-
-  const [currentTextIndex, setCurrentTextIndex] = useState(0)
-  const [isAnimating, setIsAnimating] = useState(false)
-
-  const splitIntoCharacters = (text: Iterable<unknown> | ArrayLike<unknown>) => {
-    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
-      const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' })
-      return Array.from(segmenter.segment(text), (segment) => segment.segment)
-    }
-    return Array.from(text)
-  }
-
-  const elements = useMemo(() => {
-    const currentText = texts[currentTextIndex]
-    if (splitBy === 'characters') {
-      const words = currentText.split(' ')
-      return words.map((word: any, i: number) => ({
-        characters: splitIntoCharacters(word),
-        needsSpace: i !== words.length - 1
-      }))
-    }
-    if (splitBy === 'words') {
-      return currentText.split(' ').map((word: any, i: number, arr: string | any[]) => ({
-        characters: [word],
-        needsSpace: i !== arr.length - 1
-      }))
-    }
-    if (splitBy === 'lines') {
-      return currentText.split('\n').map((line: any, i: number, arr: string | any[]) => ({
-        characters: [line],
-        needsSpace: i !== arr.length - 1
-      }))
-    }
-
-    return currentText.split(splitBy).map((part: any, i: number, arr: string | any[]) => ({
-      characters: [part],
-      needsSpace: i !== arr.length - 1
-    }))
-  }, [texts, currentTextIndex, splitBy])
-
-  const getStaggerDelay = useCallback(
-    (index: number, totalChars: any) => {
-      const total = totalChars
-      if (staggerFrom === 'first') return index * staggerDuration
-      if (staggerFrom === 'last') return (total - 1 - index) * staggerDuration
-      if (staggerFrom === 'center') {
-        const center = Math.floor(total / 2)
-        return Math.abs(center - index) * staggerDuration
-      }
-      if (staggerFrom === 'random') {
-        const randomIndex = Math.floor(Math.random() * total)
-        return Math.abs(randomIndex - index) * staggerDuration
-      }
-      return Math.abs(staggerFrom - index) * staggerDuration
-    },
-    [staggerFrom, staggerDuration]
-  )
-
-  const handleIndexChange = useCallback(
-    (newIndex: React.SetStateAction<number>) => {
-      setIsAnimating(true)
-      setTimeout(() => {
-        setCurrentTextIndex(newIndex)
-        setTimeout(() => setIsAnimating(false), 800)
-      }, 400)
-      if (onNext) onNext(newIndex)
-    },
-    [onNext]
-  )
-
-  const next = useCallback(() => {
-    const nextIndex = currentTextIndex === texts.length - 1 ? (loop ? 0 : currentTextIndex) : currentTextIndex + 1
-    if (nextIndex !== currentTextIndex) {
-      handleIndexChange(nextIndex)
-    }
-  }, [currentTextIndex, texts.length, loop, handleIndexChange])
-
-  const previous = useCallback(() => {
-    const prevIndex = currentTextIndex === 0 ? (loop ? texts.length - 1 : currentTextIndex) : currentTextIndex - 1
-    if (prevIndex !== currentTextIndex) {
-      handleIndexChange(prevIndex)
-    }
-  }, [currentTextIndex, texts.length, loop, handleIndexChange])
-
-  const jumpTo = useCallback(
-    (index: number) => {
-      const validIndex = Math.max(0, Math.min(index, texts.length - 1))
-      if (validIndex !== currentTextIndex) {
-        handleIndexChange(validIndex)
-      }
-    },
-    [texts.length, currentTextIndex, handleIndexChange]
-  )
-
-  const reset = useCallback(() => {
-    if (currentTextIndex !== 0) {
-      handleIndexChange(0)
-    }
-  }, [currentTextIndex, handleIndexChange])
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      next,
-      previous,
-      jumpTo,
-      reset
-    }),
-    [next, previous, jumpTo, reset]
-  )
-
-  useEffect(() => {
-    if (!auto) return
-    const intervalId = setInterval(next, rotationInterval)
-    return () => clearInterval(intervalId)
-  }, [next, rotationInterval, auto])
-
-  return (
-    <span
-      className={cn('flex flex-wrap whitespace-pre-wrap relative overflow-hidden', mainClassName)}
-      style={style}
-      {...rest}
-    >
-      <span className='sr-only'>{texts[currentTextIndex]}</span>
-      <div
-        className={cn(
-          splitBy === 'lines' ? 'flex flex-col w-full' : 'flex flex-wrap whitespace-pre-wrap relative',
-          isAnimating ? 'rotating-text-animating' : 'rotating-text-stable'
-        )}
-        aria-hidden='true'
-      >
-        {elements.map((wordObj: { characters: any[]; needsSpace: any }, wordIndex: any, array: any[]) => {
-          const previousCharsCount = array
-            .slice(0, wordIndex)
-            .reduce((sum: any, word: { characters: string | any[] }) => sum + word.characters.length, 0)
-          return (
-            <span key={`${currentTextIndex}-${wordIndex}`} className={cn('inline-flex', splitLevelClassName)}>
-              {wordObj.characters.map(
-                (
-                  char:
-                    | string
-                    | number
-                    | boolean
-                    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-                    | Iterable<React.ReactNode>
-                    | React.ReactPortal
-                    | null
-                    | undefined,
-                  charIndex: any
-                ) => (
-                  <span
-                    key={`${currentTextIndex}-${wordIndex}-${charIndex}`}
-                    className={cn('inline-block rotating-char', elementLevelClassName)}
-                    style={{
-                      animationDelay: `${getStaggerDelay(
-                        previousCharsCount + charIndex,
-                        array.reduce(
-                          (sum: any, word: { characters: string | any[] }) => sum + word.characters.length,
-                          0
-                        )
-                      )}s`
-                    }}
-                  >
-                    {char}
-                  </span>
-                )
-              )}
-              {wordObj.needsSpace && <span className='whitespace-pre'> </span>}
-            </span>
-          )
-        })}
-      </div>
-    </span>
-  )
-})
-
-RotatingText.displayName = 'RotatingText'
-
-// Mouse Animation Component
-const COLORS: string[] = ['#8B5CF6', '#EC4899', '#06B6D4', '#F59E0B', '#10B981', '#EF4444']
-const NUM_POINTS: number = 60
-const MAX_DISTANCE: number = 120
-
-interface Point {
-  x: number
-  y: number
-  vx: number
-  vy: number
-  color: string
-}
-
-interface MousePosition {
-  x: number
-  y: number
-}
-
-interface MouseAnimateProps {
-  className?: string
-}
-
-const MouseAnimate: React.FC<MouseAnimateProps> = ({ className }) => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [, setPoints] = useState<Point[]>([])
-  const mousePosRef = useRef<MousePosition>({ x: 0, y: 0 })
-  const animationRef = useRef<number>()
-  const initializePoints = useCallback((width: number, height: number): Point[] => {
-    return Array.from({ length: NUM_POINTS }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 1.5,
-      vy: (Math.random() - 0.5) * 1.5,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)]
-    }))
-  }, [])
-  const updatePoints = useCallback((width: number, height: number, currentPoints: Point[]): Point[] => {
-    return currentPoints.map((point) => {
-      const newX = point.x + point.vx
-      const newY = point.y + point.vy
-
-      if (newX < 0 || newX > width) point.vx *= -1
-      if (newY < 0 || newY > height) point.vy *= -1
-
-      return {
-        ...point,
-        x: Math.max(0, Math.min(newX, width)),
-        y: Math.max(0, Math.min(newY, height))
-      }
-    })
-  }, [])
-
-  const drawCanvas = useCallback(
-    (ctx: CanvasRenderingContext2D, width: number, height: number, currentPoints: Point[]) => {
-      ctx.clearRect(0, 0, width, height)
-
-      currentPoints.forEach((point, i) => {
-        ctx.beginPath()
-        ctx.arc(point.x, point.y, 2, 0, Math.PI * 2)
-        ctx.fillStyle = point.color + '80'
-        ctx.fill()
-
-        for (let j = i + 1; j < currentPoints.length; j++) {
-          const otherPoint = currentPoints[j]
-          const dx = point.x - otherPoint.x
-          const dy = point.y - otherPoint.y
-          const distance = Math.sqrt(dx * dx + dy * dy)
-
-          if (distance < MAX_DISTANCE) {
-            ctx.beginPath()
-            ctx.moveTo(point.x, point.y)
-            ctx.lineTo(otherPoint.x, otherPoint.y)
-            ctx.strokeStyle = `rgba(${parseInt(point.color.slice(1, 3), 16)}, ${parseInt(point.color.slice(3, 5), 16)}, ${parseInt(point.color.slice(5, 7), 16)}, ${0.3 * (1 - distance / MAX_DISTANCE)})`
-            ctx.lineWidth = 1
-            ctx.stroke()
-          }
-        }
-      })
-
-      currentPoints.forEach((point) => {
-        const dx = point.x - mousePosRef.current.x
-        const dy = point.y - mousePosRef.current.y
-        const distance = Math.sqrt(dx * dx + dy * dy)
-
-        if (distance < MAX_DISTANCE) {
-          ctx.beginPath()
-          ctx.moveTo(point.x, point.y)
-          ctx.lineTo(mousePosRef.current.x, mousePosRef.current.y)
-          ctx.strokeStyle = `rgba(139, 92, 246, ${0.5 * (1 - distance / MAX_DISTANCE)})`
-          ctx.lineWidth = 2
-          ctx.stroke()
-        }
-      })
-    },
-    []
-  )
-
-  const animate = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    setPoints((prevPoints) => {
-      const updatedPoints = updatePoints(canvas.width, canvas.height, prevPoints)
-      drawCanvas(ctx, canvas.width, canvas.height, updatedPoints)
-      return updatedPoints
-    })
-
-    animationRef.current = requestAnimationFrame(animate)
-  }, [updatePoints, drawCanvas])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const handleResize = () => {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-      setPoints(initializePoints(canvas.width, canvas.height))
-    }
-
-    const handleMouseMove = (event: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect()
-      mousePosRef.current = {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top
-      }
-    }
-
-    handleResize()
-    window.addEventListener('resize', handleResize)
-    canvas.addEventListener('mousemove', handleMouseMove)
-
-    animationRef.current = requestAnimationFrame(animate)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      canvas.removeEventListener('mousemove', handleMouseMove)
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-      }
-    }
-  }, [animate, initializePoints])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className={className}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none'
-      }}
-    />
-  )
-}
-
-const UltraStunningHomepage = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [currentBanner, setCurrentBanner] = useState(0)
-  const [, setIsHovered] = useState(false)
-  const [scrollY, setScrollY] = useState(0)
-  const heroRef = useRef(null)
+const Home = () => {
   const navigate = useNavigate()
-  const banners = ['/banner1.png', '/banner2.png', '/banner3.png', '/banner4.png']
-  const { data: packages } = usePackages()
-
-  // Smooth scroll function
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
-
-  // Advanced mouse tracking with smooth interpolation
-  useEffect(() => {
-    const handleMouseMove = (e: { clientX: number; clientY: number }) => {
-      const x = (e.clientX / window.innerWidth) * 2 - 1
-      const y = (e.clientY / window.innerHeight) * 2 - 1
-      setMousePosition({ x, y })
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
-
-  // Scroll detection and parallax
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      setIsScrolled(currentScrollY > 50)
-      setScrollY(currentScrollY)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  // Auto-change banner carousel
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % banners.length)
-    }, 4000)
-    return () => clearInterval(timer)
-  }, [banners.length])
-  const [activeVideoDemo, setActiveVideoDemo] = useState(false)
 
   const features = [
     {
-      icon: <BookOpen className='w-6 h-6 sm:w-8 sm:h-8' />,
-      title: 'Ngân hàng đề thi AI',
-      description: 'Tạo đề thi thông minh với AI, tự động phân loại theo độ khó và phân bố điểm số chuẩn',
-      gradient: 'from-purple-500 via-pink-500 to-rose-500',
-      delay: 'delay-100',
-      bgColor: 'bg-purple-50'
+      icon: BookOpen,
+      title: 'Ngân hàng đề thi',
+      description: 'Tạo đề thi thông minh với AI, phân loại theo độ khó'
     },
     {
-      icon: <Monitor className='w-6 h-6 sm:w-8 sm:h-8' />,
-      title: 'Quản lý kỳ thi bảo mật cao',
-      description: 'Hệ thống chống gian lận với nhận diện khuôn mặt và giám sát hành vi theo thời gian thực',
-      gradient: 'from-blue-500 via-cyan-500 to-teal-500',
-      delay: 'delay-200',
-      bgColor: 'bg-blue-50'
+      icon: Users,
+      title: 'Quản lý lớp học',
+      description: 'Quản lý học sinh và theo dõi tiến độ học tập'
     },
     {
-      icon: <BarChart3 className='w-6 h-6 sm:w-8 sm:h-8' />,
-      title: 'Phân tích học tập AI',
-      description: 'AI phân tích điểm yếu, điểm mạnh và tạo các nhận xét, lộ trình tập cá nhân hóa',
-      gradient: 'from-emerald-500 via-green-500 to-lime-500',
-      delay: 'delay-300',
-      bgColor: 'bg-emerald-50'
-    },
-    {
-      icon: <Target className='w-6 h-6 sm:w-8 sm:h-8' />,
-      title: 'Hệ thống tạo câu hỏi thông minh',
-      description: 'Hệ thống tự động tạo các câu hỏi ở tất cả các môn học giúp cho giáo viên tiết kiệm thời gian',
-      gradient: 'from-orange-500 via-amber-500 to-yellow-500',
-      delay: 'delay-400',
-      bgColor: 'bg-orange-50'
-    },
-    {
-      icon: <Shield className='w-6 h-6 sm:w-8 sm:h-8' />,
-      title: 'Kết nối',
-      description: 'Kết nối, chia sẻ các câu hỏi với các giáo viên khác trong hệ thống thông qua',
-      gradient: 'from-violet-500 via-purple-500 to-indigo-500',
-      delay: 'delay-500',
-      bgColor: 'bg-violet-50'
-    },
-    {
-      icon: <Sparkles className='w-6 h-6 sm:w-8 sm:h-8' />,
-      title: 'Thống kê, tự động nhận xét theo chuẩn BGD',
-      description:
-        'Thiết kế lớp, phân tích điểm, tự động đưa ra nhận xét chuẩn format và theo luật hiện hành của Bộ Giáo Dục ban hành (Chuẩn format như smas,...)',
-      gradient: 'from-pink-500 via-rose-500 to-red-500',
-      delay: 'delay-600',
-      bgColor: 'bg-pink-50'
+      icon: Award,
+      title: 'Chấm điểm tự động',
+      description: 'Hệ thống chấm điểm nhanh chóng và chính xác'
     }
   ]
-  const profile = useContext(AppContext).profile
+
   return (
     <>
       <SEOComponent
-        title='Thionl - Nền tảng thi trực tuyến thông minh với AI'
-        description='Hệ thống thi trực tuyến AI tiên tiến, tạo đề thi tự động, chống gian lận và phân tích học tập cá nhân hóa cho giáo dục Việt Nam'
+        title='Thionl - Nền tảng thi trực tuyến'
+        description='Hệ thống thi trực tuyến với AI cho giáo dục'
         canonical='https://thionl.site/'
-        openGraph={{
-          title: 'Thionl - Cách mạng giáo dục với AI',
-          description: 'Trải nghiệm AI thế hệ mới trong giáo dục',
-          image: 'https://thionl.site/images/home-og.png',
-          type: 'website'
-        }}
       />
-      <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50  text-gray-900 overflow-x-hidden relative'>
-        {/* Interactive Mouse Animation Background */}
-        <div className='fixed inset-0 z-0 pointer-events-none'>
-          <MouseAnimate className='w-full h-full' />
-        </div>
 
-        {/* Advanced Floating Shapes */}
-        <div className='fixed inset-0 overflow-hidden pointer-events-none z-0'>
-          <div
-            className='absolute top-10 sm:top-20 left-10 sm:left-20 w-48 h-48 sm:w-72 sm:h-72 bg-gradient-to-r from-cyan-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse'
-            style={{
-              transform: `translate(${mousePosition.x * 30}px, ${mousePosition.y * 30}px) translate(0, ${scrollY * -0.5}px)`,
-              transition: 'transform 0.3s ease-out'
-            }}
-          />
-          <div
-            className='absolute bottom-16 sm:bottom-32 right-16 sm:right-32 w-64 h-64 sm:w-96 sm:h-96 bg-gradient-to-r from-blue-400/10 to-teal-400/10 rounded-full blur-3xl animate-pulse delay-1000'
-            style={{
-              transform: `translate(${mousePosition.x * -25}px, ${mousePosition.y * -25}px) translate(0, ${scrollY * -0.3}px)`,
-              transition: 'transform 0.3s ease-out'
-            }}
-          />
-          <div
-            className='absolute top-1/2 left-1/3 w-32 h-32 sm:w-64 sm:h-64 bg-gradient-to-r from-teal-400/10 to-cyan-400/10 rounded-full blur-2xl animate-bounce'
-            style={{
-              transform: `translate(${mousePosition.x * 15}px, ${mousePosition.y * 15}px) translate(0, ${scrollY * -0.2}px)`,
-              animationDuration: '4s'
-            }}
-          />
-        </div>
-
-        {/* Ultra Transparent Glassmorphism Navigation */}
-        <nav
-          className={`fixed top-0 w-full z-50 transition-all duration-700 ${
-            isScrolled
-              ? 'bg-white/20 backdrop-blur-2xl border-b border-white/20 shadow-lg shadow-white/10'
-              : 'bg-white/10 backdrop-blur-xl border-b border-white/10'
-          }`}
-          style={{
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            background: isScrolled
-              ? 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))'
-              : 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02))'
-          }}
-        >
-          <div className='max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4'>
+      <div className='min-h-screen bg-neutral-50'>
+        {/* Header */}
+        <header className='bg-white border-b border-neutral-200'>
+          <div className='max-w-7xl mx-auto px-4 sm:px-6 py-4'>
             <div className='flex items-center justify-between'>
-              <div className='flex items-center space-x-2 sm:space-x-4'>
-                <div className='relative group cursor-pointer'>
-                  <div className='w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-r from-cyan-500/80 via-blue-500/80 to-teal-500/80 backdrop-blur-sm rounded-xl sm:rounded-2xl flex items-center justify-center transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 shadow-lg shadow-cyan-200/50 border border-white/20'>
-                    <img
-                      src={'https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/MD.jpg'}
-                      alt=''
-                      className='size-full rounded-xl sm:rounded-2xl text-white'
-                    />
-                  </div>
-                  <div className='absolute inset-0 bg-gradient-to-r from-cyan-500/50 via-blue-500/50 to-teal-500/50 rounded-xl sm:rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500' />
+              <div className='flex items-center space-x-3'>
+                <div className='w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center'>
+                  <BookOpen className='w-6 h-6 text-white' />
                 </div>
-                <div>
-                  <span className='text-xl sm:text-3xl font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-teal-600 bg-clip-text text-transparent drop-shadow-sm'>
-                    Thionl
-                  </span>
-                  <div className='text-xs sm:text-sm text-cyan-600/80 font-semibold drop-shadow-sm'>
-                    Giáo dục thông minh 4.0
-                  </div>
-                </div>
+                <span className='text-xl font-bold text-neutral-900'>Thionl</span>
               </div>
 
-              <div className='hidden md:flex items-center space-x-8'>
-                {[
-                  { name: 'Tính năng', id: 'features' },
-                  { name: 'Bảng giá', id: 'pricing' },
-                  { name: 'Giới thiệu', id: 'hero' },
-                  { name: 'Liên hệ', id: 'contact' }
-                ].map((item, index) => (
-                  <button
-                    key={index}
-                    onClick={() => scrollToSection(item.id)}
-                    className='bg-white relative z-10 group px-4 py-2 text-gray-700/90 hover:text-cyan-600 backdrop-blur-sm transition-all duration-300 font-medium drop-shadow-sm text-sm lg:text-base'
-                  >
-                    {item.name}
-                    <div className='absolute bottom-0 translate-y-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
-                    <div className=' bg-white/0 group-hover:bg-white/20 rounded-lg transition-all duration-300 backdrop-blur-sm' />
-                  </button>
-                ))}
-              </div>
-
-              <div className='flex items-center space-x-2 sm:space-x-4'>
+              <div className='flex items-center space-x-4'>
                 {!getAccessTokenFromLS() && (
-                  <button className='bg-white hidden md:block relative px-4 sm:px-6 py-2 sm:py-3 border-2 border-cyan-300/60 text-cyan-700 rounded-xl sm:rounded-2xl hover:bg-white/20 hover:border-cyan-400/80 transition-all duration-300 group overflow-hidden font-semibold backdrop-blur-sm text-sm lg:text-base'>
-                    <span onClick={() => navigate(path.login)} className='relative z-10'>
+                  <>
+                    <button
+                      onClick={() => navigate(path.login)}
+                      className='px-4 py-2 text-neutral-700 hover:text-neutral-900 font-medium'
+                    >
                       Đăng nhập
-                    </span>
-                    <div className='absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700' />
+                    </button>
+                    <button
+                      onClick={() => navigate(path.register)}
+                      className='px-6 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 font-medium'
+                    >
+                      Đăng ký
+                    </button>
+                  </>
+                )}
+                {getAccessTokenFromLS() && (
+                  <button
+                    onClick={() => navigate(path.home)}
+                    className='px-6 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 font-medium'
+                  >
+                    Vào hệ thống
                   </button>
                 )}
-
-                <button className='relative px-4 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-cyan-500/90 via-blue-500/90 to-teal-500/90 backdrop-blur-sm text-white rounded-xl sm:rounded-2xl font-bold hover:shadow-2xl hover:shadow-cyan-300/50 transform hover:-translate-y-1 hover:scale-105 transition-all duration-500 group overflow-hidden border border-white/20 text-xs sm:text-base'>
-                  <span className='relative z-10 flex items-center space-x-1 sm:space-x-2'>
-                    {!getAccessTokenFromLS() && (
-                      <span onClick={() => navigate(path.register)} className='truncate'>
-                        <span className='hidden sm:inline'>Đăng ký dùng ngay bây giờ</span>
-                        <span className='sm:hidden'>Đăng ký</span>
-                      </span>
-                    )}
-                    {getAccessTokenFromLS() && (
-                      <span
-                        onClick={() => navigate(profile?.role === UserRole.Teacher ? '/teacher' : '/student')}
-                        className='truncate'
-                      >
-                        <span className='hidden sm:inline'>Quay lại bảng điều khiển</span>
-                        <span className='sm:hidden'>Bảng điều khiển</span>
-                      </span>
-                    )}
-                    <ArrowRight className='w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform' />
-                  </span>
-                  <div className='absolute inset-0 bg-gradient-to-r from-teal-500/90 via-blue-500/90 to-cyan-500/90 opacity-0 group-hover:opacity-100 transition-opacity duration-500' />
-                </button>
-
-                <button
-                  className='md:hidden p-2 sm:p-3 hover:bg-white/20 rounded-xl transition-colors backdrop-blur-sm border border-white/10'
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                >
-                  {isMenuOpen ? <X className='text-cyan-600 w-5 h-5' /> : <Menu className='text-cyan-600 w-5 h-5' />}
-                </button>
               </div>
             </div>
           </div>
-        </nav>
+        </header>
 
-        {/* Mobile Menu */}
-        <div
-          className={`fixed inset-0 z-40 md:hidden transition-all duration-500 ${
-            isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
-          }`}
-        >
-          <div
-            className='absolute inset-0 backdrop-blur-2xl'
-            style={{
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1))',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)'
-            }}
-          />
-          <div className='relative flex flex-col items-center justify-center h-full space-y-6 sm:space-y-8 text-xl sm:text-2xl'>
-            {[
-              { name: 'Tính năng', id: 'features' },
-              { name: 'Bảng giá', id: 'pricing' },
-              { name: 'Giới thiệu', id: 'hero' },
-              { name: 'Liên hệ', id: 'contact' }
-            ].map((item, index) => (
+        {/* Hero Section */}
+        <section className='py-20 px-4'>
+          <div className='max-w-4xl mx-auto text-center'>
+            <h1 className='text-5xl font-bold text-neutral-900 mb-6'>
+              Nền tảng thi trực tuyến
+              <span className='block mt-2 text-neutral-600'>thông minh với AI</span>
+            </h1>
+            <p className='text-xl text-neutral-600 mb-8 max-w-2xl mx-auto'>
+              Giải pháp toàn diện cho giáo viên và học sinh, tạo đề thi, quản lý và chấm điểm tự động
+            </p>
+            <div className='flex gap-4 justify-center'>
               <button
-                key={index}
-                onClick={() => {
-                  scrollToSection(item.id)
-                  setIsMenuOpen(false)
-                }}
-                className='text-gray-700 hover:text-cyan-600 transition-colors font-semibold drop-shadow-sm'
+                onClick={() => navigate(path.register)}
+                className='px-8 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 font-medium flex items-center gap-2'
               >
-                {item.name}
+                Bắt đầu ngay
+                <ArrowRight className='w-5 h-5' />
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Revolutionary Hero Section */}
-        <section
-          id='hero'
-          ref={heroRef}
-          className='relative min-h-screen flex items-center justify-center overflow-hidden pt-16 sm:pt-20'
-        >
-          {/* Hero Background with 3D Parallax Images */}
-          <div className='absolute inset-0 perspective-1000'>
-            <div className='relative w-full h-full preserve-3d'>
-              {banners.map((banner, index) => {
-                const rotation = (index - currentBanner) * 45
-                const isActive = index === currentBanner
-                return (
-                  <div
-                    key={index}
-                    className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
-                      isActive ? 'opacity-20 z-10' : 'opacity-5 z-0'
-                    }`}
-                    style={{
-                      transform: `rotateY(${rotation}deg) translateZ(${isActive ? '0px' : '-300px'}) scale(${isActive ? 1.1 : 0.7})`,
-                      filter: `blur(${isActive ? '0px' : '8px'}) brightness(${isActive ? 1.2 : 0.8})`
-                    }}
-                  >
-                    <img src={banner} alt={`Banner ${index + 1}`} className='w-full h-full object-cover opacity-40' />
-                    <div className='absolute inset-0 bg-gradient-to-br from-cyan-100/60 via-blue-100/40 to-teal-100/60' />
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Hero Content */}
-          <div className='relative z-20 max-w-7xl mx-auto px-4 sm:px-6 text-center'>
-            <div className='space-y-8 sm:space-y-12'>
-              {/* Revolutionary Title with Enhanced RotatingText */}
-              <div className='space-y-4 sm:space-y-6'>
-                <h1 className='text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-tight'>
-                  <div className='relative'>
-                    <RotatingText
-                      texts={['Cách mạng', 'Tương lai', 'Đột phá', 'Sáng tạo', 'Tiên phong']}
-                      mainClassName='inline-block gradient-text-1 p-2 sm:p-5'
-                      staggerFrom='center'
-                      staggerDuration={0.08}
-                      splitLevelClassName='overflow-hidden'
-                      rotationInterval={4000}
-                    />
-                    <div className='absolute inset-0 bg-gradient-to-r from-cyan-600 via-blue-600 to-teal-600 bg-clip-text text-transparent blur-3xl opacity-30' />
-                  </div>
-
-                  <div className='relative mb-2 sm:mb-4'>
-                    <RotatingText
-                      texts={['Giáo dục', 'Học tập', 'Tri thức', 'Đào tạo']}
-                      mainClassName='inline-block gradient-text-2 p-2 sm:p-5'
-                      staggerFrom='first'
-                      staggerDuration={0.06}
-                      splitLevelClassName='overflow-hidden'
-                      rotationInterval={3500}
-                    />
-                    <div className='absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent blur-3xl opacity-30' />
-                  </div>
-
-                  <div className='relative'>
-                    <RotatingText
-                      texts={['Việt Nam', 'Thế giới', 'Toàn cầu', 'Quốc tế']}
-                      mainClassName='inline-block gradient-text-3 p-2 sm:p-5'
-                      staggerFrom='last'
-                      staggerDuration={0.1}
-                      splitLevelClassName='overflow-hidden'
-                      rotationInterval={4500}
-                    />
-                    <div className='absolute inset-0 bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent blur-3xl opacity-30' />
-                  </div>
-                </h1>
-              </div>
-
-              {/* Revolutionary Subtitle */}
-              <p className='text-lg sm:text-2xl md:text-3xl text-gray-600 max-w-5xl mx-auto leading-relaxed font-light px-4'>
-                Trải nghiệm
-                <span className='font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent'>
-                  {' '}
-                  AI thế hệ mới{' '}
-                </span>
-                trong giáo dục,
-                <span className='font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent'>
-                  {' '}
-                  cá nhân hóa{' '}
-                </span>
-                lộ trình học tập và
-                <span className='font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent'>
-                  {' '}
-                  nâng tầm tri thức{' '}
-                </span>
-                cho thế hệ tương lai.
-              </p>
-
-              {/* Powerful CTAs with 3D Effects */}
-              <div className='flex flex-col sm:flex-row gap-4 sm:gap-8 justify-center items-center pt-6 sm:pt-8 px-4'>
-                <button
-                  className='group relative w-full sm:w-auto px-8 sm:px-12 py-4 sm:py-6 bg-gradient-to-r from-cyan-500 via-blue-500 to-teal-500 text-white rounded-2xl sm:rounded-3xl text-lg sm:text-xl font-bold hover:shadow-2xl hover:shadow-cyan-300/50 transform hover:-translate-y-3 hover:scale-105 transition-all duration-500 overflow-hidden'
-                  onMouseEnter={() => setIsHovered(true)}
-                  onMouseLeave={() => setIsHovered(false)}
-                  onClick={() => navigate(path.register)}
-                >
-                  <span className='relative z-10 flex items-center justify-center space-x-2 sm:space-x-3'>
-                    <Sparkles className='w-5 h-5 sm:w-6 sm:h-6 group-hover:rotate-12 transition-transform duration-300' />
-                    <span>Khám phá ngay</span>
-                    <ArrowRight className='w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-2 transition-transform duration-300' />
-                  </span>
-                  <div className='absolute inset-0 bg-gradient-to-r from-teal-500 via-blue-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500' />
-                  <div className='absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700' />
-                </button>
-
-                <button
-                  onClick={() => setActiveVideoDemo(true)}
-                  className='group flex items-center justify-center space-x-2 sm:space-x-4 w-full sm:w-auto px-8 sm:px-12 py-4 sm:py-6 bg-white/80 backdrop-blur-xl border-2 border-cyan-200 rounded-2xl sm:rounded-3xl hover:border-blue-400 hover:bg-white/90 hover:shadow-xl hover:shadow-cyan-200/50 transition-all duration-500 text-lg sm:text-xl font-bold text-gray-700'
-                >
-                  <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg'>
-                    <Play className='w-6 h-6 sm:w-8 sm:h-8 text-white ml-1' />
-                  </div>
-                  <span>Xem Demo</span>
-                </button>
-              </div>
-
-              {/* Animated Live Stats */}
-              <div className='grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 pt-12 sm:pt-16 px-4'>
-                {[
-                  {
-                    number: '100+',
-                    label: 'Học sinh',
-                    icon: <Users className='w-4 h-4 sm:w-6 sm:h-6' />,
-                    color: 'text-cyan-600',
-                    bg: 'bg-cyan-100'
-                  },
-                  {
-                    number: '40+',
-                    label: 'Giáo viên',
-                    icon: <Award className='w-4 h-4 sm:w-6 sm:h-6' />,
-                    color: 'text-blue-600',
-                    bg: 'bg-blue-100'
-                  },
-                  {
-                    number: '99%',
-                    label: 'Độ chính xác',
-                    icon: <Brain className='w-4 h-4 sm:w-6 sm:h-6' />,
-                    color: 'text-teal-600',
-                    bg: 'bg-teal-100'
-                  },
-                  {
-                    number: '24/7',
-                    label: 'AI Support',
-                    icon: <Shield className='w-4 h-4 sm:w-6 sm:h-6' />,
-                    color: 'text-indigo-600',
-                    bg: 'bg-indigo-100'
-                  }
-                ].map((stat, index) => (
-                  <div
-                    key={index}
-                    className='group relative p-4 sm:p-8 bg-white/80 backdrop-blur-2xl border border-cyan-100 rounded-2xl sm:rounded-3xl hover:border-blue-300 hover:-translate-y-2 sm:hover:-translate-y-4 hover:shadow-xl hover:shadow-cyan-200/50 transition-all duration-500'
-                    style={{
-                      animationDelay: `${index * 200}ms`
-                    }}
-                  >
-                    <div
-                      className={`flex items-center justify-center mb-2 sm:mb-4 ${stat.color} ${stat.bg} w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl mx-auto group-hover:scale-110 group-hover:rotate-12 transition-all duration-300`}
-                    >
-                      {stat.icon}
-                    </div>
-                    <div className='text-2xl sm:text-3xl md:text-4xl font-black text-gray-800 mb-1 sm:mb-2 group-hover:scale-110 transition-transform duration-300'>
-                      {stat.number}
-                    </div>
-                    <div className='text-gray-600 font-semibold text-sm sm:text-base'>{stat.label}</div>
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-br ${stat.bg.replace('100', '50')} rounded-2xl sm:rounded-3xl opacity-0 group-hover:opacity-50 transition-opacity duration-500`}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Interactive Scroll Indicator */}
-          <div className='absolute bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 sm:space-y-4 animate-bounce'>
-            <div className='text-cyan-600 text-xs sm:text-sm font-bold'>Khám phá thêm</div>
-            <div className='w-8 h-8 sm:w-10 sm:h-10 border-2 border-cyan-400 rounded-full flex items-center justify-center'>
-              <ChevronDown className='w-4 h-4 sm:w-6 sm:h-6 text-cyan-600' />
             </div>
           </div>
         </section>
 
-        {/* Next-Gen Features Section */}
-        <section id='features' className='relative py-16 sm:py-32 bg-gradient-to-b from-blue-50 via-white to-cyan-50'>
-          <div className='max-w-7xl mx-auto px-4 sm:px-6'>
-            <div className='text-center mb-12 sm:mb-20'>
-              <div className='inline-block mb-6 sm:mb-8'>
-                <div className='text-cyan-600 text-base sm:text-lg font-bold mb-2 flex items-center justify-center space-x-2'>
-                  <Sparkles className='w-4 h-4 sm:w-5 sm:h-5' />
-                  <span>Công nghệ đột phá</span>
-                  <Sparkles className='w-4 h-4 sm:w-5 sm:h-5' />
-                </div>
-                <h2 className='text-3xl sm:text-5xl md:text-7xl font-black leading-tight'>
-                  <span className='bg-gradient-to-r from-cyan-600 via-blue-600 to-teal-600 bg-clip-text text-transparent'>
-                    AI thế hệ mới
-                  </span>
-                  <br />
-                  <span className='text-gray-800'>cho giáo dục</span>
-                </h2>
-              </div>
-              <p className='text-lg sm:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed'>
-                Khám phá những công nghệ AI tiên tiến nhất đang định hình lại tương lai giáo dục Việt Nam
-              </p>
+        {/* Stats */}
+        <section className='py-12 px-4 bg-white border-y border-neutral-200'>
+          <div className='max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8'>
+            <div className='text-center'>
+              <div className='text-3xl font-bold text-neutral-900 mb-2'>100+</div>
+              <div className='text-neutral-600'>Học sinh</div>
+            </div>
+            <div className='text-center'>
+              <div className='text-3xl font-bold text-neutral-900 mb-2'>40+</div>
+              <div className='text-neutral-600'>Giáo viên</div>
+            </div>
+            <div className='text-center'>
+              <div className='text-3xl font-bold text-neutral-900 mb-2'>99%</div>
+              <div className='text-neutral-600'>Độ chính xác</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className='py-20 px-4'>
+          <div className='max-w-6xl mx-auto'>
+            <div className='text-center mb-16'>
+              <h2 className='text-4xl font-bold text-neutral-900 mb-4'>Tính năng nổi bật</h2>
+              <p className='text-xl text-neutral-600'>Những công cụ cần thiết cho giáo dục hiện đại</p>
             </div>
 
-            <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10'>
+            <div className='grid md:grid-cols-3 gap-8'>
               {features.map((feature, index) => (
                 <div
                   key={index}
-                  className={`group relative p-6 sm:p-10 ${feature.bgColor} border-2 border-gray-100 rounded-2xl sm:rounded-3xl hover:border-purple-300 hover:-translate-y-4 sm:hover:-translate-y-8 hover:rotate-2 hover:shadow-2xl hover:shadow-purple-200/50 transition-all duration-700 ${feature.delay} animate-fade-in-up overflow-hidden cursor-pointer`}
+                  className='bg-white p-8 rounded-xl border border-neutral-200 hover:border-neutral-300 transition-colors'
                 >
-                  {/* Gradient Background Effect */}
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-700 rounded-2xl sm:rounded-3xl`}
-                  />
-
-                  {/* Icon with Advanced 3D Effect */}
-                  <div
-                    className={`relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r ${feature.gradient} rounded-2xl sm:rounded-3xl flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 shadow-lg mx-auto`}
-                  >
-                    <div className='text-white transform group-hover:scale-110 transition-transform duration-300'>
-                      {feature.icon}
-                    </div>
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-r ${feature.gradient} rounded-2xl sm:rounded-3xl blur-xl opacity-50 group-hover:opacity-80 transition-opacity duration-500`}
-                    />
+                  <div className='w-12 h-12 bg-neutral-100 rounded-lg flex items-center justify-center mb-4'>
+                    <feature.icon className='w-6 h-6 text-neutral-700' />
                   </div>
-
-                  <h3 className='text-lg sm:text-2xl font-black text-gray-800 mb-4 sm:mb-6 text-center group-hover:text-purple-700 transition-colors duration-300'>
-                    {feature.title}
-                  </h3>
-
-                  <p className='text-gray-600 text-base sm:text-lg leading-relaxed text-center group-hover:text-gray-700 transition-colors duration-300'>
-                    {feature.description}
-                  </p>
-
-                  {/* Interactive Hover Lines */}
-                  <div className='absolute top-0 left-0 w-0 h-2 bg-gradient-to-r from-purple-500 to-pink-500 group-hover:w-full transition-all duration-700 rounded-t-2xl sm:rounded-t-3xl' />
-                  <div className='absolute bottom-0 right-0 w-0 h-2 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-700 delay-200 rounded-b-2xl sm:rounded-b-3xl' />
-
-                  {/* Floating Elements */}
-                  <div className='absolute -top-2 -right-2 w-4 h-4 sm:w-6 sm:h-6 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full opacity-0 group-hover:opacity-100 animate-ping transition-opacity duration-500' />
+                  <h3 className='text-xl font-bold text-neutral-900 mb-2'>{feature.title}</h3>
+                  <p className='text-neutral-600'>{feature.description}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Ultra Product Showcase */}
-        <section className='relative py-16 sm:py-32 bg-gradient-to-b from-blue-50 via-white to-cyan-50'>
-          <div className='max-w-7xl mx-auto px-4 sm:px-6'>
-            <div className='text-center mb-12 sm:mb-20'>
-              <h2 className='text-3xl sm:text-5xl md:text-6xl font-black mb-4 sm:mb-6'>
-                <span className='bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent'>
-                  Giao diện
-                </span>
-                <span className='text-gray-800'> tương lai</span>
-              </h2>
-              <p className='text-lg sm:text-2xl text-gray-600 max-w-3xl mx-auto'>
-                Thiết kế UI/UX đẹp, mang lại trải nghiệm tốt cho người dùng
-              </p>
-            </div>
-
-            <div className='space-y-16 sm:space-y-32'>
-              {/* Showcase 1 - Enhanced */}
-              <div className='grid lg:grid-cols-2 gap-10 sm:gap-20 items-center'>
-                <div className='group relative order-2 lg:order-1'>
-                  <div className='relative transform group-hover:scale-105 group-hover:-rotate-3 transition-all duration-700'>
-                    <div className='absolute inset-0 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-2xl sm:rounded-3xl blur-2xl'></div>
-                    <img
-                      src='https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/Screenshot+2025-06-20+031327.png'
-                      alt='Giao diện AI tạo đề thi'
-                      className='relative w-full h-auto rounded-2xl sm:rounded-3xl shadow-2xl shadow-purple-300/50 border-2 sm:border-4 border-white'
-                    />
-                    <img
-                      src='https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/Screenshot+2025-06-20+031342.png'
-                      alt='Giao diện AI tạo đề thi'
-                      className='relative w-full h-auto mt-3 sm:mt-5 rounded-2xl sm:rounded-3xl shadow-2xl shadow-purple-300/50 border-2 sm:border-4 border-white'
-                    />
-                    <div className='absolute inset-0 bg-gradient-to-tr from-purple-500/10 via-transparent to-pink-500/10 rounded-2xl sm:rounded-3xl group-hover:opacity-0 transition-opacity duration-700' />
-                  </div>
-
-                  {/* Advanced Floating UI Elements */}
-                  <div className='absolute -top-3 sm:-top-6 -right-3 sm:-right-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-black text-sm sm:text-lg animate-pulse shadow-xl shadow-green-200'>
-                    🤖 AI tạo câu hỏi chính xác đến 99%
-                  </div>
-                  <div className='absolute -bottom-4 sm:-bottom-8 -left-4 sm:-left-8 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-black text-sm sm:text-lg animate-pulse delay-500 shadow-xl shadow-blue-200'>
-                    ⚡ Tạo đề trong 10 giây
-                  </div>
-                </div>
-
-                <div className='space-y-6 sm:space-y-10 order-1 lg:order-2'>
-                  <div>
-                    <div className='text-purple-600 text-lg sm:text-xl font-black mb-3 sm:mb-4 flex items-center space-x-2'>
-                      <Brain className='w-5 h-5 sm:w-6 sm:h-6' />
-                      <span>AI Tạo câu hỏi</span>
-                    </div>
-                    <h3 className='text-2xl sm:text-4xl md:text-5xl font-black text-gray-800 mb-6 sm:mb-8 leading-tight'>
-                      Tạo đề thi bằng
-                      <span className='bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
-                        {' '}
-                        AI trong 10 giây
-                      </span>
-                    </h3>
-                    <p className='text-lg sm:text-xl text-gray-600 leading-relaxed mb-6 sm:mb-10'>
-                      Công nghệ tiên tiến phân tích hàng triệu dữ liệu giáo dục, tự động tạo đề thi chuẩn ma trận với độ
-                      chính xác 99%. Giáo viên chỉ cần click một nút và đề thi hoàn hảo đã sẵn sàng!
-                    </p>
-                  </div>
-
-                  <div className='grid grid-cols-1 gap-4 sm:gap-6'>
-                    {[
-                      { icon: '⚡', title: '', desc: 'Tạo đề trong 10 giây' },
-                      { icon: '🎨', title: '', desc: 'Đa dạng hóa câu hỏi tự động' }
-                    ].map((item, i) => (
-                      <div
-                        key={i}
-                        className='flex items-center space-x-3 sm:space-x-4 p-4 sm:p-6 bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-purple-100 hover:border-purple-300 hover:bg-white/90 hover:shadow-lg hover:shadow-purple-200/50 hover:-translate-y-1 transition-all duration-300 group'
-                      >
-                        <div className='text-2xl sm:text-3xl group-hover:scale-110 transition-transform duration-300'>
-                          {item.icon}
-                        </div>
-                        <div>
-                          <div className='font-bold text-gray-800 text-base sm:text-lg'>{item.title}</div>
-                          <div className='text-gray-600 text-sm sm:text-base'>{item.desc}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Showcase 2 - Enhanced */}
-              <div className='grid lg:grid-cols-2 gap-10 sm:gap-20 items-center'>
-                <div className='order-2 lg:order-1 space-y-6 sm:space-y-10'>
-                  <div>
-                    <div className='text-cyan-600 text-lg sm:text-xl font-black mb-3 sm:mb-4 flex items-center space-x-2'>
-                      <Shield className='w-5 h-5 sm:w-6 sm:h-6' />
-                      <span>Hệ thống bảo mật và chống gian lận trong quá trình thi</span>
-                    </div>
-
-                    <p className='text-lg sm:text-xl text-gray-600 leading-relaxed mb-6 sm:mb-10'>
-                      Hệ thống bảo mật với AI giám sát 24/7, verification. Chống gian lận với công nghệ nhận diện khuôn
-                      mặt và thống kê liên tục trong quá trình thi.
-                    </p>
-                  </div>
-
-                  <div className='grid grid-cols-1 gap-4 sm:gap-6'>
-                    {[
-                      { icon: '👁️', title: '', desc: 'Nhận diện khuôn mặt + đặc điểm + giới tính + màu da' },
-                      { icon: '🛡️', title: ' ', desc: 'Xác thực tính toàn vẹn dữ liệu' },
-                      { icon: '🚫', title: '', desc: 'Phát hiện gian lận ngay lập tức' }
-                    ].map((item, i) => (
-                      <div
-                        key={i}
-                        className='flex items-center space-x-3 sm:space-x-4 p-4 sm:p-6 bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-cyan-100 hover:border-cyan-300 hover:bg-white/90 hover:shadow-lg hover:shadow-cyan-200/50 hover:-translate-y-1 transition-all duration-300 group'
-                      >
-                        <div className='text-2xl sm:text-3xl group-hover:scale-110 transition-transform duration-300'>
-                          {item.icon}
-                        </div>
-                        <div>
-                          <div className='font-bold text-gray-800 text-base sm:text-lg'>{item.title}</div>
-                          <div className='text-gray-600 text-sm sm:text-base'>{item.desc}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className='order-1 lg:order-2 group relative'>
-                  <div className='relative transform group-hover:scale-105 group-hover:rotate-3 transition-all duration-700'>
-                    <div className='absolute inset-0 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-2xl sm:rounded-3xl blur-2xl'></div>
-                    <img
-                      src='https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/Screenshot+2025-06-20+031922.png'
-                      alt='Giao diện bảo mật AI'
-                      className='relative w-full h-auto rounded-2xl sm:rounded-3xl shadow-2xl shadow-cyan-300/50 border-2 sm:border-4 border-white'
-                    />
-
-                    <img
-                      src='https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/Screenshot+2025-06-20+032458.png'
-                      alt='Giao diện bảo mật AI'
-                      className='relative w-full h-auto rounded-2xl sm:rounded-3xl shadow-2xl shadow-cyan-300/50 border-2 sm:border-4 border-white mt-3 sm:mt-5'
-                    />
-                    <div className='absolute inset-0 bg-gradient-to-tl from-cyan-500/10 via-transparent to-blue-500/10 rounded-2xl sm:rounded-3xl group-hover:opacity-0 transition-opacity duration-700' />
-                  </div>
-
-                  {/* Enhanced Floating UI Elements */}
-                  <div className='absolute -top-3 sm:-top-6 -left-3 sm:-left-6 bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-black text-sm sm:text-lg animate-pulse shadow-xl shadow-red-200'>
-                    🔒 Bảo mật tuyệt đối
-                  </div>
-                  <div className='absolute -bottom-4 sm:-bottom-8 -right-4 sm:-right-8 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-black text-sm sm:text-lg animate-pulse delay-700 shadow-xl shadow-purple-200'>
-                    🤖 AI thống kê
-                  </div>
-                  <div className='absolute top-1/3 -right-2 sm:-right-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-bold animate-bounce delay-1000 shadow-xl text-xs sm:text-base'>
-                    ✅ xác thực khuôn mặt
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* CTA */}
+        <section className='py-20 px-4 bg-neutral-900 text-white'>
+          <div className='max-w-4xl mx-auto text-center'>
+            <h2 className='text-4xl font-bold mb-4'>Sẵn sàng bắt đầu?</h2>
+            <p className='text-xl text-neutral-300 mb-8'>Tham gia cùng hàng trăm giáo viên đang sử dụng Thionl</p>
+            <button
+              onClick={() => navigate(path.register)}
+              className='px-8 py-3 bg-white text-neutral-900 rounded-lg hover:bg-neutral-100 font-medium inline-flex items-center gap-2'
+            >
+              Đăng ký miễn phí
+              <ArrowRight className='w-5 h-5' />
+            </button>
           </div>
         </section>
 
-        {/* Mega CTA Section */}
-        <section
-          id='contact'
-          className='relative py-16 sm:py-32 bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50 overflow-hidden'
-        >
-          <div className='absolute inset-0 bg-white/30' />
-
-          {/* Animated Background Elements */}
-          <div className='absolute inset-0 overflow-hidden'>
-            <div
-              className='absolute top-10 sm:top-20 left-10 sm:left-20 w-32 sm:w-40 h-32 sm:h-40 border-2 border-cyan-300/50 rounded-full animate-spin'
-              style={{ animationDuration: '20s' }}
-            />
-            <div className='absolute bottom-10 sm:bottom-20 right-10 sm:right-20 w-24 sm:w-32 h-24 sm:h-32 border-2 border-blue-300/50 rotate-45 animate-pulse' />
-            <div
-              className='absolute top-1/2 left-1/4 w-16 sm:w-24 h-16 sm:h-24 bg-teal-300/20 rounded-full animate-bounce'
-              style={{ animationDuration: '3s' }}
-            />
-            <div className='absolute bottom-1/3 left-1/3 w-12 sm:w-16 h-12 sm:h-16 bg-cyan-300/20 rounded-full animate-ping' />
-          </div>
-
-          <div className='relative max-w-6xl mx-auto px-4 sm:px-6 text-center'>
-            <div className='space-y-8 sm:space-y-12'>
-              <div className='inline-block'>
-                <div className='text-gray-600 text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center justify-center space-x-2'>
-                  <Sparkles className='w-5 h-5 sm:w-6 sm:h-6 animate-spin text-cyan-600' />
-                  <span>Sẵn sàng cho cuộc cách mạng?</span>
-                  <Sparkles className='w-5 h-5 sm:w-6 sm:h-6 animate-spin text-blue-600' />
+        {/* Footer */}
+        <footer className='bg-white border-t border-neutral-200 py-12 px-4'>
+          <div className='max-w-6xl mx-auto'>
+            <div className='flex flex-col md:flex-row justify-between items-center gap-4'>
+              <div className='flex items-center space-x-3'>
+                <div className='w-8 h-8 bg-neutral-800 rounded-lg flex items-center justify-center'>
+                  <BookOpen className='w-5 h-5 text-white' />
                 </div>
-                <h2 className='text-3xl sm:text-5xl md:text-7xl font-black leading-tight'>
-                  <span className='block mb-2 sm:mb-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-teal-600 bg-clip-text text-transparent'>
-                    Hãy là người tiên phong
-                  </span>
-                  <span className='block bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent'>
-                    trong giáo dục 4.0
-                  </span>
-                </h2>
+                <span className='text-lg font-bold text-neutral-900'>Thionl</span>
               </div>
-
-              <p className='text-lg sm:text-2xl text-gray-700 leading-relaxed max-w-4xl mx-auto font-medium'>
-                Tham gia cùng
-                <span className='font-black text-cyan-600'> 40+ giáo viên </span>
-                đã chọn Thionl để đưa giáo dục Việt Nam vươn tầm quốc tế. Bắt đầu hành trình đổi mới ngay hôm nay với
-              </p>
-
-              <div className='flex flex-col sm:flex-row gap-4 sm:gap-8 justify-center pt-6 sm:pt-8'>
-                <button className='group relative px-8 sm:px-16 py-4 sm:py-8 bg-gradient-to-r from-cyan-500 via-blue-500 to-teal-500 text-white rounded-2xl sm:rounded-3xl text-lg sm:text-2xl font-black hover:shadow-2xl hover:shadow-cyan-300/50 transform hover:-translate-y-3 hover:scale-110 transition-all duration-500 overflow-hidden'>
-                  <span className='relative z-10 flex items-center justify-center space-x-2 sm:space-x-4'>
-                    <Sparkles className='w-6 h-6 sm:w-8 sm:h-8 group-hover:rotate-180 transition-transform duration-500' />
-                    <span onClick={() => navigate('/register')}>Đăng ký ngay</span>
-                    <ArrowRight className='w-6 h-6 sm:w-8 sm:h-8 group-hover:translate-x-3 transition-transform duration-300' />
-                  </span>
-                  <div className='absolute inset-0 bg-gradient-to-r from-teal-500 via-blue-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500' />
-                </button>
-
-                <button className='px-8 sm:px-16 bg-white py-4 sm:py-8 border-4 border-cyan-400 text-cyan-700 rounded-2xl sm:rounded-3xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-500 text-lg sm:text-2xl font-black'>
-                  <span className=' hidden sm:inline'>📞 Tư vấn 1-1 miễn phí</span>
-                  <span className='sm:hidden'>📞 Tư vấn miễn phí</span>
-                </button>
-              </div>
-
-              {/* Trust Indicators */}
-              <div className='flex flex-wrap justify-center items-center gap-6 sm:gap-12 pt-12 sm:pt-16 text-gray-600'>
-                <div className='flex items-center space-x-2 sm:space-x-3 group cursor-pointer'>
-                  <div className='w-10 h-10 sm:w-12 sm:h-12 bg-cyan-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300'>
-                    <Shield className='w-5 h-5 sm:w-6 sm:h-6 text-cyan-600' />
-                  </div>
-                  <span className='font-bold text-sm sm:text-lg'>Bảo mật tuyệt đối</span>
-                </div>
-                <div className='flex items-center space-x-2 sm:space-x-3 group cursor-pointer'>
-                  <div className='w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300'>
-                    <CheckCircle className='w-5 h-5 sm:w-6 sm:h-6 text-blue-600' />
-                  </div>
-                  <span className='font-bold text-sm sm:text-lg'>Hỗ trợ 24/7</span>
-                </div>
-                <div className='flex items-center space-x-2 sm:space-x-3 group cursor-pointer'>
-                  <div className='w-10 h-10 sm:w-12 sm:h-12 bg-teal-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300'>
-                    <Heart className='w-5 h-5 sm:w-6 sm:h-6 text-teal-600' />
-                  </div>
-                  <span className='font-bold text-sm sm:text-lg text-center'>Rất nhiều giáo viên tin dùng</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Premium Pricing Section */}
-        <section
-          id='pricing'
-          className='relative py-16 sm:py-32 bg-gradient-to-b from-white via-blue-50 to-cyan-50 overflow-hidden'
-        >
-          {/* Background Animation */}
-          <div className='absolute inset-0 overflow-hidden'>
-            <div className='absolute top-10 sm:top-20 left-10 sm:left-20 w-48 h-48 sm:w-72 sm:h-72 bg-gradient-to-r from-purple-400/10 to-pink-400/10 rounded-full blur-3xl animate-pulse' />
-            <div className='absolute bottom-16 sm:bottom-32 right-16 sm:right-32 w-64 h-64 sm:w-96 sm:h-96 bg-gradient-to-r from-blue-400/10 to-teal-400/10 rounded-full blur-3xl animate-pulse delay-1000' />
-          </div>
-
-          <div className='relative max-w-7xl mx-auto px-4 sm:px-6'>
-            <div className='text-center mb-12 sm:mb-20'>
-              <div className='inline-block mb-6 sm:mb-8'>
-                <div className='text-cyan-600 text-base sm:text-lg font-bold mb-2 flex items-center justify-center space-x-2'>
-                  <Sparkles className='w-4 h-4 sm:w-5 sm:h-5' />
-                  <span>Bảng giá linh hoạt</span>
-                  <Sparkles className='w-4 h-4 sm:w-5 sm:h-5' />
-                </div>
-                <h2 className='text-3xl sm:text-5xl md:text-7xl font-black leading-tight'>
-                  <span className='bg-gradient-to-r from-cyan-600 via-blue-600 to-teal-600 bg-clip-text text-transparent'>
-                    Lựa chọn gói
-                  </span>
-                  <br />
-                  <span className='text-gray-800'>phù hợp với bạn</span>
-                </h2>
-              </div>
-              <p className='text-lg sm:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed'>
-                Từ cá nhân đến doanh nghiệp, chúng tôi có gói dịch vụ phù hợp cho mọi nhu cầu giáo dục
-              </p>
-            </div>
-
-            {packages && packages.length > 0 ? (
-              <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10'>
-                {packages
-                  .filter((pkg) => pkg.active)
-                  .sort((a, b) => a.price - b.price)
-                  .map((pkg, index) => {
-                    const isPopular = pkg.type === PackageType.TEAM_4
-                    const gradients = [
-                      'from-cyan-500 to-blue-500',
-                      'from-purple-500 to-pink-500',
-                      'from-emerald-500 to-teal-500'
-                    ]
-                    const bgColors = ['bg-cyan-50', 'bg-purple-50', 'bg-emerald-50']
-                    const textColors = ['text-cyan-600', 'text-purple-600', 'text-emerald-600']
-
-                    return (
-                      <div
-                        key={pkg._id}
-                        className={`group relative p-6 sm:p-10 ${bgColors[index % 3]} border-2 ${
-                          isPopular ? 'border-purple-300 scale-105' : 'border-gray-200'
-                        } rounded-2xl sm:rounded-3xl hover:border-purple-400 hover:-translate-y-2 sm:hover:-translate-y-4 hover:shadow-2xl hover:shadow-purple-200/50 transition-all duration-700 overflow-hidden`}
-                      >
-                        {/* Popular Badge */}
-                        {isPopular && (
-                          <div className='absolute top-2 sm:top-3 w-40 sm:w-52 left-1/2 transform -translate-x-1/2'>
-                            <div className='bg-gradient-to-r w-full from-purple-500 to-pink-500 text-white px-4 sm:px-8 py-1 sm:py-2 rounded-full font-bold text-xs sm:text-sm shadow-lg animate-pulse'>
-                              🔥 PHỔ BIẾN NHẤT
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Background Gradient Effect */}
-                        <div
-                          className={`absolute inset-0 bg-gradient-to-br ${gradients[index % 3]} opacity-0 group-hover:opacity-10 transition-opacity duration-700 rounded-2xl sm:rounded-3xl`}
-                        />
-
-                        {/* Package Type Icon */}
-                        <div className='text-center mb-6 sm:mb-8'>
-                          <div
-                            className={`w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-r ${gradients[index % 3]} rounded-2xl sm:rounded-3xl flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-lg`}
-                          >
-                            {pkg.type === PackageType.SINGLE && <Users className='w-6 h-6 sm:w-8 sm:h-8 text-white' />}
-                            {pkg.type === PackageType.TEAM_4 && <Award className='w-6 h-6 sm:w-8 sm:h-8 text-white' />}
-                            {pkg.type === PackageType.TEAM_7 && (
-                              <TrendingUp className='w-6 h-6 sm:w-8 sm:h-8 text-white' />
-                            )}
-                          </div>
-                          <h3 className={`text-xl sm:text-2xl font-black ${textColors[index % 3]} mb-2`}>{pkg.name}</h3>
-                          <p className='text-gray-600 text-sm sm:text-base'>
-                            {pkg.type === PackageType.SINGLE && 'Dành cho giáo viên cá nhân'}
-                            {pkg.type === PackageType.TEAM_4 && 'Dành cho nhóm nhỏ 4 giáo viên'}
-                            {pkg.type === PackageType.TEAM_7 && 'Dành cho nhóm lớn 7 giáo viên'}
-                          </p>
-                        </div>
-
-                        {/* Price */}
-                        <div className='text-center mb-6 sm:mb-8'>
-                          <div className='flex items-center justify-center space-x-1 sm:space-x-2 mb-2'>
-                            <span className='text-3xl sm:text-5xl font-black text-gray-800'>
-                              {pkg.price.toLocaleString('vi-VN')}
-                            </span>
-                            <div className='text-left'>
-                              <div className='text-base sm:text-lg font-bold text-gray-800'>VNĐ</div>
-                              <div className='text-xs sm:text-sm text-gray-500'>/{pkg.duration_months} tháng</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Features */}
-                        <div className='space-y-3 sm:space-y-4 mb-6 sm:mb-10'>
-                          <div className='flex items-center space-x-2 sm:space-x-3'>
-                            <CheckCircle className={`w-4 h-4 sm:w-5 sm:h-5 ${textColors[index % 3]}`} />
-                            <span className='text-gray-700 font-medium text-sm sm:text-base'>
-                              Tối đa {pkg.max_teachers} giáo viên
-                            </span>
-                          </div>
-
-                          {pkg.features.map((feature, featureIndex) => (
-                            <div key={featureIndex} className='flex items-center space-x-2 sm:space-x-3'>
-                              <CheckCircle className={`w-4 h-4 sm:w-5 sm:h-5 ${textColors[index % 3]}`} />
-                              <span className='text-gray-700 font-medium text-sm sm:text-base'>{feature}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* CTA Button */}
-                        <button
-                          className={`w-full py-3 sm:py-4 bg-gradient-to-r ${gradients[index % 3]} text-white rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg hover:shadow-xl hover:shadow-purple-300/50 transform hover:-translate-y-1 hover:scale-105 transition-all duration-500 group-hover:scale-110`}
-                          onClick={() =>
-                            navigate(
-                              getAccessTokenFromLS()
-                                ? profile?.role === UserRole.Teacher
-                                  ? '/teacher'
-                                  : '/student'
-                                : '/register'
-                            )
-                          }
-                        >
-                          {getAccessTokenFromLS() ? 'Chọn gói này' : 'Đăng ký ngay'}
-                        </button>
-
-                        {/* Hover Lines */}
-                        <div
-                          className={`absolute top-0 left-0 w-0 h-2 bg-gradient-to-r ${gradients[index % 3]} group-hover:w-full transition-all duration-700 rounded-t-2xl sm:rounded-t-3xl`}
-                        />
-                        <div
-                          className={`absolute bottom-0 right-0 w-0 h-2 bg-gradient-to-r ${gradients[index % 3]} group-hover:w-full transition-all duration-700 delay-200 rounded-b-2xl sm:rounded-b-3xl`}
-                        />
-
-                        {/* Floating Badge */}
-                        <div
-                          className={`absolute -top-2 -right-2 w-4 h-4 sm:w-6 sm:h-6 bg-gradient-to-r ${gradients[index % 3]} rounded-full opacity-0 group-hover:opacity-100 animate-ping transition-opacity duration-500`}
-                        />
-                      </div>
-                    )
-                  })}
-              </div>
-            ) : (
-              <div className='text-center py-16 sm:py-20'>
-                <div className='text-gray-500 text-lg sm:text-xl'>Đang tải bảng giá...</div>
-              </div>
-            )}
-
-            {/* Bottom CTA */}
-            <div className='text-center mt-12 sm:mt-20'>
-              <p className='text-gray-600 text-base sm:text-lg mb-6 sm:mb-8'>
-                Cần tư vấn thêm? Chúng tôi luôn sẵn sàng hỗ trợ bạn!
-              </p>
-              <button
-                onClick={() => window.open('https://www.facebook.com/messages/t/673510559185195', '_blank')}
-                className='bg-white px-6 sm:px-8 py-3 sm:py-4 border-2 border-cyan-400 text-cyan-700 rounded-xl sm:rounded-2xl hover:bg-cyan-50 hover:border-cyan-500 transition-all duration-300 font-bold text-base sm:text-lg'
-              >
-                💬 Chat với chúng tôi
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Premium Footer */}
-        <footer className='relative bg-gray-50 border-t border-gray-200 py-12 sm:py-20'>
-          <div className='max-w-7xl mx-auto px-4 sm:px-6'>
-            <div className='grid md:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12'>
-              <div className='lg:col-span-2'>
-                <div className='flex items-center space-x-3 sm:space-x-4 mb-6 sm:mb-8'>
-                  <div className='relative'>
-                    <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-cyan-500 via-blue-500 to-teal-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg'>
-                      <BookOpen className='w-6 h-6 sm:w-8 sm:h-8 text-white' />
-                    </div>
-                    <div className='absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-teal-500 rounded-xl sm:rounded-2xl blur-xl opacity-50 animate-pulse' />
-                  </div>
-                  <div>
-                    <span className='text-2xl sm:text-3xl font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-teal-600 bg-clip-text text-transparent'>
-                      Thionl
-                    </span>
-                    <div className='text-cyan-600 font-bold text-sm sm:text-base'>
-                      Giáo dục thông minh cho tương lai
-                    </div>
-                  </div>
-                </div>
-
-                <p className='text-gray-600 mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed max-w-lg'>
-                  Chúng tôi tin rằng AI có thể biến đổi giáo dục Việt Nam, mang lại cơ hội học tập tốt nhất cho mọi học
-                  sinh trên khắp đất nước.
-                  <span className='font-bold text-cyan-600'> Hãy cùng chúng tôi tạo nên tương lai!</span>
-                </p>
-
-                <div className='flex space-x-3 sm:space-x-4'>
-                  {[
-                    { icon: Heart, color: 'hover:bg-red-500' },
-                    { icon: Globe, color: 'hover:bg-cyan-500' },
-                    { icon: Zap, color: 'hover:bg-blue-500' },
-                    { icon: Brain, color: 'hover:bg-teal-500' }
-                  ].map((item, index) => (
-                    <div
-                      key={index}
-                      className={`w-10 h-10 sm:w-14 sm:h-14 bg-gray-200 ${item.color} hover:text-white rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-300 cursor-pointer group hover:scale-110 hover:-translate-y-1 shadow-lg`}
-                    >
-                      <item.icon className='w-5 h-5 sm:w-6 sm:h-6 text-gray-600 group-hover:text-white' />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className='text-gray-800 font-black text-lg sm:text-xl mb-6 sm:mb-8'>Sản phẩm</h3>
-                <ul className='space-y-3 sm:space-y-4 text-gray-600'>
-                  {['Tính năng AI', 'Bảng giá linh hoạt', 'Bảo mật enterprise', 'Tích hợp API'].map((item, index) => (
-                    <li key={index}>
-                      <a
-                        href='#'
-                        className='hover:text-cyan-600 transition-colors duration-300 text-base sm:text-lg font-medium hover:font-bold'
-                      >
-                        {item}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div>
-                <h3 className='text-gray-800 font-black text-lg sm:text-xl mb-6 sm:mb-8'>Hỗ trợ</h3>
-                <ul className='space-y-3 sm:space-y-4 text-gray-600'>
-                  {['Tài liệu đầy đủ', 'Video hướng dẫn', 'Live chat 24/7', 'Cộng đồng'].map((item, index) => (
-                    <li key={index}>
-                      <a
-                        href='#'
-                        className='hover:text-cyan-600 transition-colors duration-300 text-base sm:text-lg font-medium hover:font-bold'
-                      >
-                        {item}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            <div className='border-t border-gray-200 mt-12 sm:mt-16 pt-6 sm:pt-8'>
-              <div className='flex flex-col md:flex-row justify-between items-center'>
-                <div className='text-gray-500 mb-4 md:mb-0 text-base sm:text-lg'>
-                  © 2025 Thionl. Tất cả quyền được bảo lưu.
-                </div>
-                <div className='flex space-x-6 sm:space-x-8 text-gray-500'>
-                  {['Điều khoản', 'Bảo mật', 'Cookie'].map((item, index) => (
-                    <a
-                      key={index}
-                      href='#'
-                      className='hover:text-cyan-600 transition-colors font-medium text-sm sm:text-base'
-                    >
-                      {item}
-                    </a>
-                  ))}
-                </div>
-              </div>
+              <div className='text-neutral-600'>© 2025 Thionl. Tất cả quyền được bảo lưu.</div>
             </div>
           </div>
         </footer>
-        <Dialog open={activeVideoDemo} onOpenChange={setActiveVideoDemo}>
-          <DialogContent className='sm:max-w-[90vw] lg:max-w-[1080px] w-full max-w-[95vw]'>
-            <div className='w-full max-h-[50vh] sm:max-h-[70vh]'>
-              <VideoHLSPlayer
-                src={
-                  'https://twitter-clone-minh-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/videos-hls/%5CPd-5QNwShO_z_JTAjLRse/master.m3u8'
-                }
-                classNames='w-full h-full'
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-        {/* Custom Styles */}
-        <style>{`
-          @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-          }
-          
-          @keyframes fadeInUp {
-            from {
-              opacity: 0;
-              transform: translateY(50px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-          
-          @keyframes shine {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-          }
-          
-          @keyframes fadeOut {
-            0% { 
-              opacity: 1; 
-              transform: translateY(0) scale(1) rotateX(0deg);
-              filter: blur(0px);
-            }
-            100% { 
-              opacity: 0; 
-              transform: translateY(-30px) scale(0.8) rotateX(-15deg);
-              filter: blur(4px);
-            }
-          }
-          
-          @keyframes fadeIn {
-            0% { 
-              opacity: 0; 
-              transform: translateY(30px) scale(1.2) rotateX(15deg);
-              filter: blur(4px);
-            }
-            100% { 
-              opacity: 1; 
-              transform: translateY(0) scale(1) rotateX(0deg);
-              filter: blur(0px);
-            }
-          }
-          
-          @keyframes charSlideIn {
-            0% { 
-              opacity: 0; 
-              transform: translateY(100%) rotateY(-15deg) scale(0.5);
-            }
-            50% {
-              opacity: 0.7;
-              transform: translateY(-10%) rotateY(5deg) scale(1.1);
-            }
-            100% { 
-              opacity: 1; 
-              transform: translateY(0) rotateY(0deg) scale(1);
-            }
-          }
-          
-          @keyframes charSlideOut {
-            0% { 
-              opacity: 1; 
-              transform: translateY(0) rotateY(0deg) scale(1);
-            }
-            50% {
-              opacity: 0.3;
-              transform: translateY(-20%) rotateY(-10deg) scale(0.9);
-            }
-            100% { 
-              opacity: 0; 
-              transform: translateY(-100%) rotateY(15deg) scale(0.5);
-            }
-          }
-          
-          .animate-float {
-            animation: float 6s ease-in-out infinite;
-          }
-          
-          .animate-fade-in-up {
-            animation: fadeInUp 0.8s ease-out forwards;
-          }
-          
-          .animate-shine {
-            animation: shine 3s linear infinite;
-          }
-          
-          /* Enhanced RotatingText Animations */
-          .rotating-text-animating {
-            animation: fadeOut 0.4s ease-in-out forwards;
-          }
-          
-          .rotating-text-stable {
-            animation: fadeIn 0.8s ease-out forwards;
-          }
-          
-          .rotating-char {
-            display: inline-block;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-          
-          .rotating-text-animating .rotating-char {
-            animation: charSlideOut 0.4s ease-in-out forwards;
-          }
-          
-          .rotating-text-stable .rotating-char {
-            animation: charSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-          }
-          
-          /* Soft pastel colors that match blue-white theme */
-          .gradient-text-1 {
-            color: #38bdf8; /* Sky blue - soft and elegant */
-            display: inline-block;
-            font-weight: 900;
-          }
-          
-          .gradient-text-2 {
-            color: #06b6d4; /* Cyan 500 - fresh and modern */
-            display: inline-block;
-            font-weight: 900;
-          }
-          
-          .gradient-text-3 {
-            color: #0ea5e9; /* Blue 500 - harmonious with theme */
-            display: inline-block;
-            font-weight: 900;
-          }
-          
-          /* Try gradient effect only if fully supported */
-          @media screen and (-webkit-min-device-pixel-ratio: 0) {
-            @supports (-webkit-background-clip: text) and (background-clip: text) {
-              .gradient-text-1:hover {
-                background: linear-gradient(120deg, #0891b2 30%, #1e40af 50%, #0f766e 70%);
-                background-size: 200% 100%;
-                -webkit-background-clip: text;
-                background-clip: text;
-                color: transparent;
-              }
-              
-              .gradient-text-2:hover {
-                background: linear-gradient(120deg, #1e40af 30%, #0891b2 50%, #0f766e 70%);
-                background-size: 200% 100%;
-                -webkit-background-clip: text;
-                background-clip: text;
-                color: transparent;
-              }
-              
-              .gradient-text-3:hover {
-                background: linear-gradient(120deg, #0f766e 30%, #0891b2 50%, #1e40af 70%);
-                background-size: 200% 100%;
-                -webkit-background-clip: text;
-                background-clip: text;
-                color: transparent;
-              }
-            }
-          }
-          
-          .perspective-1000 {
-            perspective: 1000px;
-          }
-          
-          .preserve-3d {
-            transform-style: preserve-3d;
-          }
-          
-          .delay-100 { animation-delay: 0.1s; }
-          .delay-200 { animation-delay: 0.2s; }
-          .delay-300 { animation-delay: 0.3s; }
-          .delay-400 { animation-delay: 0.4s; }
-          .delay-500 { animation-delay: 0.5s; }
-          .delay-600 { animation-delay: 0.6s; }
-        `}</style>
       </div>
     </>
   )
 }
 
-export default UltraStunningHomepage
+export default Home

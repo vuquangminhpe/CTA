@@ -4,12 +4,10 @@ import { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import QRScanner from '../../components/Student/QRScanner'
 import ExamHistory from '../../components/Student/ExamHistory'
-import FaceVerificationModal from '../../components/Student/FaceVerificationModal'
 import examApi from '../../apis/exam.api'
 import { toast } from 'sonner'
-import { QrCode, User, Shield, Camera } from 'lucide-react'
+import { QrCode, User } from 'lucide-react'
 import { AuthContext } from '../../Contexts/auth.context'
-import faceVerificationApi from '@/apis/faceVerification.api'
 
 const StudentDashboard = () => {
   const [examHistory, setExamHistory] = useState([])
@@ -19,11 +17,6 @@ const StudentDashboard = () => {
   const [scanError, setScanError] = useState('')
   const { profile } = useContext(AuthContext) as any
   const navigate = useNavigate()
-
-  // Face verification states
-  const [showFaceVerification, setShowFaceVerification] = useState(false)
-  const [pendingExamCode, setPendingExamCode] = useState<string>('')
-  const [requireFaceVerification, setRequireFaceVerification] = useState(true)
 
   useEffect(() => {
     // This condition determines when to refresh - modify as needed
@@ -43,29 +36,6 @@ const StudentDashboard = () => {
       fetchExamHistory()
     }
   }, [activeTab])
-
-  // Check if user has face profile registered
-  useEffect(() => {
-    checkFaceProfile()
-  }, [])
-
-  const checkFaceProfile = async () => {
-    try {
-      const response = await faceVerificationApi.getFaceProfileStatus()
-      setRequireFaceVerification(response.data.result?.has_face_profile || false)
-
-      if (!response.data.result?.has_face_profile) {
-        // Show notification about face registration
-        toast.info('Để tăng bảo mật, bạn nên đăng ký khuôn mặt trong phần hồ sơ cá nhân', {
-          duration: 5000
-        })
-      }
-    } catch (error) {
-      console.error('Failed to check face profile:', error)
-      // Default to not requiring face verification if check fails
-      setRequireFaceVerification(false)
-    }
-  }
 
   const fetchExamHistory = async () => {
     try {
@@ -97,18 +67,8 @@ const StudentDashboard = () => {
         throw new Error('Độ dài mã QR không hợp lệ')
       }
 
-      // Store exam code for later use
-      setPendingExamCode(cleanedCode)
-
-      // Check if face verification is required and user has face profile
-      if (requireFaceVerification) {
-        // Show face verification modal
-        toast.info('Vui lòng xác thực khuôn mặt để vào thi')
-        setShowFaceVerification(true)
-      } else {
-        // Proceed directly to exam start
-        await startExam(cleanedCode)
-      }
+      // Proceed directly to exam start
+      await startExam(cleanedCode)
     } catch (error: any) {
       console.error('Error processing exam code:', error)
       toast.error(error.message || 'Mã QR không hợp lệ')
@@ -144,32 +104,6 @@ const StudentDashboard = () => {
       const errorMessage = error.data?.message || 'Không thể bắt đầu kỳ thi. Vui lòng thử lại.'
       toast.error(errorMessage)
     }
-  }
-
-  const handleFaceVerificationSuccess = async () => {
-    setShowFaceVerification(false)
-
-    if (pendingExamCode) {
-      await startExam(pendingExamCode)
-      setPendingExamCode('')
-    }
-  }
-
-  const handleFaceVerificationSkip = async () => {
-    setShowFaceVerification(false)
-
-    if (pendingExamCode) {
-      // Show warning about skipping face verification
-      toast.warning('Bạn đã bỏ qua xác thực khuôn mặt. Điều này có thể ảnh hưởng đến tính bảo mật của bài thi.')
-
-      await startExam(pendingExamCode)
-      setPendingExamCode('')
-    }
-  }
-
-  const handleFaceVerificationClose = () => {
-    setShowFaceVerification(false)
-    setPendingExamCode('')
   }
 
   // Hàm xử lý trường hợp quét QR thủ công
@@ -223,35 +157,6 @@ const StudentDashboard = () => {
             </div>
           )}
         </div>
-
-        {/* Security Notice */}
-        {requireFaceVerification && (
-          <div className='mt-6 bg-blue-50 border border-blue-200 rounded-md p-4'>
-            <div className='flex'>
-              <Shield className='h-5 w-5 text-blue-400 mr-2' />
-              <div className='text-sm'>
-                <p className='text-blue-800 font-medium'>Bảo mật được kích hoạt</p>
-                <p className='text-blue-700 mt-1'>
-                  Hệ thống sẽ yêu cầu xác thực khuôn mặt trước khi vào thi để đảm bảo tính bảo mật.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!requireFaceVerification && (
-          <div className='mt-6 bg-yellow-50 border border-yellow-200 rounded-md p-4'>
-            <div className='flex'>
-              <Camera className='h-5 w-5 text-yellow-400 mr-2' />
-              <div className='text-sm'>
-                <p className='text-yellow-800 font-medium'>Chưa đăng ký khuôn mặt</p>
-                <p className='text-yellow-700 mt-1'>
-                  Để tăng tính bảo mật, bạn nên đăng ký khuôn mặt trong phần hồ sơ cá nhân.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className='mt-6'>
           <div className='sm:hidden'>
@@ -358,15 +263,6 @@ const StudentDashboard = () => {
           </div>
         </div>
       </div>
-
-      {/* Face Verification Modal */}
-      <FaceVerificationModal
-        isOpen={showFaceVerification}
-        onClose={handleFaceVerificationClose}
-        onSuccess={handleFaceVerificationSuccess}
-        onSkip={!requireFaceVerification ? handleFaceVerificationSkip : undefined}
-        examCode={pendingExamCode}
-      />
     </>
   )
 }

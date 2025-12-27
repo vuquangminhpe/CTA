@@ -21,9 +21,7 @@ import {
   Award,
   TrendingUp,
   Star,
-  MessageCircle,
-  Wallet,
-  ListStart
+  MessageCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -317,39 +315,6 @@ const TeacherDashboard = () => {
       description: 'Theo dõi hệ thống',
       color: 'from-rose-500 to-pink-400',
       onClick: () => navigate('/teacher/monitoring')
-    },
-    {
-      id: 'student-search',
-      name: 'Tìm kiếm học sinh',
-      icon: Search,
-      description: 'Tra cứu thông tin',
-      color: 'from-teal-500 to-cyan-400'
-    },
-    {
-      id: 'feedback',
-      name: 'Hệ thống Feedback',
-      icon: MessageCircle,
-      description: 'Gửi góp ý',
-      color: 'from-pink-500 to-rose-400',
-      onClick: () => navigate('/teacher/feedback')
-    },
-
-    {
-      id: 'payment',
-      name: 'Mua các gói sử dụng hạn mức',
-      icon: Wallet,
-      description: 'Các gói sử dụng',
-      color: 'from-yellow-500 to-yellow-400',
-      onClick: () => navigate('/teacher/payment')
-    },
-    {
-      id: 'statistics',
-      name: 'Thống kê theo từng lớp (chuẩn BGD)',
-      icon: ListStart,
-      description: 'Thống kê cá nhân',
-      color: 'from-green-500 to-green-400',
-      onClick: () => navigate('/teacher/statistics'),
-      isNonActive: false
     }
     // },
     // {
@@ -416,11 +381,6 @@ const TeacherDashboard = () => {
                 >
                   {({ selected }) => (
                     <Fragment>
-                      {tab.isNonActive === true && (
-                        <div className='absolute z-[1000] top-0 right-0 p-1 text-cyan-400 translate-x-2 border text-sm border-cyan-500 rounded-xl font-semibold transition-all hover:-translate-y-3'>
-                          Sắp ra mắt
-                        </div>
-                      )}
                       <div
                         className={classNames(
                           'group relative overflow-hidden rounded-xl p-2 sm:p-3 transition-all duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] xl:min-h-[100px]',
