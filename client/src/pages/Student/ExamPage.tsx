@@ -319,9 +319,7 @@ const ExamPage = () => {
       })
       .catch((error: any) => {
         console.error('Failed to submit exam:', error)
-        toast.error(
-          error.response?.data?.message || 'Không nộp được bài thi, hãy liên hệ với giáo viên để làm lại bài thi!'
-        )
+        navigate('/student', { replace: true })
       })
       .finally(() => {
         setIsSubmitting(false)
