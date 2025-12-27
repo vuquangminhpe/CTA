@@ -16,6 +16,7 @@ const StudentDashboard = () => {
   const [scanLoading, setScanLoading] = useState(false)
   const [scanError, setScanError] = useState('')
   const [studentCode, setStudentCode] = useState('')
+  const [isStartingExam, setIsStartingExam] = useState(false)
   const { profile } = useContext(AuthContext) as any
   const navigate = useNavigate()
 
@@ -79,7 +80,14 @@ const StudentDashboard = () => {
   }
 
   const startExam = async (examCode: string) => {
+    // Prevent multiple calls
+    if (isStartingExam) {
+      console.log('Already starting exam, skipping...')
+      return
+    }
+
     try {
+      setIsStartingExam(true)
       toast.loading('Đang bắt đầu kỳ thi...')
 
       // Pass student_code if user is not authenticated
@@ -120,6 +128,7 @@ const StudentDashboard = () => {
       // Hiển thị thông báo lỗi chi tiết hơn
       const errorMessage = error.data?.message || 'Không thể bắt đầu kỳ thi. Vui lòng thử lại.'
       toast.error(errorMessage)
+      setIsStartingExam(false)
     }
   }
 
