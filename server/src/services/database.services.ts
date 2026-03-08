@@ -16,8 +16,8 @@ import Grade from '~/models/schemas/Comment.schema'
 import StudentComment from '~/models/schemas/Grade.schema'
 import CommentSchema from '~/models/schemas/Comment.schema'
 
-const uri =
-  'mongodb+srv://minhvqhe176726:minhvqhe176726@management-employee.31yis.mongodb.net/?retryWrites=true&w=majority&appName=management-employee'
+const uri = envConfig.mongodb_url
+
 const dbName = 'app_code_student'
 
 class DatabaseService {
