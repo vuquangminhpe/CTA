@@ -97,7 +97,6 @@ const StudentDashboard = () => {
       }
 
       const response = await examApi.startExam(requestBody)
-      console.log(response.data.result.access_token)
 
       // Save access_token if provided (for unauthenticated users)
       if (response.data.result.access_token) {

@@ -19,7 +19,6 @@ interface GradeFilters {
 const GradeStatisticsPage: React.FC = () => {
   const queryClient = useQueryClient()
   const isProfile = useContext(AppContext).profile
-  console.log(isProfile)
 
   // State cho filters
   const [filters, setFilters] = useState<GradeFilters>({

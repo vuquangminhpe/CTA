@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useRef, useContext } from 'react'
+import { useState, useEffect, useRef, useContext, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import ExamTimer from '../../components/Student/ExamTimer'
 import ExamQuestion from '../../components/Student/ExamQuestion'
@@ -17,6 +17,10 @@ import './Notification.css'
 import useExamProtection from '../../components/helper/ExamProtection'
 import MobileTabDetector from '../../components/Student/MobileTabDetector'
 import ConfirmDialog from '../../components/helper/ConfirmDialog'
+// AI Proctoring imports
+import ExamCamera from '../../components/Student/ExamCamera'
+import ViolationAlert from '../../components/Student/ViolationAlert'
+import type { AIViolation } from '../../utils/aiTypes'
 
 const ExamPage = () => {
   const { examCode } = useParams()
@@ -29,8 +33,6 @@ const ExamPage = () => {
   const [remainingTime, setRemainingTime] = useState(0)
   const [answers, setAnswers] = useState<any>({})
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<any>(0)
-  console.log(answers)
-  console.log(exam)
 
   // UI state
   const [isLoading, setIsLoading] = useState(true)
@@ -51,6 +53,10 @@ const ExamPage = () => {
   const { resetViolations, socket, teacherMessages, hasNewMessage, setHasNewMessage } = useSocketExam(session?._id)
   const [notificationSound] = useState(new Audio('/notification.mp3'))
   const [violations, setViolations] = useState(0)
+
+  // AI Proctoring state
+  const [currentAIViolation, setCurrentAIViolation] = useState<AIViolation | null>(null)
+  const [aiEnabled] = useState(true) // AI proctoring enabled by default
 
   // Enable exam protection
   useExamProtection(true, {
@@ -286,6 +292,56 @@ const ExamPage = () => {
     }
   }
 
+  // Handle AI proctoring violations
+  const handleAIViolation = useCallback(
+    (violation: AIViolation) => {
+      // Show the violation alert
+      setCurrentAIViolation(violation)
+
+      const isCritical = violation.type === 'PHONE_DETECTED' || violation.type === 'EARPHONE_DETECTED'
+
+      // Emit to server via socket
+      if (socket) {
+        socket.emit('exam_violation', {
+          session_id: session?._id,
+          type: `ai_${violation.type.toLowerCase()}`,
+          details: {
+            detection_method: 'ai_proctoring',
+            confidence: violation.confidence,
+            consecutive_frames: violation.frameCount,
+            timestamp: new Date(violation.timestamp).toISOString(),
+            device_info: deviceInfo
+          }
+        })
+      }
+
+      // Increment violation count
+      setViolations((prev) => prev + 1)
+      setShowViolationWarning(true)
+
+      if (isCritical) {
+        toast.error(
+          `🚨 Vi phạm nghiêm trọng: ${
+            violation.type === 'PHONE_DETECTED'
+              ? 'Phát hiện điện thoại'
+              : violation.type === 'EARPHONE_DETECTED'
+                ? 'Phát hiện tai nghe'
+                : 'Phát hiện người lạ'
+          }! Bài thi sẽ bị khóa.`
+        )
+        // Auto-submit for critical violations
+        handleSubmit()
+      } else {
+        toast.warning(
+          `⚠️ Cảnh báo: ${
+            violation.type === 'HEAD_TURNED' ? 'Nhìn ngang quá lâu' : 'Tư thế đầu bất thường'
+          }. Vui lòng nhìn thẳng vào màn hình.`
+        )
+      }
+    },
+    [socket, session, deviceInfo]
+  )
+
   const handleSubmit = () => {
     if (isSubmitting || completed) return
 
@@ -359,36 +415,6 @@ const ExamPage = () => {
         navigate('/student', { replace: true })
       })
   }
-
-  function playBeep() {
-    try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext
-      if (!AudioContext) return
-
-      const context = new AudioContext()
-      const oscillator = context.createOscillator()
-      const gainNode = context.createGain()
-
-      oscillator.type = 'sine'
-      oscillator.frequency.value = 800 // Tần số
-      gainNode.gain.value = 0.3 // Âm lượng
-
-      oscillator.connect(gainNode)
-      gainNode.connect(context.destination)
-
-      oscillator.start()
-      setTimeout(() => oscillator.stop(), 200)
-    } catch (error) {
-      console.log('Audio API error:', error)
-    }
-  }
-
-  // Sử dụng trong useEffect
-  useEffect(() => {
-    if (hasNewMessage) {
-      playBeep()
-    }
-  }, [hasNewMessage])
 
   const handleSubmitClick = () => {
     // Check if all questions have been answered
@@ -477,6 +503,12 @@ const ExamPage = () => {
         }}
         enabled={!completed}
       />
+
+      {/* AI Proctoring Camera */}
+      <ExamCamera enabled={aiEnabled && !completed} onViolation={handleAIViolation} showDebugOverlay={true} />
+
+      {/* AI Violation Alert */}
+      <ViolationAlert violation={currentAIViolation} onDismiss={() => setCurrentAIViolation(null)} />
       <ConfirmDialog
         isOpen={showConfirmDialog}
         message={confirmMessage}

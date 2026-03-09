@@ -19,18 +19,6 @@ const MessageNotification: React.FC<MessageNotificationProps> = ({ messages, has
     }
   }, [hasNew])
 
-  // Play notification sound when a new message arrives
-  useEffect(() => {
-    if (hasNew && messages.length > 0) {
-      try {
-        const audio = new Audio('/notification.mp3') // Base64 MP3 data
-        audio.play().catch((e) => console.error('Could not play notification sound', e))
-      } catch (error) {
-        console.log('Audio notification not supported')
-      }
-    }
-  }, [hasNew, messages.length])
-
   const toggleMessages = () => {
     setShowMessages(!showMessages)
     if (hasNew && showMessages) {

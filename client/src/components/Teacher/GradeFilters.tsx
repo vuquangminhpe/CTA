@@ -13,8 +13,6 @@ interface GradeFiltersProps {
 }
 
 const GradeFilters: React.FC<GradeFiltersProps> = ({ filters, subjects, onChange }) => {
-  console.log(subjects)
-
   const classList = [
     '1A',
     '1B',

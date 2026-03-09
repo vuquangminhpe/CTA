@@ -13,7 +13,6 @@ const StudentManagement = () => {
   const { data, isLoading } = useStudents(page, limit, searchTerm)
   const deleteUserMutation = useDeleteUser()
   const changeRoleMutation = useChangeUserRole()
-  console.log(data)
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)

@@ -43,7 +43,6 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
   const [confirmAction, setConfirmAction] = useState<() => void>(() => () => {})
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [confirmMessage, setConfirmMessage] = useState<string>('')
-  console.log(answers)
 
   // Initialize socket connection
   useEffect(() => {
@@ -106,13 +105,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
         // Also automatically show the messages panel for important notifications
         setShowMessages(true)
 
-        // Play a notification sound if available
-        try {
-          const notificationSound = new Audio('/notification.mp3')
-          notificationSound.play().catch((e) => console.error('Could not play notification sound', e))
-        } catch (error) {
-          console.log('Audio notification not supported')
-        }
+      
       }
     })
 
@@ -157,13 +150,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
           icon: '📢' // Add an icon
         })
 
-        // Play a notification sound if available
-        try {
-          const notificationSound = new Audio('./notification.mp3')
-          notificationSound.play().catch((e) => console.error('Could not play notification sound', e))
-        } catch (error) {
-          console.log('Audio notification not supported')
-        }
+        
       }
     }
 
