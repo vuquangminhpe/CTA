@@ -1,7 +1,7 @@
 // AI Exam Proctoring — Postprocessing
 // Parse YOLO26n NMS-free outputs into DetectionBox[] and HeadPose
 
-import { DetectionBox, HeadPose, AI_CONFIG } from './aiTypes'
+import { DetectionBox, HeadPose, AI_CONFIG, __AI_DEV__ } from './aiTypes'
 
 // Use as a default, can be overridden by actual shape
 const DEFAULT_OUTPUT_DETECTIONS: number = AI_CONFIG.MODEL_OUTPUT_DETECTIONS
@@ -120,9 +120,11 @@ export function postprocessPose(
         transposed = false
       }
     }
-    console.log(
-      `[postprocessPose] shape=${JSON.stringify(shape)}, stride=${stride}, numDet=${numDetections}, transposed=${transposed}`
-    )
+    if (__AI_DEV__) {
+      console.log(
+        `[postprocessPose] shape=${JSON.stringify(shape)}, stride=${stride}, numDet=${numDetections}, transposed=${transposed}`
+      )
+    }
   }
 
   // Calculate where keypoints actually start based on stride

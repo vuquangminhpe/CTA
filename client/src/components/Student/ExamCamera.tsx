@@ -8,7 +8,7 @@ import { Camera, Cpu, Shield, WifiOff, Loader2 } from 'lucide-react'
 import { useYoloDetection } from '../../hooks/useYoloDetection'
 import { useHeadPose } from '../../hooks/useHeadPose'
 import type { AIViolation, AIViolationType } from '../../utils/aiTypes'
-import { AI_CONFIG, classToViolationType } from '../../utils/aiTypes'
+import { AI_CONFIG, classToViolationType, __AI_DEV__ } from '../../utils/aiTypes'
 
 interface ExamCameraProps {
   enabled: boolean
@@ -37,7 +37,8 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
     detections,
     keypoints,
     fps,
-    inferenceTimeMs
+    inferenceTimeMs,
+    isFaceVisible
   } = useYoloDetection({ enabled: enabled && cameraActive, videoRef })
 
   // Head pose hook
@@ -63,7 +64,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
   // Initialize webcam
   useEffect(() => {
     if (!enabled) {
-      console.log('[ExamCamera] Not enabled, skipping camera init')
+      if (__AI_DEV__) console.log('[ExamCamera] Not enabled, skipping camera init')
       return
     }
 
@@ -71,7 +72,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
     let cancelled = false
 
     const initCamera = async () => {
-      console.log('[ExamCamera] Starting camera initialization...')
+      if (__AI_DEV__) console.log('[ExamCamera] Starting camera initialization...')
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -92,7 +93,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
           await videoRef.current.play()
           setCameraActive(true)
           setCameraError(null)
-          console.log('[ExamCamera] ✅ Camera active and playing')
+          if (__AI_DEV__) console.log('[ExamCamera] ✅ Camera active and playing')
         } else {
           console.error('[ExamCamera] videoRef.current is null!')
           setCameraError('Video element not ready')
@@ -117,7 +118,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
       cancelled = true
       if (stream) {
         stream.getTracks().forEach((track) => track.stop())
-        console.log('[ExamCamera] Camera stream stopped (cleanup)')
+        if (__AI_DEV__) console.log('[ExamCamera] Camera stream stopped (cleanup)')
       }
       setCameraActive(false)
     }
@@ -133,7 +134,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
       if (now - lastEmit < cooldown) return
 
       violationCooldownRef.current[type] = now
-      console.log('[ExamCamera] 🚨 Violation emitted:', type, 'conf:', confidence)
+      if (__AI_DEV__) console.log('[ExamCamera] 🚨 Violation emitted:', type, 'conf:', confidence)
       onViolation({
         type,
         timestamp: now,
@@ -171,7 +172,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
     }
 
     // Log detections periodically
-    if (detections.length > 0) {
+    if (__AI_DEV__ && detections.length > 0) {
       console.log(
         '[ExamCamera] Detections:',
         detections.map((d) => `${d.label}(${(d.conf * 100).toFixed(0)}%)`).join(', ')
@@ -511,6 +512,13 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
           <div className='absolute top-1 right-1 text-[8px] text-green-400 bg-black/60 px-1.5 py-0.5 rounded'>
             <Cpu className='w-2 h-2 inline mr-0.5' />
             {executionProvider} | {fps}fps
+          </div>
+        )}
+
+        {/* Face not visible warning */}
+        {isReady && !isFaceVisible && (
+          <div className='absolute top-1/2 left-0 right-0 -translate-y-1/2 bg-orange-500/90 text-white text-center py-1.5 px-2'>
+            <span className='text-[10px] font-semibold'>⚠ Không phát hiện khuôn mặt — Vui lòng ngồi trước camera</span>
           </div>
         )}
 

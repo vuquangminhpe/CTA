@@ -2,7 +2,7 @@
 // Web Worker for YOLOv26n phone/person detection
 
 import * as ort from 'onnxruntime-web/webgpu'
-import { WorkerInitMessage, WorkerDetectMessage, AI_CONFIG } from '../utils/aiTypes'
+import { WorkerInitMessage, WorkerDetectMessage, AI_CONFIG, __AI_DEV__ } from '../utils/aiTypes'
 import { CLASS_LABELS } from '../utils/classes'
 import { postprocessDetections } from '../utils/postprocess'
 import { preprocessImageData } from '../utils/preprocess'
@@ -16,7 +16,6 @@ const { MODEL_INPUT_SIZE, DETECT_CONFIDENCE_THRESHOLD } = AI_CONFIG
 
 let session: ort.InferenceSession | null = null
 let activeProvider = 'unknown'
-let debugCounter = 0
 let inputName = 'images'
 let outputName = 'output0'
 
@@ -27,12 +26,12 @@ async function fetchModelWithCache(url: string): Promise<ArrayBuffer> {
   let response = await cache.match(url)
 
   if (!response) {
-    console.log(`[Detect Worker] Downloading model from ${url}...`)
+    if (__AI_DEV__) console.log(`[Detect Worker] Downloading model from ${url}...`)
     response = await fetch(url)
     if (!response.ok) throw new Error(`Failed to fetch model: ${response.statusText}`)
     await cache.put(url, response.clone())
   } else {
-    console.log(`[Detect Worker] Loaded model from cache: ${url}`)
+    if (__AI_DEV__) console.log(`[Detect Worker] Loaded model from cache: ${url}`)
   }
 
   return await response.arrayBuffer()
@@ -75,7 +74,7 @@ async function initModels(detectModelUrl: string) {
 
   inputName = session.inputNames[0]
   outputName = session.outputNames[0]
-  console.log(`[Detect Worker] Model — input: "${inputName}", output: "${outputName}"`)
+  if (__AI_DEV__) console.log(`[Detect Worker] Model — input: "${inputName}", output: "${outputName}"`)
 
   const warmupTime = performance.now() - startTime
   console.log(`[Detect Worker] Ready! EP: ${activeProvider}, warmup: ${warmupTime.toFixed(0)}ms`)
@@ -94,19 +93,6 @@ async function runInference(pixels: Uint8ClampedArray, timestamp: number) {
 
   const output = await session.run({ [inputName]: inputTensor })
 
-  if (debugCounter < 3) {
-    debugCounter++
-    console.log('[Detect Worker] === OUTPUT ===')
-    for (const [name, tensor] of Object.entries(output)) {
-      console.log(`  Output "${name}": shape=${JSON.stringify(tensor.dims)}, type=${tensor.type}, size=${tensor.size}`)
-      const data = tensor.data as Float32Array
-      console.log(
-        `  First 30 values:`,
-        Array.from(data.slice(0, 30)).map((v) => v.toFixed(4))
-      )
-    }
-  }
-
   const outputData = output[outputName].data as Float32Array
   const outputShape = output[outputName].dims
 
@@ -117,29 +103,13 @@ async function runInference(pixels: Uint8ClampedArray, timestamp: number) {
     outputShape as number[]
   )
 
-  if (debugCounter <= 5 && detections.length > 0) {
+  if (__AI_DEV__ && detections.length > 0) {
     console.log(
-      `[Detect Worker] 📦 Detect results (${detections.length} hits):`,
+      `[Detect Worker] 📦 ${detections.length} hits:`,
       detections
         .slice(0, 3)
-        .map(
-          (d) =>
-            `${d.label}@${(d.conf * 100).toFixed(2)}% [${d.x1.toFixed(0)},${d.y1.toFixed(0)},${d.x2.toFixed(0)},${d.y2.toFixed(0)}]`
-        )
-    )
-  } else if (debugCounter <= 5) {
-    // Show top-3 confidences even when all below threshold to help debug
-    const topConfs: number[] = []
-    const data = outputData
-    const nd = outputShape ? ((outputShape as number[])[1] ?? 300) : 300
-    const st = outputShape ? ((outputShape as number[])[2] ?? 6) : 6
-    for (let i = 0; i < Math.min(nd, 10); i++) topConfs.push(data[i * st + 4])
-    topConfs.sort((a, b) => b - a)
-    console.log(
-      `[Detect Worker] 📦 0 hits (threshold=${DETECT_CONFIDENCE_THRESHOLD}). Top confs: [${topConfs
-        .slice(0, 5)
-        .map((c) => (c * 100).toFixed(2) + '%')
-        .join(', ')}]`
+        .map((d) => `${d.label}@${(d.conf * 100).toFixed(1)}%`)
+        .join(', ')
     )
   }
 

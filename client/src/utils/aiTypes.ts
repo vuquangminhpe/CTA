@@ -1,5 +1,8 @@
 // AI Exam Proctoring — Shared Types
 
+// DEV mode flag — all AI debug logs are gated behind this
+export const __AI_DEV__ = import.meta.env.DEV
+
 export interface DetectionBox {
   x1: number
   y1: number

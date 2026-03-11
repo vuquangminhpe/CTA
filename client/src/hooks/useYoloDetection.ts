@@ -1,15 +1,9 @@
 // AI Exam Proctoring — useYoloDetection hook
-// Manages dual YOLO Workers (Detect & Pose), captures frames, and returns results
+// Manages dual YOLO Workers in SERIAL pipeline (Detect → Pose) to avoid WebGPU device conflicts
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type {
-  DetectionBox,
-  WorkerResponse
-  // WorkerInitMessage,
-  // WorkerDetectMessage,
-  // WorkerDestroyMessage
-} from '../utils/aiTypes'
-import { AI_CONFIG } from '../utils/aiTypes'
+import type { DetectionBox, WorkerResponse } from '../utils/aiTypes'
+import { AI_CONFIG, __AI_DEV__ } from '../utils/aiTypes'
 import { captureImageData } from '../utils/preprocess'
 
 interface UseYoloDetectionOptions {
@@ -26,6 +20,23 @@ interface UseYoloDetectionResult {
   keypoints: number[][]
   fps: number
   inferenceTimeMs: number
+  isFaceVisible: boolean
+}
+
+// Check if face keypoints (nose, eyes, ears) have enough visible points
+function checkFaceVisible(allKeypoints: number[][]): boolean {
+  if (allKeypoints.length === 0) return false
+  for (const kpts of allKeypoints) {
+    if (!kpts || kpts.length < 15) continue // need at least 5 keypoints * 3
+    // Face keypoints: nose(0), left_eye(1), right_eye(2), left_ear(3), right_ear(4)
+    let visibleCount = 0
+    for (let i = 0; i < 5; i++) {
+      if (kpts[i * 3 + 2] > 0.3) visibleCount++
+    }
+    // At least 2 face keypoints visible = face present
+    if (visibleCount >= 2) return true
+  }
+  return false
 }
 
 export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionOptions): UseYoloDetectionResult {
@@ -36,6 +47,7 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
 
   const [detections, setDetections] = useState<DetectionBox[]>([])
   const [keypoints, setKeypoints] = useState<number[][]>([])
+  const [isFaceVisible, setIsFaceVisible] = useState(true) // optimistic default
 
   const [fps, setFps] = useState(0)
   const [inferenceTimeMs, setInferenceTimeMs] = useState(0)
@@ -51,8 +63,7 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
   const frameCountRef = useRef(0)
   const fpsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Synchronization for parallel workers
-  const pendingResultsRef = useRef({ detect: false, pose: false })
+  // Results accumulator for serial pipeline
   const latestResultsRef = useRef({
     detections: [] as DetectionBox[],
     keypoints: [] as number[][],
@@ -63,101 +74,138 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
   // Adaptive frame interval
   const frameIntervalRef = useRef(1000 / 8) // ms between frames
 
-  // Safety timeout to prevent deadlocks
-  const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Store pixel copy for pose worker (sent AFTER detect completes)
+  const pendingPoseFrameRef = useRef<{
+    pixels: Uint8ClampedArray
+    buffer: ArrayBuffer
+    timestamp: number
+    width: number
+    height: number
+  } | null>(null)
 
-  // Track readiness of both workers
+  // Track readiness & EP of each worker separately
   const workerReadyCountRef = useRef(0)
+  const workerEPsRef = useRef<{ detect: string; pose: string }>({ detect: 'unknown', pose: 'unknown' })
 
   // Initialize workers
   useEffect(() => {
     if (!enabled) {
-      console.log('[useYoloDetection] Not enabled, skipping worker init')
+      if (__AI_DEV__) console.log('[useYoloDetection] Not enabled, skipping worker init')
       return
     }
 
-    console.log('[useYoloDetection] Starting dual workers initialization...')
+    if (__AI_DEV__) console.log('[useYoloDetection] Starting dual workers (serial pipeline)...')
     setIsLoading(true)
     setError(null)
     workerReadyCountRef.current = 0
 
-    // Create Detect Worker
     const detectWorker = new Worker(new URL('../workers/detect.worker.ts', import.meta.url), { type: 'module' })
-
-    // Create Pose Worker
     const poseWorker = new Worker(new URL('../workers/pose.worker.ts', import.meta.url), { type: 'module' })
 
     detectWorkerRef.current = detectWorker
     poseWorkerRef.current = poseWorker
 
-    const handleWorkerReady = (workerName: string, ep: string) => {
+    const handleWorkerReady = (workerName: 'detect' | 'pose', ep: string) => {
       workerReadyCountRef.current++
-      console.log(`[AI Proctoring] ${workerName} ready with EP: ${ep}`)
+      workerEPsRef.current[workerName] = ep
+
+      // === EP Logging (always show — important for diagnostics) ===
+      const isGPU = ep.toLowerCase() === 'webgpu'
+      console.log(
+        `%c[AI Proctoring] ${workerName.toUpperCase()} Worker → ${ep.toUpperCase()} ${isGPU ? '✅ GPU' : '⚠️ CPU fallback'}`,
+        isGPU ? 'color: #22c55e; font-weight: bold' : 'color: #f59e0b; font-weight: bold'
+      )
 
       if (workerReadyCountRef.current === 2) {
+        const dEP = workerEPsRef.current.detect
+        const pEP = workerEPsRef.current.pose
+        const bothGPU = dEP === 'webgpu' && pEP === 'webgpu'
+
+        console.log(
+          `%c[AI Proctoring] Detect: ${dEP.toUpperCase()} | Pose: ${pEP.toUpperCase()} | Pipeline: SERIAL | ${bothGPU ? '🚀 All GPU' : '⚠️ Mixed'}`,
+          bothGPU ? 'color: #22c55e; font-weight: bold' : 'color: #f59e0b; font-weight: bold'
+        )
+
         setIsLoading(false)
         setIsReady(true)
-        setExecutionProvider(ep) // Assuming both use same EP (WebGPU)
-        console.log('[AI Proctoring] Both models ready for parallel inference!')
+        setExecutionProvider(bothGPU ? 'webgpu' : `detect:${dEP}/pose:${pEP}`)
       }
     }
 
     const finishFrame = () => {
-      // Clear safety timeout
-      if (processingTimeoutRef.current) {
-        clearTimeout(processingTimeoutRef.current)
-        processingTimeoutRef.current = null
-      }
-
       setDetections(latestResultsRef.current.detections)
       setKeypoints(latestResultsRef.current.keypoints)
 
-      const maxTime = Math.max(latestResultsRef.current.detectTime, latestResultsRef.current.poseTime)
-      setInferenceTimeMs(maxTime)
+      // Face visibility check
+      setIsFaceVisible(checkFaceVisible(latestResultsRef.current.keypoints))
+
+      const totalTime = latestResultsRef.current.detectTime + latestResultsRef.current.poseTime
+      setInferenceTimeMs(totalTime)
 
       frameCountRef.current++
       isProcessingRef.current = false
 
-      // Adaptive FPS based on the slower worker
+      // Adaptive FPS based on total serial time
       const targetMs = AI_CONFIG.TARGET_INFERENCE_MS
-      if (maxTime > targetMs * 1.5) {
+      if (totalTime > targetMs * 1.5) {
         frameIntervalRef.current = Math.min(1000 / AI_CONFIG.MIN_FPS, frameIntervalRef.current * 1.2)
-      } else if (maxTime < targetMs * 0.5) {
+      } else if (totalTime < targetMs * 0.5) {
         frameIntervalRef.current = Math.max(1000 / AI_CONFIG.MAX_FPS, frameIntervalRef.current * 0.9)
       }
-
-      pendingResultsRef.current = { detect: false, pose: false }
     }
 
-    const checkFrameComplete = () => {
-      if (pendingResultsRef.current.detect && pendingResultsRef.current.pose) {
-        finishFrame()
+    // SERIAL: Detect completes → send stored frame to Pose
+    detectWorker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+      const msg = event.data
+      if (msg.type === 'ready') {
+        handleWorkerReady('detect', msg.executionProvider || 'unknown')
+      } else if (msg.type === 'result') {
+        latestResultsRef.current.detections = msg.detections || []
+        latestResultsRef.current.detectTime = msg.inferenceTimeMs || 0
+
+        // Now send the stored frame copy to Pose Worker
+        const pending = pendingPoseFrameRef.current
+        if (pending && poseWorkerRef.current) {
+          poseWorkerRef.current.postMessage(
+            {
+              type: 'detect',
+              imageData: pending.pixels,
+              width: pending.width,
+              height: pending.height,
+              timestamp: pending.timestamp
+            },
+            [pending.buffer]
+          )
+          pendingPoseFrameRef.current = null
+        } else {
+          // No pending frame — finish with detect-only results
+          finishFrame()
+        }
+      } else if (msg.type === 'error') {
+        console.error('[AI Proctoring] Detect error:', msg.error)
+        setError(`Detect Error: ${msg.error}`)
+        isProcessingRef.current = false
       }
     }
 
-    detectWorker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-      const msg = event.data
-      if (msg.type === 'ready') handleWorkerReady('Detect Worker', msg.executionProvider || 'unknown')
-      else if (msg.type === 'result') {
-        latestResultsRef.current.detections = msg.detections || []
-        latestResultsRef.current.detectTime = msg.inferenceTimeMs || 0
-        pendingResultsRef.current.detect = true
-        checkFrameComplete()
-      } else if (msg.type === 'error') setError(`Detect Error: ${msg.error}`)
-    }
-
+    // Pose completes → publish all results
     poseWorker.onmessage = (event: MessageEvent<WorkerResponse>) => {
       const msg = event.data
-      if (msg.type === 'ready') handleWorkerReady('Pose Worker', msg.executionProvider || 'unknown')
-      else if (msg.type === 'result') {
+      if (msg.type === 'ready') {
+        handleWorkerReady('pose', msg.executionProvider || 'unknown')
+      } else if (msg.type === 'result') {
         latestResultsRef.current.keypoints = msg.keypoints || []
         latestResultsRef.current.poseTime = msg.inferenceTimeMs || 0
-        pendingResultsRef.current.pose = true
-        checkFrameComplete()
-      } else if (msg.type === 'error') setError(`Pose Error: ${msg.error}`)
+        finishFrame()
+      } else if (msg.type === 'error') {
+        console.error('[AI Proctoring] Pose error:', msg.error)
+        setError(`Pose Error: ${msg.error}`)
+        // Still publish detect results
+        setDetections(latestResultsRef.current.detections)
+        isProcessingRef.current = false
+      }
     }
 
-    // Initialize both models (original trained model for detect, uint8 is fine for pose)
     detectWorker.postMessage({ type: 'init', detectModelUrl: '/models/p_uint8.onnx' })
     poseWorker.postMessage({ type: 'init', poseModelUrl: '/models/pose_uint8.onnx' })
 
@@ -179,11 +227,10 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
       poseWorkerRef.current = null
 
       if (fpsIntervalRef.current) clearInterval(fpsIntervalRef.current)
-      if (processingTimeoutRef.current) clearTimeout(processingTimeoutRef.current)
     }
   }, [enabled])
 
-  // Frame capture loop
+  // Frame capture loop — only sends to detect worker (serial: detect → pose)
   const captureFrame = useCallback(() => {
     if (!isReady || !detectWorkerRef.current || !poseWorkerRef.current || !videoRef.current) {
       animationFrameRef.current = requestAnimationFrame(captureFrame)
@@ -200,23 +247,6 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
 
     lastFrameTimeRef.current = now
     isProcessingRef.current = true
-    pendingResultsRef.current = { detect: false, pose: false }
-
-    // Safety timeout: if workers don't respond within 2s, force-unlock pipeline
-    if (processingTimeoutRef.current) clearTimeout(processingTimeoutRef.current)
-    processingTimeoutRef.current = setTimeout(() => {
-      if (isProcessingRef.current) {
-        console.warn('[AI Proctoring] Frame processing timeout — force unlocking pipeline', {
-          detect: pendingResultsRef.current.detect,
-          pose: pendingResultsRef.current.pose
-        })
-        // Use whatever partial results we have
-        if (pendingResultsRef.current.detect) setDetections(latestResultsRef.current.detections)
-        if (pendingResultsRef.current.pose) setKeypoints(latestResultsRef.current.keypoints)
-        isProcessingRef.current = false
-        pendingResultsRef.current = { detect: false, pose: false }
-      }
-    }, 2000)
 
     try {
       const video = videoRef.current
@@ -226,15 +256,20 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
         return
       }
 
-      // Use fast capture on main thread
       const pixels = captureImageData(video)
 
-      // Clone buffer because transferring a buffer detaches it from the current thread.
-      // We need to send it to TWO different workers, so we need two independent ArrayBuffer copies.
-      const bufferCopy = pixels.buffer.slice(0)
+      // Clone buffer for pose worker (will be sent AFTER detect completes)
+      const bufferCopy = pixels.buffer.slice(0) as ArrayBuffer
       const pixelsCopy = new Uint8ClampedArray(bufferCopy)
+      pendingPoseFrameRef.current = {
+        pixels: pixelsCopy,
+        buffer: bufferCopy,
+        timestamp: now,
+        width: video.videoWidth,
+        height: video.videoHeight
+      }
 
-      // Send to Detect Worker
+      // Send ONLY to Detect Worker first (serial pipeline)
       detectWorkerRef.current.postMessage(
         {
           type: 'detect',
@@ -244,21 +279,9 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
           timestamp: now
         },
         [pixels.buffer]
-      ) // transfer original buffer
-
-      // Send to Pose Worker
-      poseWorkerRef.current.postMessage(
-        {
-          type: 'detect',
-          imageData: pixelsCopy,
-          width: video.videoWidth,
-          height: video.videoHeight,
-          timestamp: now
-        },
-        [bufferCopy]
-      ) // transfer copied buffer
+      )
     } catch (err) {
-      console.error('[AI Proctoring] Frame capture error:', err)
+      if (__AI_DEV__) console.error('[AI Proctoring] Frame capture error:', err)
       isProcessingRef.current = false
     }
 
@@ -285,7 +308,8 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
     detections,
     keypoints,
     fps,
-    inferenceTimeMs
+    inferenceTimeMs,
+    isFaceVisible
   }
 }
 

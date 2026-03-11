@@ -2,7 +2,7 @@
 // Web Worker for YOLOv26n head pose estimation
 
 import * as ort from 'onnxruntime-web/webgpu'
-import { WorkerInitMessage, WorkerDetectMessage, AI_CONFIG } from '../utils/aiTypes'
+import { WorkerInitMessage, WorkerDetectMessage, AI_CONFIG, __AI_DEV__ } from '../utils/aiTypes'
 import { CLASS_LABELS } from '../utils/classes'
 import { postprocessPose } from '../utils/postprocess'
 import { preprocessImageData } from '../utils/preprocess'
@@ -16,7 +16,6 @@ const { MODEL_INPUT_SIZE, POSE_CONFIDENCE_THRESHOLD } = AI_CONFIG
 
 let session: ort.InferenceSession | null = null
 let activeProvider = 'unknown'
-let debugCounter = 0
 let inputName = 'images'
 let outputName = 'output0'
 
@@ -27,12 +26,12 @@ async function fetchModelWithCache(url: string): Promise<ArrayBuffer> {
   let response = await cache.match(url)
 
   if (!response) {
-    console.log(`[Pose Worker] Downloading model from ${url}...`)
+    if (__AI_DEV__) console.log(`[Pose Worker] Downloading model from ${url}...`)
     response = await fetch(url)
     if (!response.ok) throw new Error(`Failed to fetch model: ${response.statusText}`)
     await cache.put(url, response.clone())
   } else {
-    console.log(`[Pose Worker] Loaded model from cache: ${url}`)
+    if (__AI_DEV__) console.log(`[Pose Worker] Loaded model from cache: ${url}`)
   }
 
   return await response.arrayBuffer()
@@ -75,7 +74,7 @@ async function initModels(poseModelUrl: string) {
 
   inputName = session.inputNames[0]
   outputName = session.outputNames[0]
-  console.log(`[Pose Worker] Model — input: "${inputName}", output: "${outputName}"`)
+  if (__AI_DEV__) console.log(`[Pose Worker] Model — input: "${inputName}", output: "${outputName}"`)
 
   const warmupTime = performance.now() - startTime
   console.log(`[Pose Worker] Ready! EP: ${activeProvider}, warmup: ${warmupTime.toFixed(0)}ms`)
@@ -93,19 +92,6 @@ async function runInference(pixels: Uint8ClampedArray, timestamp: number) {
   const inputTensor = new ort.Tensor('float32', floatData, [1, 3, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE])
 
   const output = await session.run({ [inputName]: inputTensor })
-
-  if (debugCounter < 3) {
-    debugCounter++
-    console.log('[Pose Worker] === OUTPUT ===')
-    for (const [name, tensor] of Object.entries(output)) {
-      console.log(`  Output "${name}": shape=${JSON.stringify(tensor.dims)}, type=${tensor.type}, size=${tensor.size}`)
-      const data = tensor.data as Float32Array
-      console.log(
-        `  First 30 values:`,
-        Array.from(data.slice(0, 30)).map((v) => v.toFixed(4))
-      )
-    }
-  }
 
   const outputData = output[outputName].data as Float32Array
   const outputShape = output[outputName].dims
@@ -131,20 +117,10 @@ async function runInference(pixels: Uint8ClampedArray, timestamp: number) {
     return true
   })
 
-  if (debugCounter <= 5) {
-    console.log(`[Pose Worker] 🦴 Pose: ${rawKeypoints.length} raw, ${validKeypoints.length} valid`)
-    if (rawKeypoints.length > 0) {
-      const kp = rawKeypoints[0]
-      console.log(`[Pose Worker] First person keypoints:`, {
-        nose: `(${kp[0]?.toFixed(1)}, ${kp[1]?.toFixed(1)}) vis=${kp[2]?.toFixed(3)}`,
-        leftEar: `(${kp[9]?.toFixed(1)}, ${kp[10]?.toFixed(1)}) vis=${kp[11]?.toFixed(3)}`,
-        rightEar: `(${kp[12]?.toFixed(1)}, ${kp[13]?.toFixed(1)}) vis=${kp[14]?.toFixed(3)}`
-      })
-    }
+  if (__AI_DEV__) {
+    console.log(`[Pose Worker] 🦴 ${rawKeypoints.length} raw, ${validKeypoints.length} valid`)
     if (rawKeypoints.length > 0 && validKeypoints.length === 0) {
-      console.warn(
-        '[Pose Worker] ⚠️ All keypoints discarded (coords > 1280). Check model output shape / postprocessPose.'
-      )
+      console.warn('[Pose Worker] ⚠️ All keypoints discarded (coords > 1280)')
     }
   }
 
