@@ -104,8 +104,6 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
 
         // Also automatically show the messages panel for important notifications
         setShowMessages(true)
-
-      
       }
     })
 
@@ -149,8 +147,6 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
           },
           icon: '📢' // Add an icon
         })
-
-        
       }
     }
 
@@ -422,7 +418,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
       {/* Timer */}
       <ExamTimer remainingTime={timeLeft} onTimeUp={handleTimeUp} enabled={true} />
       {/* Violation Warning */}
-      {hasViolation && <ViolationWarning count={violations.length} onDismiss={() => setHasViolation(false)} />}
+      {/* {hasViolation && <ViolationWarning count={violations.length} onDismiss={() => setHasViolation(false)} />} */}
       {/* Teacher Messages button */}
       <div className='fixed top-4 left-24 z-50'>
         <button

@@ -523,7 +523,7 @@ const ExamPage = () => {
       <ExamTimer remainingTime={remainingTime} onTimeUp={handleTimeUp} enabled={!completed} />
 
       {/* Violation Warning */}
-      {showViolationWarning && (
+      {/* {showViolationWarning && (
         <ViolationWarning
           count={violations}
           onDismiss={() => {
@@ -531,7 +531,7 @@ const ExamPage = () => {
             resetViolations()
           }}
         />
-      )}
+      )} */}
 
       {/* Main Content */}
       <div className='py-4 px-8 bg-white shadow'>
