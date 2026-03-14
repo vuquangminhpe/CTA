@@ -149,7 +149,7 @@ const StudentDashboard = () => {
   }
 
   // Kiểm tra xem có kỳ thi gần đây không
-  const [recentExam, setRecentExam] = useState<{ code: string; time: string } | null>(null)
+  const [, setRecentExam] = useState<{ code: string; time: string } | null>(null)
 
   useEffect(() => {
     try {
@@ -289,7 +289,7 @@ const StudentDashboard = () => {
                 </div>
 
                 {/* Recent Exam Info */}
-                {recentExam && (
+                {/* {recentExam && (
                   <div className='mt-6 bg-gray-50 border border-gray-200 rounded-md p-4'>
                     <h4 className='text-sm font-medium text-gray-700 mb-1'>Kỳ thi gần đây</h4>
                     <p className='text-sm text-gray-600'>
@@ -304,7 +304,7 @@ const StudentDashboard = () => {
                       Tiếp tục kỳ thi
                     </button>
                   </div>
-                )}
+                )} */}
               </>
             ) : (
               <>
