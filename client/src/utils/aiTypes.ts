@@ -72,7 +72,7 @@ export type WorkerResponse = WorkerReadyResponse | WorkerResultResponse | Worker
 
 // Anti-cheat config
 export const AI_CONFIG = {
-  DETECT_CONFIDENCE_THRESHOLD: 0.5,
+  DETECT_CONFIDENCE_THRESHOLD: 0.6,
   POSE_CONFIDENCE_THRESHOLD: 0.8,
   YAW_THRESHOLD: 30, // degrees
   PITCH_THRESHOLD: 25, // degrees
