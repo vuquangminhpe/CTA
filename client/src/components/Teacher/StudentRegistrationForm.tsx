@@ -281,7 +281,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({ onSuc
           studentFormData.append('teacher_id', profile._id)
 
           // Call API to register individual student
-          const response = await fetch('https://dsf-32wz.onrender.com/api/teacher/register-student', {
+          const response = await fetch('https://thicuonlinne-production.up.railway.app//api/teacher/register-student', {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${localStorage.getItem('access_token')}`

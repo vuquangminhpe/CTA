@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client'
 
-const socket = io('https://dsf-32wz.onrender.com', {
+const socket = io('https://thicuonlinne-production.up.railway.app/', {
   transports: ['websocket'],
   autoConnect: false,
   reconnection: true,
