@@ -10,7 +10,7 @@ import ScreenCaptureDetector from '../../components/Student/ScreenCaptureDetecto
 import useSocketExam from '../../hooks/useSocketExam'
 import examApi from '../../apis/exam.api'
 import { toast } from 'sonner'
-import { ChevronLeft, ChevronRight, Save, AlertTriangle, CheckCircle, MessageSquare, XCircle, Bell } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Save, AlertTriangle, CheckCircle, MessageSquare, XCircle, Bell, Shield, Loader2 } from 'lucide-react'
 import { AuthContext } from '../../Contexts/auth.context'
 import './AntiScreenshot.css'
 import './Notification.css'
@@ -57,6 +57,9 @@ const ExamPage = () => {
   // AI Proctoring state
   const [currentAIViolation, setCurrentAIViolation] = useState<AIViolation | null>(null)
   const [aiEnabled] = useState(true) // AI proctoring enabled by default
+  const [aiModelReady, setAiModelReady] = useState(false)
+  const [setupProgress, setSetupProgress] = useState(0)
+  const [setupStep, setSetupStep] = useState('Đang khởi tạo...')
 
   // Enable exam protection
   useExamProtection(true, {
@@ -66,6 +69,10 @@ const ExamPage = () => {
 
   // Time check ref
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Ref to always read latest answers (avoids stale closure in callbacks)
+  const answersRef = useRef(answers)
+  answersRef.current = answers
 
   // Detect camera availability
   const detectCamera = async (): Promise<boolean> => {
@@ -101,6 +108,40 @@ const ExamPage = () => {
       device_type: deviceType
     }
   }
+
+  // AI model ready callback
+  const handleAIReady = useCallback((ready: boolean) => {
+    if (ready) {
+      setSetupStep('AI giám sát đã sẵn sàng!')
+      setSetupProgress(100)
+      // Small delay so user sees 100% before transitioning
+      setTimeout(() => setAiModelReady(true), 600)
+    }
+  }, [])
+
+  // Simulate setup progress while AI model loads
+  useEffect(() => {
+    if (aiModelReady || !aiEnabled) return
+
+    const steps = [
+      { at: 0, text: 'Đang khởi tạo camera...', progress: 10 },
+      { at: 1500, text: 'Đang tải AI model phát hiện...', progress: 30 },
+      { at: 3000, text: 'Đang tải AI model tư thế...', progress: 50 },
+      { at: 5000, text: 'Đang khởi động inference engine...', progress: 70 },
+      { at: 8000, text: 'Đang chuẩn bị hệ thống giám sát...', progress: 85 },
+    ]
+
+    const timers = steps.map(({ at, text, progress }) =>
+      setTimeout(() => {
+        if (!aiModelReady) {
+          setSetupStep(text)
+          setSetupProgress(progress)
+        }
+      }, at)
+    )
+
+    return () => timers.forEach(clearTimeout)
+  }, [aiModelReady, aiEnabled])
 
   // Load exam on mount
   useEffect(() => {
@@ -298,7 +339,10 @@ const ExamPage = () => {
       // Show the violation alert
       setCurrentAIViolation(violation)
 
-      const isCritical = violation.type === 'PHONE_DETECTED' || violation.type === 'EARPHONE_DETECTED'
+      const isCritical =
+        violation.type === 'PHONE_DETECTED' ||
+        violation.type === 'EARPHONE_DETECTED' ||
+        violation.type === 'PHONE_CHECKING_POSE'
 
       // Emit to server via socket
       if (socket) {
@@ -320,22 +364,25 @@ const ExamPage = () => {
       setShowViolationWarning(true)
 
       if (isCritical) {
+        const criticalMessages: Record<string, string> = {
+          PHONE_DETECTED: 'Phát hiện điện thoại',
+          EARPHONE_DETECTED: 'Phát hiện tai nghe',
+          PHONE_CHECKING_POSE: 'Phát hiện tư thế sử dụng điện thoại',
+        }
         toast.error(
-          `🚨 Vi phạm nghiêm trọng: ${
-            violation.type === 'PHONE_DETECTED'
-              ? 'Phát hiện điện thoại'
-              : violation.type === 'EARPHONE_DETECTED'
-                ? 'Phát hiện tai nghe'
-                : 'Phát hiện người lạ'
-          }! Bài thi sẽ bị khóa.`
+          `🚨 Vi phạm nghiêm trọng: ${criticalMessages[violation.type] || violation.type}! Bài thi sẽ bị khóa.`
         )
         // Auto-submit for critical violations
         handleSubmit()
       } else {
+        const warningMessages: Record<string, string> = {
+          HEAD_TURNED: 'Nhìn ngang quá lâu',
+          HEAD_TILTED: 'Tư thế đầu bất thường',
+          LOOKING_DOWN: 'Nhìn xuống quá lâu',
+          SUSPICIOUS_POSTURE: 'Tư thế bất thường',
+        }
         toast.warning(
-          `⚠️ Cảnh báo: ${
-            violation.type === 'HEAD_TURNED' ? 'Nhìn ngang quá lâu' : 'Tư thế đầu bất thường'
-          }. Vui lòng nhìn thẳng vào màn hình.`
+          `⚠️ Cảnh báo: ${warningMessages[violation.type] || violation.type}. Vui lòng nhìn thẳng vào màn hình.`
         )
       }
     },
@@ -347,8 +394,12 @@ const ExamPage = () => {
 
     setIsSubmitting(true)
 
+    // Read from ref to always get latest answers (avoids stale closure bug
+    // where auto-submit from AI violation callback captured empty/initial answers)
+    const currentAnswers = answersRef.current
+
     // Format answers for API
-    const formattedAnswers = Object.entries(answers).map(([questionId, selectedIndex]) => ({
+    const formattedAnswers = Object.entries(currentAnswers).map(([questionId, selectedIndex]) => ({
       question_id: questionId,
       selected_index: selectedIndex
     }))
@@ -388,8 +439,11 @@ const ExamPage = () => {
 
     setIsSubmitting(true)
 
+    // Read from ref to always get latest answers
+    const currentAnswers = answersRef.current
+
     // Format answers for API
-    const formattedAnswers = Object.entries(answers).map(([questionId, selectedIndex]) => ({
+    const formattedAnswers = Object.entries(currentAnswers).map(([questionId, selectedIndex]) => ({
       question_id: questionId,
       selected_index: selectedIndex
     }))
@@ -504,8 +558,65 @@ const ExamPage = () => {
         enabled={!completed}
       />
 
-      {/* AI Proctoring Camera */}
-      <ExamCamera enabled={aiEnabled && !completed} onViolation={handleAIViolation} showDebugOverlay={true} />
+      {/* AI Proctoring Camera — always mounted here, never unmounts during exam */}
+      <ExamCamera enabled={aiEnabled && !completed} onViolation={handleAIViolation} onReady={handleAIReady} showDebugOverlay={true} />
+
+      {/* AI Setup Loading Overlay — covers exam content until model is ready */}
+      {aiEnabled && !aiModelReady && (
+        <div className='fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex flex-col items-center justify-center'>
+          <div className='max-w-md w-full mx-4'>
+            <div className='flex justify-center mb-6'>
+              <div className='relative'>
+                <div className='w-20 h-20 rounded-2xl bg-blue-500/20 flex items-center justify-center'>
+                  <Shield className='w-10 h-10 text-blue-400' />
+                </div>
+                <div className='absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full animate-ping opacity-75' />
+                <div className='absolute -top-1 -right-1 w-5 h-5 bg-blue-400 rounded-full' />
+              </div>
+            </div>
+            <h2 className='text-2xl font-bold text-white text-center mb-2'>Đang thiết lập hệ thống giám sát</h2>
+            <p className='text-blue-300/70 text-center text-sm mb-8'>Vui lòng đợi trong khi AI proctoring được khởi tạo</p>
+            <div className='bg-white/10 rounded-full h-3 mb-4 overflow-hidden backdrop-blur-sm'>
+              <div
+                className='h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-700 ease-out'
+                style={{ width: `${setupProgress}%` }}
+              />
+            </div>
+            <div className='flex justify-between items-center mb-8'>
+              <span className='text-blue-300/80 text-sm flex items-center gap-2'>
+                <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                {setupStep}
+              </span>
+              <span className='text-blue-300/60 text-sm font-mono'>{setupProgress}%</span>
+            </div>
+            <div className='bg-white/5 rounded-xl p-4 backdrop-blur-sm border border-white/10 space-y-3'>
+              {[
+                { label: 'Truy cập camera', done: setupProgress >= 10 },
+                { label: 'Tải model phát hiện đối tượng', done: setupProgress >= 30 },
+                { label: 'Tải model phân tích tư thế', done: setupProgress >= 50 },
+                { label: 'Khởi động inference engine', done: setupProgress >= 70 },
+                { label: 'Hệ thống giám sát sẵn sàng', done: setupProgress >= 100 },
+              ].map((step, i) => (
+                <div key={i} className='flex items-center gap-3'>
+                  {step.done ? (
+                    <CheckCircle className='w-4 h-4 text-green-400 flex-shrink-0' />
+                  ) : setupProgress >= [0, 10, 30, 50, 70][i] ? (
+                    <Loader2 className='w-4 h-4 text-blue-400 animate-spin flex-shrink-0' />
+                  ) : (
+                    <div className='w-4 h-4 rounded-full border border-white/20 flex-shrink-0' />
+                  )}
+                  <span className={`text-sm ${step.done ? 'text-green-300' : setupProgress >= [0, 10, 30, 50, 70][i] ? 'text-blue-300' : 'text-white/30'}`}>
+                    {step.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className='mt-6 text-center'>
+              <p className='text-white/40 text-xs'>{exam?.title} — {exam?.questions?.length} câu hỏi</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI Violation Alert */}
       <ViolationAlert violation={currentAIViolation} onDismiss={() => setCurrentAIViolation(null)} />

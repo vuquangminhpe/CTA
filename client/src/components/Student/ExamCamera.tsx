@@ -6,17 +6,18 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { Camera, Cpu, Shield, WifiOff, Loader2 } from 'lucide-react'
 import { useYoloDetection } from '../../hooks/useYoloDetection'
-import { useHeadPose } from '../../hooks/useHeadPose'
+import { usePoseAnalysis } from '../../hooks/usePoseAnalysis'
 import type { AIViolation, AIViolationType } from '../../utils/aiTypes'
 import { AI_CONFIG, classToViolationType, __AI_DEV__ } from '../../utils/aiTypes'
 
 interface ExamCameraProps {
   enabled: boolean
   onViolation: (violation: AIViolation) => void
+  onReady?: (ready: boolean) => void
   showDebugOverlay?: boolean
 }
 
-const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebugOverlay = false }) => {
+const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, showDebugOverlay = false }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [cameraActive, setCameraActive] = useState(false)
@@ -41,8 +42,19 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
     isFaceVisible
   } = useYoloDetection({ enabled: enabled && cameraActive, videoRef })
 
-  // Head pose hook
-  const { headPose, isLookingAway, lookAwayDurationMs } = useHeadPose({ keypoints, enabled: enabled && cameraActive })
+  // Enhanced pose analysis hook (replaces useHeadPose)
+  const {
+    headPose,
+    cheatingScore,
+    phoneCheck,
+    isLookingAway,
+    lookAwayDurationMs
+  } = usePoseAnalysis({ keypoints, detections, enabled: enabled && cameraActive })
+
+  // Notify parent when AI model is ready
+  useEffect(() => {
+    onReady?.(isReady)
+  }, [isReady, onReady])
 
   // Update status text based on state
   useEffect(() => {
@@ -129,7 +141,8 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
     (type: AIViolationType, confidence: number, frameCount: number) => {
       const now = Date.now()
       const lastEmit = violationCooldownRef.current[type] || 0
-      const cooldown = type.includes('HEAD') ? 5000 : 3000 // 5s for head, 3s for critical
+      // 5s for head/posture warnings, 3s for critical violations
+      const cooldown = (type.includes('HEAD') || type === 'LOOKING_DOWN' || type === 'SUSPICIOUS_POSTURE') ? 5000 : 3000
 
       if (now - lastEmit < cooldown) return
 
@@ -201,11 +214,28 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
     }
   }, [detections, enabled, isReady, emitViolation])
 
-  // Head pose violations
+  // Composite pose violations (head pose + body posture + phone check)
   useEffect(() => {
-    if (!enabled || !isReady || !headPose) return
+    if (!enabled || !isReady) return
 
-    if (isLookingAway && lookAwayDurationMs >= AI_CONFIG.HEAD_SUSTAIN_MS) {
+    // ─── Composite score-based violations ───
+    if (cheatingScore && cheatingScore.level === 'critical' && lookAwayDurationMs >= AI_CONFIG.CHEATING_SUSTAIN_MS) {
+      const dominant = cheatingScore.dominantSignal
+      if (dominant === 'phoneCheck' && phoneCheck) {
+        emitViolation('PHONE_CHECKING_POSE', cheatingScore.overall, 1)
+      } else if (dominant === 'headPose' && headPose) {
+        if (headPose.pitch > AI_CONFIG.PITCH_THRESHOLD) {
+          emitViolation('LOOKING_DOWN', headPose.pitch / 90, 1)
+        } else if (Math.abs(headPose.yaw) > AI_CONFIG.YAW_THRESHOLD) {
+          emitViolation('HEAD_TURNED', Math.abs(headPose.yaw) / 90, 1)
+        }
+      } else if (dominant === 'bodyPosture') {
+        emitViolation('SUSPICIOUS_POSTURE', cheatingScore.breakdown.bodyPostureScore, 1)
+      }
+    }
+
+    // ─── Fallback: individual angle-based violations (backward compatible) ───
+    if (headPose && isLookingAway && lookAwayDurationMs >= AI_CONFIG.HEAD_SUSTAIN_MS) {
       const absYaw = Math.abs(headPose.yaw)
       const absPitch = Math.abs(headPose.pitch)
 
@@ -216,7 +246,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
         emitViolation('HEAD_TILTED', absPitch / 90, 1)
       }
     }
-  }, [isLookingAway, lookAwayDurationMs, headPose, enabled, isReady, emitViolation])
+  }, [cheatingScore, phoneCheck, isLookingAway, lookAwayDurationMs, headPose, enabled, isReady, emitViolation])
 
   // Draw debug overlay on canvas — detections + pose keypoints + skeleton + angles
   useEffect(() => {
@@ -426,6 +456,22 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
       ctx.fillText('No pose data', tx, ty)
     }
 
+    // ——— Cheating score readout ———
+    if (cheatingScore) {
+      const sx = 3, sy = canvas.height - 80
+      ctx.fillStyle = 'rgba(0,0,0,0.75)'
+      ctx.fillRect(sx - 1, sy - 9, 100, 38)
+      ctx.font = '8px monospace'
+      const levelColors: Record<string, string> = {
+        normal: '#44FF44', suspicious: '#FFAA00', warning: '#FF8800', critical: '#FF4444'
+      }
+      ctx.fillStyle = levelColors[cheatingScore.level] || '#AAAAAA'
+      ctx.fillText(`Score: ${(cheatingScore.overall * 100).toFixed(0)}% [${cheatingScore.level}]`, sx, sy)
+      ctx.fillStyle = '#AAAAAA'
+      ctx.fillText(`Phone: ${(cheatingScore.breakdown.phoneCheckScore * 100).toFixed(0)}%`, sx, sy + 11)
+      ctx.fillText(`Dom: ${cheatingScore.dominantSignal}`, sx, sy + 22)
+    }
+
     // ——— "LOOKING AWAY" warning bar ———
     if (isLookingAway) {
       ctx.fillStyle = 'rgba(255,0,0,0.6)'
@@ -441,7 +487,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, showDebug
     ctx.fillStyle = '#AAAAAA'
     ctx.font = '7px monospace'
     ctx.fillText(`KPT:${keypoints.length} DET:${detections.length}`, canvas.width - 56, canvas.height - 4)
-  }, [detections, keypoints, headPose, isLookingAway, showDebugOverlay])
+  }, [detections, keypoints, headPose, isLookingAway, cheatingScore, showDebugOverlay])
 
   return (
     <div className='fixed bottom-4 left-4 z-40'>

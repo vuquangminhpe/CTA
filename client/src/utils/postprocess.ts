@@ -228,7 +228,7 @@ export function calculateHeadPose(keypoints: number[]): HeadPose {
     // Without this offset, a neutral face always reads ~30°+ pitch.
     const midEarY = (leftEarY + rightEarY) / 2
     const noseOffsetY = noseY - midEarY
-    const baselineY = earDist * 0.33
+    const baselineY = earDist * 0.22
     const pitch = Math.atan2(noseOffsetY - baselineY, earDist * 0.5) * (180 / Math.PI)
 
     // Roll: head tilt (ear-to-ear angle from horizontal)

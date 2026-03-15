@@ -19,7 +19,14 @@ export interface HeadPose {
   roll: number // head tilt sideways
 }
 
-export type AIViolationType = 'PHONE_DETECTED' | 'EARPHONE_DETECTED' | 'HEAD_TURNED' | 'HEAD_TILTED'
+export type AIViolationType =
+  | 'PHONE_DETECTED'
+  | 'EARPHONE_DETECTED'
+  | 'HEAD_TURNED'
+  | 'HEAD_TILTED'
+  | 'LOOKING_DOWN'
+  | 'PHONE_CHECKING_POSE'
+  | 'SUSPICIOUS_POSTURE'
 
 export interface AIViolation {
   type: AIViolationType
@@ -70,6 +77,54 @@ export interface WorkerErrorResponse {
 
 export type WorkerResponse = WorkerReadyResponse | WorkerResultResponse | WorkerErrorResponse
 
+// ─── Body Posture Analysis ───
+export interface BodyPosture {
+  neckFlexionAngle: number // 0=upright, >0=forward bend (degrees)
+  forwardLeanAngle: number // 0=upright, >0=leaning forward (degrees)
+  shoulderHunchScore: number // 0-1 (1=fully hunched)
+  isValid: boolean // false when insufficient keypoints
+}
+
+// ─── Phone Checking Pose Detection ───
+export interface PhoneCheckResult {
+  probability: number // 0-1
+  signals: {
+    headDown: number
+    elbowProximity: number
+    wristPosition: number
+    wristProximity: number
+    shoulderHunch: number
+    eyeGazeProxy: number
+  }
+}
+
+// ─── Composite Cheating Score ───
+export type CheatingLevel = 'normal' | 'suspicious' | 'warning' | 'critical'
+
+export interface CheatingScore {
+  overall: number // 0-1
+  breakdown: {
+    headPoseScore: number
+    bodyPostureScore: number
+    phoneCheckScore: number
+    objectDetectionScore: number
+  }
+  dominantSignal: string
+  level: CheatingLevel
+}
+
+// ─── Enhanced Pose Result (returned by usePoseAnalysis hook) ───
+export interface EnhancedPoseResult {
+  headPose: HeadPose | null
+  bodyPosture: BodyPosture | null
+  phoneCheck: PhoneCheckResult | null
+  cheatingScore: CheatingScore | null
+  isLookingAway: boolean
+  lookAwayStartTime: number | null
+  lookAwayDurationMs: number
+  trends: { pitchTrend: number; yawTrend: number } | null
+}
+
 // Anti-cheat config
 export const AI_CONFIG = {
   DETECT_CONFIDENCE_THRESHOLD: 0.6,
@@ -81,6 +136,24 @@ export const AI_CONFIG = {
   // Temporal smoothing — consecutive frames before flagging
   CRITICAL_FRAME_COUNT: 3, // phone/earphone/extra person
   HEAD_SUSTAIN_MS: 2000, // head turned must sustain 2 seconds
+
+  // Enhanced pitch detection
+  PITCH_BASELINE_CORRECTION: 0.22, // reduced from 0.33 for better down-look detection
+  PITCH_CLAMP: 60, // clamp enhanced pitch to ±60° to avoid YOLO outliers
+
+  // Phone checking pose
+  PHONE_POSE_THRESHOLD: 0.65,
+  PHONE_POSE_SUSTAIN_MS: 3000, // must sustain 3 seconds
+
+  // Composite cheating score thresholds
+  CHEATING_SUSPICIOUS_THRESHOLD: 0.25,
+  CHEATING_WARNING_THRESHOLD: 0.50,
+  CHEATING_CRITICAL_THRESHOLD: 0.75,
+  CHEATING_SUSTAIN_MS: 2500,
+
+  // Temporal analysis
+  WEIGHTED_AVERAGE_DECAY: 0.85, // exponential decay per second
+  TREND_WINDOW_MS: 5000,
 
   // Adaptive FPS
   MIN_FPS: 4,

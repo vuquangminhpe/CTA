@@ -40,18 +40,14 @@ async function fetchModelWithCache(url: string): Promise<ArrayBuffer> {
 async function createSession(modelBuffer: ArrayBuffer, providers: string[]) {
   for (const ep of providers) {
     try {
+      const epStart = performance.now()
       const sess = await ort.InferenceSession.create(modelBuffer, {
         executionProviders: [ep],
         graphOptimizationLevel: 'all'
       })
-      // Send a test inference to verify the provider actually works
-      const dummyObj = new ort.Tensor('float32', new Float32Array(3 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE), [
-        1,
-        3,
-        MODEL_INPUT_SIZE,
-        MODEL_INPUT_SIZE
-      ])
-      await sess.run({ [sess.inputNames[0]]: dummyObj })
+      if (__AI_DEV__) {
+        console.log(`[Detect Worker] Session created on ${ep} in ${(performance.now() - epStart).toFixed(0)}ms`)
+      }
       return { session: sess, provider: ep }
     } catch (e) {
       console.warn(`[Detect Worker] EP '${ep}' failed or is not supported:`, e)

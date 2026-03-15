@@ -47,6 +47,27 @@ const VIOLATION_CONFIG: Record<
     icon: <Eye className='w-6 h-6' />,
     severity: 'warning',
     autoDismissMs: 5000
+  },
+  LOOKING_DOWN: {
+    label: 'Nhìn xuống quá lâu',
+    description: 'Phát hiện bạn đang nhìn xuống trong thời gian dài. Vui lòng nhìn vào màn hình.',
+    icon: <Eye className='w-6 h-6' />,
+    severity: 'warning',
+    autoDismissMs: 5000
+  },
+  PHONE_CHECKING_POSE: {
+    label: 'Tư thế nghi ngờ sử dụng điện thoại',
+    description: 'Phát hiện tư thế giống sử dụng điện thoại. Đây là vi phạm được ghi nhận.',
+    icon: <Smartphone className='w-6 h-6' />,
+    severity: 'critical',
+    autoDismissMs: 0
+  },
+  SUSPICIOUS_POSTURE: {
+    label: 'Tư thế bất thường',
+    description: 'Phát hiện tư thế cúi người bất thường. Vui lòng ngồi thẳng và nhìn vào màn hình.',
+    icon: <Eye className='w-6 h-6' />,
+    severity: 'warning',
+    autoDismissMs: 5000
   }
 }
 
