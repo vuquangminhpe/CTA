@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { DetectionBox, WorkerResponse } from '../utils/aiTypes'
-import { AI_CONFIG, __AI_DEV__ } from '../utils/aiTypes'
+import { AI_CONFIG, __AI_DEV__, isWeakDevice } from '../utils/aiTypes'
 import { captureImageData } from '../utils/preprocess'
 
 const WORKER_KEEP_ALIVE_MS = 15000
@@ -142,7 +142,8 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
       return
     }
 
-    if (__AI_DEV__) console.log('[useYoloDetection] Starting dual workers (parallel pipeline)...')
+    const weak = isWeakDevice()
+    if (__AI_DEV__) console.log(`[useYoloDetection] Starting dual workers (${weak ? 'SEQUENTIAL' : 'PARALLEL'} pipeline)...`)
     setIsLoading(true)
     setError(null)
     workerReadyCountRef.current = 0
@@ -157,7 +158,7 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
       workerEPsRef.current[workerName] = ep
 
       // === EP Logging (always show — important for diagnostics) ===
-      const isGPU = ep.toLowerCase() === 'webgpu'
+      const isGPU = ep.toLowerCase() === 'webgpu' || ep.toLowerCase() === 'webgl'
       console.log(
         `%c[AI Proctoring] ${workerName.toUpperCase()} Worker → ${ep.toUpperCase()} ${isGPU ? '✅ GPU' : '⚠️ CPU fallback'}`,
         isGPU ? 'color: #22c55e; font-weight: bold' : 'color: #f59e0b; font-weight: bold'
@@ -171,8 +172,10 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
         const pEP = workerEPsRef.current.pose
         const bothGPU = dEP === 'webgpu' && pEP === 'webgpu'
 
+        const pipeline = weak ? 'SEQUENTIAL' : 'PARALLEL'
+
         console.log(
-          `%c[AI Proctoring] Detect: ${dEP.toUpperCase()} | Pose: ${pEP.toUpperCase()} | Pipeline: PARALLEL | ${bothGPU ? '🚀 All GPU' : '⚠️ Mixed'}`,
+          `%c[AI Proctoring] Detect: ${dEP.toUpperCase()} | Pose: ${pEP.toUpperCase()} | Pipeline: ${pipeline} | ${bothGPU ? '🚀 All GPU' : '⚠️ Mixed'}`,
           bothGPU ? 'color: #22c55e; font-weight: bold' : 'color: #f59e0b; font-weight: bold'
         )
 
@@ -214,7 +217,11 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
       const msg = event.data
       if (msg.type === 'ready') {
         handleWorkerReady('detect', msg.executionProvider || 'unknown')
-        // Pose init was already sent simultaneously — no need to trigger it here
+        // On weak devices: sequential init — start pose worker only after detect is ready
+        if (weak && sharedModelState === 'initializing') {
+          if (__AI_DEV__) console.log('[useYoloDetection] Detect ready on weak device → starting pose worker init')
+          poseWorker.postMessage({ type: 'init', poseModelUrl: '/models/pose_uint8.onnx' })
+        }
       } else if (msg.type === 'result') {
         pendingParallelRef.current.detections = msg.detections || []
         pendingParallelRef.current.detectTime = msg.inferenceTimeMs || 0
@@ -270,10 +277,17 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
       }
     } else if (sharedModelState === 'idle') {
       sharedModelState = 'initializing'
-      // Send BOTH init messages simultaneously — parallel init halves startup time
-      // (detect ~40s + pose ~57s sequential = 97s → parallel = 57s, saving 40s)
-      detectWorker.postMessage({ type: 'init', detectModelUrl: '/models/p_uint8.onnx' })
-      poseWorker.postMessage({ type: 'init', poseModelUrl: '/models/pose_uint8.onnx' })
+      if (weak) {
+        // Sequential init for weak devices: detect first, pose after detect is ready
+        // This halves peak memory during init (only 1 ONNX session loading at a time)
+        if (__AI_DEV__) console.log('[useYoloDetection] SEQUENTIAL init: starting detect worker first...')
+        detectWorker.postMessage({ type: 'init', detectModelUrl: '/models/p_uint8.onnx' })
+        // poseWorker init will be triggered in detectWorker's 'ready' handler above
+      } else {
+        // Parallel init for strong devices (existing behavior)
+        detectWorker.postMessage({ type: 'init', detectModelUrl: '/models/p_uint8.onnx' })
+        poseWorker.postMessage({ type: 'init', poseModelUrl: '/models/pose_uint8.onnx' })
+      }
     }
     // If sharedModelState === 'initializing': workers are already initing, just wait for ready msgs
 

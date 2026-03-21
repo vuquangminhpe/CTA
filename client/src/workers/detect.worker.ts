@@ -7,10 +7,12 @@ import { CLASS_LABELS } from '../utils/classes'
 import { postprocessDetections } from '../utils/postprocess'
 import { preprocessImageData } from '../utils/preprocess'
 
-// Force WebAssembly SIMD and threading flags for optimal performance if fallback needed
-ort.env.wasm.numThreads = Math.min(navigator.hardwareConcurrency || 4, 4)
+// Adaptive WebAssembly config based on device capability
+const _cores = navigator.hardwareConcurrency || 2
+const _isWeakDevice = _cores <= 2
+ort.env.wasm.numThreads = _isWeakDevice ? 1 : Math.min(_cores, 4)
 ort.env.wasm.simd = true
-ort.env.wasm.proxy = true
+ort.env.wasm.proxy = !_isWeakDevice // proxy adds overhead on single-core devices
 
 const { MODEL_INPUT_SIZE, DETECT_CONFIDENCE_THRESHOLD } = AI_CONFIG
 
@@ -61,7 +63,7 @@ async function initModels(detectModelUrl: string) {
   const startTime = performance.now()
   const detectBuffer = await fetchModelWithCache(detectModelUrl)
 
-  const providers = ['webgpu', 'wasm']
+  const providers = ['webgpu', 'webgl', 'wasm']
 
   console.log('[Detect Worker] Creating detect session...')
   const result = await createSession(detectBuffer, providers)

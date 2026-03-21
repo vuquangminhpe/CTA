@@ -32,6 +32,7 @@ import ConfirmDialog from '../../components/helper/ConfirmDialog'
 import ExamCamera from '../../components/Student/ExamCamera'
 import ViolationAlert from '../../components/Student/ViolationAlert'
 import type { AIViolation } from '../../utils/aiTypes'
+import { isWeakDevice } from '../../utils/aiTypes'
 
 const ExamPage = () => {
   const { examCode } = useParams()
@@ -130,17 +131,42 @@ const ExamPage = () => {
     }
   }, [])
 
-  // Simulate setup progress while AI model loads
+  // Prefetch model files — start downloading before workers init
+  useEffect(() => {
+    const links = ['/models/p_uint8.onnx', '/models/pose_uint8.onnx'].map((url) => {
+      const link = document.createElement('link')
+      link.rel = 'prefetch'
+      link.href = url
+      link.as = 'fetch'
+      link.crossOrigin = 'anonymous'
+      document.head.appendChild(link)
+      return link
+    })
+    return () => links.forEach((l) => l.remove())
+  }, [])
+
+  // Adaptive setup progress while AI model loads
   useEffect(() => {
     if (aiModelReady || !aiEnabled) return
 
-    const steps = [
-      { at: 0, text: 'Đang khởi tạo camera...', progress: 10 },
-      { at: 1500, text: 'Đang tải AI model phát hiện...', progress: 30 },
-      { at: 3000, text: 'Đang tải AI model tư thế...', progress: 50 },
-      { at: 5000, text: 'Đang khởi động inference engine...', progress: 70 },
-      { at: 8000, text: 'Đang chuẩn bị hệ thống giám sát...', progress: 85 }
-    ]
+    const weak = isWeakDevice()
+    const steps = weak
+      ? [
+          { at: 0, text: 'Đang khởi tạo camera...', progress: 10 },
+          { at: 3000, text: 'Đang tải AI model phát hiện...', progress: 25 },
+          { at: 8000, text: 'Đang tải AI model tư thế...', progress: 40 },
+          { at: 15000, text: 'Đang khởi động inference engine...', progress: 55 },
+          { at: 25000, text: 'Đang chuẩn bị hệ thống giám sát...', progress: 70 },
+          { at: 40000, text: 'Vẫn đang tải (máy của bạn đang xử lý)...', progress: 80 },
+          { at: 60000, text: 'Sắp hoàn tất, vui lòng đợi...', progress: 85 }
+        ]
+      : [
+          { at: 0, text: 'Đang khởi tạo camera...', progress: 10 },
+          { at: 1500, text: 'Đang tải AI model phát hiện...', progress: 30 },
+          { at: 3000, text: 'Đang tải AI model tư thế...', progress: 50 },
+          { at: 5000, text: 'Đang khởi động inference engine...', progress: 70 },
+          { at: 8000, text: 'Đang chuẩn bị hệ thống giám sát...', progress: 85 }
+        ]
 
     const timers = steps.map(({ at, text, progress }) =>
       setTimeout(() => {

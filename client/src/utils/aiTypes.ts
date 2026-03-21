@@ -3,6 +3,25 @@
 // DEV mode flag — all AI debug logs are gated behind this
 export const __AI_DEV__ = import.meta.env.DEV
 
+// ─── Device Capability Detection ───
+let _isWeakDeviceCache: boolean | null = null
+
+export function isWeakDevice(): boolean {
+  if (_isWeakDeviceCache !== null) return _isWeakDeviceCache
+  const cores = navigator.hardwareConcurrency || 2
+  const memory = (navigator as any).deviceMemory || 8 // deviceMemory API (Chrome only, defaults to 8)
+  _isWeakDeviceCache = cores <= 2 || memory <= 4
+  if (__AI_DEV__) {
+    console.log(`[AI Config] Device: ${cores} cores, ${memory}GB RAM → ${_isWeakDeviceCache ? 'WEAK (optimized path)' : 'NORMAL'}`)
+  }
+  return _isWeakDeviceCache
+}
+
+/** Returns 320 on weak devices, 640 on normal devices */
+export function getModelInputSize(): number {
+  return isWeakDevice() ? 320 : 640
+}
+
 export interface DetectionBox {
   x1: number
   y1: number
@@ -126,44 +145,50 @@ export interface EnhancedPoseResult {
 }
 
 // Anti-cheat config
-export const AI_CONFIG = {
-  DETECT_CONFIDENCE_THRESHOLD: 0.6,
-  POSE_CONFIDENCE_THRESHOLD: 0.7,
-  YAW_THRESHOLD: 30, // degrees
-  PITCH_THRESHOLD: 25, // degrees
-  ROLL_THRESHOLD: 25, // degrees
+// Build config dynamically based on device capability
+function buildAIConfig() {
+  const weak = isWeakDevice()
+  return {
+    DETECT_CONFIDENCE_THRESHOLD: 0.6,
+    POSE_CONFIDENCE_THRESHOLD: 0.7,
+    YAW_THRESHOLD: 30, // degrees
+    PITCH_THRESHOLD: 25, // degrees
+    ROLL_THRESHOLD: 25, // degrees
 
-  // Temporal smoothing — consecutive frames before flagging
-  CRITICAL_FRAME_COUNT: 3, // phone/earphone/extra person
-  HEAD_SUSTAIN_MS: 2000, // head turned must sustain 2 seconds
+    // Temporal smoothing — consecutive frames before flagging
+    CRITICAL_FRAME_COUNT: 3, // phone/earphone/extra person
+    HEAD_SUSTAIN_MS: 2000, // head turned must sustain 2 seconds
 
-  // Enhanced pitch detection
-  PITCH_BASELINE_CORRECTION: 0.22, // reduced from 0.33 for better down-look detection
-  PITCH_CLAMP: 60, // clamp enhanced pitch to ±60° to avoid YOLO outliers
+    // Enhanced pitch detection
+    PITCH_BASELINE_CORRECTION: 0.22,
+    PITCH_CLAMP: 60,
 
-  // Phone checking pose
-  PHONE_POSE_THRESHOLD: 0.65,
-  PHONE_POSE_SUSTAIN_MS: 3000, // must sustain 3 seconds
+    // Phone checking pose
+    PHONE_POSE_THRESHOLD: 0.65,
+    PHONE_POSE_SUSTAIN_MS: 3000,
 
-  // Composite cheating score thresholds
-  CHEATING_SUSPICIOUS_THRESHOLD: 0.25,
-  CHEATING_WARNING_THRESHOLD: 0.5,
-  CHEATING_CRITICAL_THRESHOLD: 0.75,
-  CHEATING_SUSTAIN_MS: 2500,
+    // Composite cheating score thresholds
+    CHEATING_SUSPICIOUS_THRESHOLD: 0.25,
+    CHEATING_WARNING_THRESHOLD: 0.5,
+    CHEATING_CRITICAL_THRESHOLD: 0.75,
+    CHEATING_SUSTAIN_MS: 2500,
 
-  // Temporal analysis
-  WEIGHTED_AVERAGE_DECAY: 0.85, // exponential decay per second
-  TREND_WINDOW_MS: 5000,
+    // Temporal analysis
+    WEIGHTED_AVERAGE_DECAY: 0.85,
+    TREND_WINDOW_MS: 5000,
 
-  // Adaptive FPS
-  MIN_FPS: 4,
-  MAX_FPS: 15,
-  TARGET_INFERENCE_MS: 100, // aim for 100ms per inference
+    // Adaptive FPS — lower on weak devices to reduce CPU pressure
+    MIN_FPS: weak ? 2 : 4,
+    MAX_FPS: weak ? 8 : 15,
+    TARGET_INFERENCE_MS: weak ? 250 : 100,
 
-  // Model input
-  MODEL_INPUT_SIZE: 640,
-  MODEL_OUTPUT_DETECTIONS: 300
-} as const
+    // Model input — 320 on weak devices (4× less computation)
+    MODEL_INPUT_SIZE: weak ? 320 : 640,
+    MODEL_OUTPUT_DETECTIONS: 300
+  } as const
+}
+
+export const AI_CONFIG = buildAIConfig()
 
 // Class labels from trained model
 export const CLASS_LABELS: Record<number, string> = {

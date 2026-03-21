@@ -23,30 +23,12 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
   const [cameraActive, setCameraActive] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [statusText, setStatusText] = useState('Đang khởi tạo...')
-  const [isMobileViewport, setIsMobileViewport] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return window.innerWidth < 768
-  })
 
   // Track consecutive frame counts for temporal smoothing
   const phoneFrameCountRef = useRef(0)
   const earphoneFrameCountRef = useRef(0)
   const violationCooldownRef = useRef<Record<string, number>>({})
-  const shouldShowDebugOverlay = showDebugOverlay && !isMobileViewport
-
-  // Keep camera preview compact and out of submit area on small screens.
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobileViewport(window.innerWidth < 768)
-    }
-
-    handleResize()
-    window.addEventListener('resize', handleResize)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [])
+  const shouldShowDebugOverlay = showDebugOverlay
 
   // Detection hook
   const {
@@ -513,7 +495,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
     <div className='fixed top-20 left-2 z-30 pointer-events-none sm:pointer-events-auto sm:top-auto sm:left-4 sm:bottom-4'>
       {/* Camera preview — larger for better visibility */}
       <div
-        className={`relative bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-gray-700 ${shouldShowDebugOverlay ? 'w-80 h-60' : 'w-32 h-24 sm:w-44 sm:h-36'}`}
+        className={`relative bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-gray-700 ${shouldShowDebugOverlay ? 'w-44 h-32 sm:w-80 sm:h-60' : 'w-32 h-24 sm:w-44 sm:h-36'}`}
       >
         {/* Video element ALWAYS rendered — never conditionally remove from DOM */}
         <video
@@ -584,7 +566,9 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
         {/* Face not visible warning */}
         {isReady && !isFaceVisible && (
           <div className='absolute top-1/2 left-0 right-0 -translate-y-1/2 bg-orange-500/90 text-white text-center py-1.5 px-2'>
-            <span className='text-[10px] font-semibold'>⚠ Không phát hiện khuôn mặt — Vui lòng ngồi trước camera</span>
+            <span className='text-[8px] sm:text-[10px] font-semibold leading-tight'>
+              ⚠ Không phát hiện khuôn mặt — Vui lòng ngồi trước camera
+            </span>
           </div>
         )}
 
