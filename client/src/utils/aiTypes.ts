@@ -127,8 +127,8 @@ export interface EnhancedPoseResult {
 
 // Anti-cheat config
 export const AI_CONFIG = {
-  DETECT_CONFIDENCE_THRESHOLD: 0.8,
-  POSE_CONFIDENCE_THRESHOLD: 0.95,
+  DETECT_CONFIDENCE_THRESHOLD: 0.35,
+  POSE_CONFIDENCE_THRESHOLD: 0.65,
   YAW_THRESHOLD: 30, // degrees
   PITCH_THRESHOLD: 25, // degrees
   ROLL_THRESHOLD: 25, // degrees
@@ -142,7 +142,7 @@ export const AI_CONFIG = {
   PITCH_CLAMP: 60, // clamp enhanced pitch to ±60° to avoid YOLO outliers
 
   // Phone checking pose
-  PHONE_POSE_THRESHOLD: 0.85,
+  PHONE_POSE_THRESHOLD: 0.65,
   PHONE_POSE_SUSTAIN_MS: 3000, // must sustain 3 seconds
 
   // Composite cheating score thresholds
