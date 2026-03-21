@@ -299,7 +299,7 @@ const ExamSecurity: React.FC<ExamSecurityProps> = ({
   return (
     <>
       {requireWebcam && (
-        <div className='fixed top-4 left-4 w-32 h-24 bg-black rounded-lg overflow-hidden shadow-lg z-50'>
+        <div className='fixed top-20 left-2 w-28 h-20 z-30 pointer-events-none sm:pointer-events-auto sm:top-4 sm:left-4 sm:w-32 sm:h-24 bg-black rounded-lg overflow-hidden shadow-lg'>
           {webcamActive ? (
             <video ref={videoRef} autoPlay playsInline muted className='w-full h-full object-cover' />
           ) : (

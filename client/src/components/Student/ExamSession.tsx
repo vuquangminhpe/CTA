@@ -211,7 +211,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
 
   // Navigate between questions
   const handleNavigate = (index: number) => {
-    if (index >= 0 && index < exam.questions.length) {
+    if (index >= 0 && index <= exam.questions.length) {
       setCurrentQuestionIndex(index)
       // Scroll to top of the page
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -219,7 +219,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
   }
 
   const handleNext = () => {
-    if (currentQuestionIndex < exam.questions.length - 1) {
+    if (currentQuestionIndex < exam.questions.length) {
       handleNavigate(currentQuestionIndex + 1)
     }
   }
@@ -318,6 +318,10 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
       setHasNewMessage(false)
     }
   }
+
+  const totalQuestions = exam.questions.length
+  const answeredCount = Object.keys(answers).length
+  const isFinishStep = currentQuestionIndex === totalQuestions
 
   // Apply anti-screenshot/recording CSS
   useEffect(() => {
@@ -507,16 +511,45 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
           answers={answers}
           currentQuestionIndex={currentQuestionIndex}
           onNavigate={handleNavigate}
+          showFinishStep={true}
+          finishLabel='Kết thúc'
         />
 
         {/* Current Question */}
         <div className='mb-8'>
-          <ExamQuestion
-            question={exam.questions[currentQuestionIndex]}
-            questionIndex={currentQuestionIndex}
-            selectedAnswer={answers[exam.questions[currentQuestionIndex]._id]}
-            onAnswerSelect={handleAnswerSelect}
-          />
+          {isFinishStep ? (
+            <div className='min-h-[400px] rounded-2xl border border-blue-200 bg-gradient-to-b from-white to-blue-50 p-6 flex flex-col items-center justify-center text-center'>
+              <h3 className='text-2xl font-bold text-gray-900 mb-2'>Bước kết thúc bài thi</h3>
+              <p className='text-gray-600 mb-6'>
+                Bạn đã trả lời {answeredCount}/{totalQuestions} câu. Hãy kiểm tra lần cuối trước khi nộp.
+              </p>
+              <div className='flex flex-col sm:flex-row gap-3 items-center justify-center'>
+                <button
+                  type='button'
+                  onClick={() => handleNavigate(totalQuestions - 1)}
+                  className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-100'
+                >
+                  Quay lại câu cuối
+                </button>
+                <button
+                  type='button'
+                  onClick={handleSubmitClick}
+                  disabled={isSubmitting}
+                  className='inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-semibold rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  <Save className='-ml-1 mr-2 h-5 w-5' />
+                  {isSubmitting ? 'Đang trong quá trình nộp bài...' : 'Nộp bài thi'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <ExamQuestion
+              question={exam.questions[currentQuestionIndex]}
+              questionIndex={currentQuestionIndex}
+              selectedAnswer={answers[exam.questions[currentQuestionIndex]._id]}
+              onAnswerSelect={handleAnswerSelect}
+            />
+          )}
         </div>
 
         {/* Navigation and Submit */}
@@ -531,28 +564,19 @@ const ExamSession: React.FC<ExamSessionProps> = ({ session, exam, remainingTime,
             Câu hỏi trước đó
           </button>
 
-          <div className='flex items-center'>
-            <span className='text-sm text-gray-500 mr-4'>
-              {currentQuestionIndex + 1} of {exam.questions.length}
-            </span>
-            <button
-              type='button'
-              onClick={handleSubmitClick}
-              disabled={isSubmitting}
-              className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-            >
-              <Save className='-ml-1 mr-2 h-5 w-5' />
-              {isSubmitting ? 'Đang trong quá trình nộp bài...' : 'Nộp bài thi'}
-            </button>
-          </div>
+          <span className='text-sm text-gray-500'>
+            {isFinishStep
+              ? `Kết thúc (${answeredCount}/${totalQuestions})`
+              : `${currentQuestionIndex + 1} of ${totalQuestions}`}
+          </span>
 
           <button
             type='button'
             onClick={handleNext}
-            disabled={currentQuestionIndex === exam.questions.length - 1}
+            disabled={isFinishStep}
             className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            Câu hỏi tiếp theo
+            {currentQuestionIndex === totalQuestions - 1 ? 'Kết thúc' : 'Câu hỏi tiếp theo'}
             <ChevronRight className='-mr-1 ml-2 h-5 w-5' />
           </button>
         </div>

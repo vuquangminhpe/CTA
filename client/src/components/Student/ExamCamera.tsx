@@ -23,11 +23,30 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
   const [cameraActive, setCameraActive] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [statusText, setStatusText] = useState('Đang khởi tạo...')
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.innerWidth < 768
+  })
 
   // Track consecutive frame counts for temporal smoothing
   const phoneFrameCountRef = useRef(0)
   const earphoneFrameCountRef = useRef(0)
   const violationCooldownRef = useRef<Record<string, number>>({})
+  const shouldShowDebugOverlay = showDebugOverlay && !isMobileViewport
+
+  // Keep camera preview compact and out of submit area on small screens.
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileViewport(window.innerWidth < 768)
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
 
   // Detection hook
   const {
@@ -38,18 +57,15 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
     detections,
     keypoints,
     fps,
-    inferenceTimeMs,
     isFaceVisible
   } = useYoloDetection({ enabled: enabled && cameraActive, videoRef })
 
   // Enhanced pose analysis hook (replaces useHeadPose)
-  const {
-    headPose,
-    cheatingScore,
-    phoneCheck,
-    isLookingAway,
-    lookAwayDurationMs
-  } = usePoseAnalysis({ keypoints, detections, enabled: enabled && cameraActive })
+  const { headPose, cheatingScore, phoneCheck, isLookingAway, lookAwayDurationMs } = usePoseAnalysis({
+    keypoints,
+    detections,
+    enabled: enabled && cameraActive
+  })
 
   // Notify parent when AI model is ready
   useEffect(() => {
@@ -142,7 +158,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
       const now = Date.now()
       const lastEmit = violationCooldownRef.current[type] || 0
       // 5s for head/posture warnings, 3s for critical violations
-      const cooldown = (type.includes('HEAD') || type === 'LOOKING_DOWN' || type === 'SUSPICIOUS_POSTURE') ? 5000 : 3000
+      const cooldown = type.includes('HEAD') || type === 'LOOKING_DOWN' || type === 'SUSPICIOUS_POSTURE' ? 5000 : 3000
 
       if (now - lastEmit < cooldown) return
 
@@ -250,7 +266,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
 
   // Draw debug overlay on canvas — detections + pose keypoints + skeleton + angles
   useEffect(() => {
-    if (!showDebugOverlay || !canvasRef.current || !videoRef.current) return
+    if (!shouldShowDebugOverlay || !canvasRef.current || !videoRef.current) return
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
@@ -458,12 +474,16 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
 
     // ——— Cheating score readout ———
     if (cheatingScore) {
-      const sx = 3, sy = canvas.height - 80
+      const sx = 3,
+        sy = canvas.height - 80
       ctx.fillStyle = 'rgba(0,0,0,0.75)'
       ctx.fillRect(sx - 1, sy - 9, 100, 38)
       ctx.font = '8px monospace'
       const levelColors: Record<string, string> = {
-        normal: '#44FF44', suspicious: '#FFAA00', warning: '#FF8800', critical: '#FF4444'
+        normal: '#44FF44',
+        suspicious: '#FFAA00',
+        warning: '#FF8800',
+        critical: '#FF4444'
       }
       ctx.fillStyle = levelColors[cheatingScore.level] || '#AAAAAA'
       ctx.fillText(`Score: ${(cheatingScore.overall * 100).toFixed(0)}% [${cheatingScore.level}]`, sx, sy)
@@ -487,13 +507,13 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
     ctx.fillStyle = '#AAAAAA'
     ctx.font = '7px monospace'
     ctx.fillText(`KPT:${keypoints.length} DET:${detections.length}`, canvas.width - 56, canvas.height - 4)
-  }, [detections, keypoints, headPose, isLookingAway, cheatingScore, showDebugOverlay])
+  }, [detections, keypoints, headPose, isLookingAway, cheatingScore, shouldShowDebugOverlay])
 
   return (
-    <div className='fixed bottom-4 left-4 z-40'>
+    <div className='fixed top-20 left-2 z-30 pointer-events-none sm:pointer-events-auto sm:top-auto sm:left-4 sm:bottom-4'>
       {/* Camera preview — larger for better visibility */}
       <div
-        className={`relative bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-gray-700 ${showDebugOverlay ? 'w-80 h-60' : 'w-44 h-36'}`}
+        className={`relative bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-gray-700 ${shouldShowDebugOverlay ? 'w-80 h-60' : 'w-32 h-24 sm:w-44 sm:h-36'}`}
       >
         {/* Video element ALWAYS rendered — never conditionally remove from DOM */}
         <video
@@ -509,7 +529,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
         />
 
         {/* Debug canvas overlay */}
-        {showDebugOverlay && cameraActive && (
+        {shouldShowDebugOverlay && cameraActive && (
           <canvas
             ref={canvasRef}
             className='absolute inset-0 w-full h-full pointer-events-none'

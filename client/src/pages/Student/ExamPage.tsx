@@ -10,7 +10,18 @@ import ScreenCaptureDetector from '../../components/Student/ScreenCaptureDetecto
 import useSocketExam from '../../hooks/useSocketExam'
 import examApi from '../../apis/exam.api'
 import { toast } from 'sonner'
-import { ChevronLeft, ChevronRight, Save, AlertTriangle, CheckCircle, MessageSquare, XCircle, Bell, Shield, Loader2 } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Save,
+  AlertTriangle,
+  CheckCircle,
+  MessageSquare,
+  XCircle,
+  Bell,
+  Shield,
+  Loader2
+} from 'lucide-react'
 import { AuthContext } from '../../Contexts/auth.context'
 import './AntiScreenshot.css'
 import './Notification.css'
@@ -128,7 +139,7 @@ const ExamPage = () => {
       { at: 1500, text: 'Đang tải AI model phát hiện...', progress: 30 },
       { at: 3000, text: 'Đang tải AI model tư thế...', progress: 50 },
       { at: 5000, text: 'Đang khởi động inference engine...', progress: 70 },
-      { at: 8000, text: 'Đang chuẩn bị hệ thống giám sát...', progress: 85 },
+      { at: 8000, text: 'Đang chuẩn bị hệ thống giám sát...', progress: 85 }
     ]
 
     const timers = steps.map(({ at, text, progress }) =>
@@ -284,7 +295,7 @@ const ExamPage = () => {
   }
 
   const handleNavigate = (index: number) => {
-    if (index >= 0 && index < exam.questions.length) {
+    if (index >= 0 && index <= exam.questions.length) {
       setCurrentQuestionIndex(index)
       // Scroll to top of the page
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -292,7 +303,7 @@ const ExamPage = () => {
   }
 
   const handleNext = () => {
-    if (currentQuestionIndex < exam.questions.length - 1) {
+    if (currentQuestionIndex < exam.questions.length) {
       handleNavigate(currentQuestionIndex + 1)
     }
   }
@@ -367,7 +378,7 @@ const ExamPage = () => {
         const criticalMessages: Record<string, string> = {
           PHONE_DETECTED: 'Phát hiện điện thoại',
           EARPHONE_DETECTED: 'Phát hiện tai nghe',
-          PHONE_CHECKING_POSE: 'Phát hiện tư thế sử dụng điện thoại',
+          PHONE_CHECKING_POSE: 'Phát hiện tư thế sử dụng điện thoại'
         }
         toast.error(
           `🚨 Vi phạm nghiêm trọng: ${criticalMessages[violation.type] || violation.type}! Bài thi sẽ bị khóa.`
@@ -379,7 +390,7 @@ const ExamPage = () => {
           HEAD_TURNED: 'Nhìn ngang quá lâu',
           HEAD_TILTED: 'Tư thế đầu bất thường',
           LOOKING_DOWN: 'Nhìn xuống quá lâu',
-          SUSPICIOUS_POSTURE: 'Tư thế bất thường',
+          SUSPICIOUS_POSTURE: 'Tư thế bất thường'
         }
         toast.warning(
           `⚠️ Cảnh báo: ${warningMessages[violation.type] || violation.type}. Vui lòng nhìn thẳng vào màn hình.`
@@ -488,6 +499,10 @@ const ExamPage = () => {
     }
   }
 
+  const totalQuestions = exam?.questions?.length || 0
+  const answeredCount = Object.keys(answers).length
+  const isFinishStep = currentQuestionIndex === totalQuestions
+
   // Render loading state
   if (isLoading) {
     return (
@@ -559,7 +574,12 @@ const ExamPage = () => {
       />
 
       {/* AI Proctoring Camera — always mounted here, never unmounts during exam */}
-      <ExamCamera enabled={aiEnabled && !completed} onViolation={handleAIViolation} onReady={handleAIReady} showDebugOverlay={true} />
+      <ExamCamera
+        enabled={aiEnabled && !completed}
+        onViolation={handleAIViolation}
+        onReady={handleAIReady}
+        showDebugOverlay={true}
+      />
 
       {/* AI Setup Loading Overlay — covers exam content until model is ready */}
       {aiEnabled && !aiModelReady && (
@@ -575,7 +595,9 @@ const ExamPage = () => {
               </div>
             </div>
             <h2 className='text-2xl font-bold text-white text-center mb-2'>Đang thiết lập hệ thống giám sát</h2>
-            <p className='text-blue-300/70 text-center text-sm mb-8'>Vui lòng đợi trong khi AI proctoring được khởi tạo</p>
+            <p className='text-blue-300/70 text-center text-sm mb-8'>
+              Vui lòng đợi trong khi AI proctoring được khởi tạo
+            </p>
             <div className='bg-white/10 rounded-full h-3 mb-4 overflow-hidden backdrop-blur-sm'>
               <div
                 className='h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-700 ease-out'
@@ -595,7 +617,7 @@ const ExamPage = () => {
                 { label: 'Tải model phát hiện đối tượng', done: setupProgress >= 30 },
                 { label: 'Tải model phân tích tư thế', done: setupProgress >= 50 },
                 { label: 'Khởi động inference engine', done: setupProgress >= 70 },
-                { label: 'Hệ thống giám sát sẵn sàng', done: setupProgress >= 100 },
+                { label: 'Hệ thống giám sát sẵn sàng', done: setupProgress >= 100 }
               ].map((step, i) => (
                 <div key={i} className='flex items-center gap-3'>
                   {step.done ? (
@@ -605,14 +627,18 @@ const ExamPage = () => {
                   ) : (
                     <div className='w-4 h-4 rounded-full border border-white/20 flex-shrink-0' />
                   )}
-                  <span className={`text-sm ${step.done ? 'text-green-300' : setupProgress >= [0, 10, 30, 50, 70][i] ? 'text-blue-300' : 'text-white/30'}`}>
+                  <span
+                    className={`text-sm ${step.done ? 'text-green-300' : setupProgress >= [0, 10, 30, 50, 70][i] ? 'text-blue-300' : 'text-white/30'}`}
+                  >
                     {step.label}
                   </span>
                 </div>
               ))}
             </div>
             <div className='mt-6 text-center'>
-              <p className='text-white/40 text-xs'>{exam?.title} — {exam?.questions?.length} câu hỏi</p>
+              <p className='text-white/40 text-xs'>
+                {exam?.title} — {exam?.questions?.length} câu hỏi
+              </p>
             </div>
           </div>
         </div>
@@ -679,17 +705,46 @@ const ExamPage = () => {
             answers={answers}
             currentQuestionIndex={currentQuestionIndex}
             onNavigate={handleNavigate}
+            showFinishStep={true}
+            finishLabel='Kết thúc'
           />
         </div>
 
         {/* Current Question */}
         <div className='mb-8'>
-          <ExamQuestion
-            question={exam.questions[currentQuestionIndex]}
-            questionIndex={currentQuestionIndex}
-            selectedAnswer={answers[exam?.questions[currentQuestionIndex]?._id]}
-            onAnswerSelect={handleAnswerSelect}
-          />
+          {isFinishStep ? (
+            <div className='min-h-[400px] rounded-2xl border border-blue-200 bg-gradient-to-b from-white to-blue-50 p-6 flex flex-col items-center justify-center text-center'>
+              <h3 className='text-2xl font-bold text-gray-900 mb-2'>Bước kết thúc bài thi</h3>
+              <p className='text-gray-600 mb-6'>
+                Bạn đã trả lời {answeredCount}/{totalQuestions} câu. Hãy kiểm tra lần cuối trước khi nộp.
+              </p>
+              <div className='flex flex-col sm:flex-row gap-3 items-center justify-center'>
+                <button
+                  type='button'
+                  onClick={() => handleNavigate(totalQuestions - 1)}
+                  className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-100'
+                >
+                  Quay lại câu cuối
+                </button>
+                <button
+                  type='button'
+                  onClick={handleSubmitClick}
+                  disabled={isSubmitting}
+                  className='inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-semibold rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  <Save className='-ml-1 mr-2 h-5 w-5' />
+                  {isSubmitting ? 'Đang trong quá trình nộp bài thi...' : 'Nộp bài thi'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <ExamQuestion
+              question={exam.questions[currentQuestionIndex]}
+              questionIndex={currentQuestionIndex}
+              selectedAnswer={answers[exam?.questions[currentQuestionIndex]?._id]}
+              onAnswerSelect={handleAnswerSelect}
+            />
+          )}
         </div>
 
         {/* Teacher Messages UI - keeping existing implementation */}
@@ -808,28 +863,19 @@ const ExamPage = () => {
             Trước
           </button>
 
-          <div className='flex items-center'>
-            <span className='text-sm text-gray-500 mr-4'>
-              {currentQuestionIndex + 1} of {exam.questions.length}
-            </span>
-            <button
-              type='button'
-              onClick={handleSubmitClick}
-              disabled={isSubmitting}
-              className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-            >
-              <Save className='-ml-1 mr-2 h-5 w-5' />
-              {isSubmitting ? 'Đang trong quá trình nộp bài thi...' : 'Nộp bài thi'}
-            </button>
-          </div>
+          <span className='text-sm text-gray-500'>
+            {isFinishStep
+              ? `Kết thúc (${answeredCount}/${totalQuestions})`
+              : `${currentQuestionIndex + 1} of ${totalQuestions}`}
+          </span>
 
           <button
             type='button'
             onClick={handleNext}
-            disabled={currentQuestionIndex === exam.questions.length - 1}
+            disabled={isFinishStep}
             className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-200 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            Kế tiếp
+            {currentQuestionIndex === totalQuestions - 1 ? 'Kết thúc' : 'Kế tiếp'}
             <ChevronRight className='-mr-1 ml-2 h-5 w-5' />
           </button>
         </div>
