@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import type { DetectionBox, WorkerResponse } from '../utils/aiTypes'
 import { AI_CONFIG, __AI_DEV__, isWeakDevice } from '../utils/aiTypes'
 import { captureImageData } from '../utils/preprocess'
+import { toast } from 'sonner'
 
 const WORKER_KEEP_ALIVE_MS = 15000
 
@@ -143,7 +144,17 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
     }
 
     const weak = isWeakDevice()
+    const initStartTime = Date.now()
+    const cores = navigator.hardwareConcurrency || 2
+    const memory = (navigator as any).deviceMemory || '?'
     if (__AI_DEV__) console.log(`[useYoloDetection] Starting dual workers (${weak ? 'SEQUENTIAL' : 'PARALLEL'} pipeline)...`)
+    
+    // 🔔 DIAGNOSTIC TOAST: Init start with device info
+    toast.info(
+      `🔧 AI Init: ${cores} cores, ${memory}GB RAM, ${weak ? 'WEAK→SEQ' : 'NORMAL→PAR'}, input=${AI_CONFIG.MODEL_INPUT_SIZE}px`,
+      { duration: 12000, id: 'ai-init-start' }
+    )
+    
     setIsLoading(true)
     setError(null)
     workerReadyCountRef.current = 0
@@ -152,6 +163,20 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
 
     detectWorkerRef.current = detectWorker
     poseWorkerRef.current = poseWorker
+    
+    // 🔔 DIAGNOSTIC: Worker crash handlers (catches uncaught errors inside workers)
+    detectWorker.onerror = (e) => {
+      const msg = `❌ Detect Worker CRASH: ${e.message || 'unknown'} (${e.filename}:${e.lineno})`
+      console.error(msg, e)
+      toast.error(msg, { duration: 15000, id: 'detect-crash' })
+      setError(msg)
+    }
+    poseWorker.onerror = (e) => {
+      const msg = `❌ Pose Worker CRASH: ${e.message || 'unknown'} (${e.filename}:${e.lineno})`
+      console.error(msg, e)
+      toast.error(msg, { duration: 15000, id: 'pose-crash' })
+      setError(msg)
+    }
 
     const handleWorkerReady = (workerName: 'detect' | 'pose', ep: string) => {
       workerReadyCountRef.current++
@@ -159,9 +184,16 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
 
       // === EP Logging (always show — important for diagnostics) ===
       const isGPU = ep.toLowerCase() === 'webgpu' || ep.toLowerCase() === 'webgl'
+      const elapsed = ((Date.now() - initStartTime) / 1000).toFixed(1)
       console.log(
         `%c[AI Proctoring] ${workerName.toUpperCase()} Worker → ${ep.toUpperCase()} ${isGPU ? '✅ GPU' : '⚠️ CPU fallback'}`,
         isGPU ? 'color: #22c55e; font-weight: bold' : 'color: #f59e0b; font-weight: bold'
+      )
+      
+      // 🔔 DIAGNOSTIC TOAST: Each worker ready
+      toast.success(
+        `✅ ${workerName.toUpperCase()} Worker sẵn sàng: ${ep.toUpperCase()} ${isGPU ? '(GPU)' : '(CPU)'} — ${elapsed}s`,
+        { duration: 10000, id: `worker-ready-${workerName}` }
       )
 
       if (workerName === 'detect') sharedDetectEP = ep
@@ -183,6 +215,13 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
         setIsReady(true)
         setExecutionProvider(bothGPU ? 'webgpu' : `detect:${dEP}/pose:${pEP}`)
         sharedModelState = 'ready'
+        
+        // 🔔 DIAGNOSTIC TOAST: Both workers ready
+        const totalElapsed = ((Date.now() - initStartTime) / 1000).toFixed(1)
+        toast.success(
+          `🚀 AI sẵn sàng! Detect:${dEP} | Pose:${pEP} | ${pipeline} | Tổng: ${totalElapsed}s`,
+          { duration: 10000, id: 'ai-fully-ready' }
+        )
       }
     }
 
@@ -231,8 +270,11 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
           finishFrame()
         }
       } else if (msg.type === 'error') {
+        const elapsed = ((Date.now() - initStartTime) / 1000).toFixed(1)
         console.error('[AI Proctoring] Detect error:', msg.error)
         setError(`Detect Error: ${msg.error}`)
+        // 🔔 DIAGNOSTIC TOAST: Detect error
+        toast.error(`❌ Detect lỗi (${elapsed}s): ${msg.error}`, { duration: 15000, id: 'detect-error' })
         isProcessingRef.current = false
         pendingParallelRef.current = { detections: null, keypoints: null, detectTime: 0, poseTime: 0 }
       }
@@ -252,8 +294,11 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
           finishFrame()
         }
       } else if (msg.type === 'error') {
+        const elapsed = ((Date.now() - initStartTime) / 1000).toFixed(1)
         console.error('[AI Proctoring] Pose error:', msg.error)
         setError(`Pose Error: ${msg.error}`)
+        // 🔔 DIAGNOSTIC TOAST: Pose error
+        toast.error(`❌ Pose lỗi (${elapsed}s): ${msg.error}`, { duration: 15000, id: 'pose-error' })
         // Publish detect-only results if available
         if (pendingParallelRef.current.detections !== null) {
           pendingParallelRef.current.keypoints = []

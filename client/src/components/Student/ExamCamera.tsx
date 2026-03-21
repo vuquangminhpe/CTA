@@ -9,6 +9,7 @@ import { useYoloDetection } from '../../hooks/useYoloDetection'
 import { usePoseAnalysis } from '../../hooks/usePoseAnalysis'
 import type { AIViolation, AIViolationType } from '../../utils/aiTypes'
 import { AI_CONFIG, classToViolationType, __AI_DEV__ } from '../../utils/aiTypes'
+import { toast } from 'sonner'
 
 interface ExamCameraProps {
   enabled: boolean
@@ -104,9 +105,12 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
           setCameraActive(true)
           setCameraError(null)
           if (__AI_DEV__) console.log('[ExamCamera] ✅ Camera active and playing')
+          // 🔔 DIAGNOSTIC TOAST: Camera OK
+          toast.success('📷 Camera đã sẵn sàng', { duration: 5000, id: 'camera-ok' })
         } else {
           console.error('[ExamCamera] videoRef.current is null!')
           setCameraError('Video element not ready')
+          toast.error('❌ Camera: Video element not ready', { duration: 15000, id: 'camera-err' })
         }
       } catch (err: any) {
         if (cancelled) return
@@ -118,6 +122,8 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
               ? 'Không tìm thấy camera'
               : err.message || 'Camera access denied'
         )
+        // 🔔 DIAGNOSTIC TOAST: Camera error
+        toast.error(`❌ Camera lỗi: ${err.name} — ${err.message || 'unknown'}`, { duration: 15000, id: 'camera-err' })
         setCameraActive(false)
       }
     }
