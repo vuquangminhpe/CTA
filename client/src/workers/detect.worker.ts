@@ -33,7 +33,7 @@ async function loadOnnxRuntime(): Promise<void> {
   // Desktop with WebGPU support → try /webgpu variant for best performance
   if (!isMobile && hasGPU) {
     try {
-      sendLog('🖥️ Detect: Desktop → thử onnxruntime-web/webgpu...')
+      sendLog('🖥️ Detect: Desktops → thử onnxruntime-web/webgpu...')
       const webgpuOrt = await import('onnxruntime-web/webgpu')
       ort = webgpuOrt as any
       _hasWebGPU = true
