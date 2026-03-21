@@ -127,8 +127,8 @@ export interface EnhancedPoseResult {
 
 // Anti-cheat config
 export const AI_CONFIG = {
-  DETECT_CONFIDENCE_THRESHOLD: 0.35,
-  POSE_CONFIDENCE_THRESHOLD: 0.65,
+  DETECT_CONFIDENCE_THRESHOLD: 0.6,
+  POSE_CONFIDENCE_THRESHOLD: 0.7,
   YAW_THRESHOLD: 30, // degrees
   PITCH_THRESHOLD: 25, // degrees
   ROLL_THRESHOLD: 25, // degrees
