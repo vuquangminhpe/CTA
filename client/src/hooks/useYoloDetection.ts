@@ -252,53 +252,66 @@ export function useYoloDetection({ enabled = true, videoRef }: UseYoloDetectionO
     }
 
     // PARALLEL: Detect result arrives — store and check if pose is already done
-    detectWorker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+    let _logIdCounter = 0
+    detectWorker.onmessage = (event: MessageEvent) => {
       const msg = event.data
-      if (msg.type === 'ready') {
-        handleWorkerReady('detect', msg.executionProvider || 'unknown')
+      // Handle diagnostic log messages from worker (for toast display)
+      if (msg.type === 'log') {
+        toast.info(msg.message, { duration: 8000, id: `worker-log-${_logIdCounter++}` })
+        return
+      }
+      const typedMsg = msg as WorkerResponse
+      if (typedMsg.type === 'ready') {
+        handleWorkerReady('detect', typedMsg.executionProvider || 'unknown')
         // On weak devices: sequential init — start pose worker only after detect is ready
         if (weak && sharedModelState === 'initializing') {
           if (__AI_DEV__) console.log('[useYoloDetection] Detect ready on weak device → starting pose worker init')
           poseWorker.postMessage({ type: 'init', poseModelUrl: '/models/pose_uint8.onnx' })
         }
-      } else if (msg.type === 'result') {
-        pendingParallelRef.current.detections = msg.detections || []
-        pendingParallelRef.current.detectTime = msg.inferenceTimeMs || 0
+      } else if (typedMsg.type === 'result') {
+        pendingParallelRef.current.detections = typedMsg.detections || []
+        pendingParallelRef.current.detectTime = typedMsg.inferenceTimeMs || 0
 
         // If pose already finished this frame, publish combined result
         if (pendingParallelRef.current.keypoints !== null) {
           finishFrame()
         }
-      } else if (msg.type === 'error') {
+      } else if (typedMsg.type === 'error') {
         const elapsed = ((Date.now() - initStartTime) / 1000).toFixed(1)
-        console.error('[AI Proctoring] Detect error:', msg.error)
-        setError(`Detect Error: ${msg.error}`)
+        console.error('[AI Proctoring] Detect error:', typedMsg.error)
+        setError(`Detect Error: ${typedMsg.error}`)
         // 🔔 DIAGNOSTIC TOAST: Detect error
-        toast.error(`❌ Detect lỗi (${elapsed}s): ${msg.error}`, { duration: 15000, id: 'detect-error' })
+        toast.error(`❌ Detect lỗi (${elapsed}s): ${typedMsg.error}`, { duration: 15000, id: 'detect-error' })
         isProcessingRef.current = false
         pendingParallelRef.current = { detections: null, keypoints: null, detectTime: 0, poseTime: 0 }
       }
     }
 
     // PARALLEL: Pose result arrives — store and check if detect is already done
-    poseWorker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+    poseWorker.onmessage = (event: MessageEvent) => {
       const msg = event.data
-      if (msg.type === 'ready') {
-        handleWorkerReady('pose', msg.executionProvider || 'unknown')
-      } else if (msg.type === 'result') {
-        pendingParallelRef.current.keypoints = msg.keypoints || []
-        pendingParallelRef.current.poseTime = msg.inferenceTimeMs || 0
+      // Handle diagnostic log messages from worker (for toast display)
+      if (msg.type === 'log') {
+        toast.info(msg.message, { duration: 8000, id: `worker-log-${_logIdCounter++}` })
+        return
+      }
+      const typedMsg = msg as WorkerResponse
+      if (typedMsg.type === 'ready') {
+        handleWorkerReady('pose', typedMsg.executionProvider || 'unknown')
+      } else if (typedMsg.type === 'result') {
+        pendingParallelRef.current.keypoints = typedMsg.keypoints || []
+        pendingParallelRef.current.poseTime = typedMsg.inferenceTimeMs || 0
 
         // If detect already finished this frame, publish combined result
         if (pendingParallelRef.current.detections !== null) {
           finishFrame()
         }
-      } else if (msg.type === 'error') {
+      } else if (typedMsg.type === 'error') {
         const elapsed = ((Date.now() - initStartTime) / 1000).toFixed(1)
-        console.error('[AI Proctoring] Pose error:', msg.error)
-        setError(`Pose Error: ${msg.error}`)
+        console.error('[AI Proctoring] Pose error:', typedMsg.error)
+        setError(`Pose Error: ${typedMsg.error}`)
         // 🔔 DIAGNOSTIC TOAST: Pose error
-        toast.error(`❌ Pose lỗi (${elapsed}s): ${msg.error}`, { duration: 15000, id: 'pose-error' })
+        toast.error(`❌ Pose lỗi (${elapsed}s): ${typedMsg.error}`, { duration: 15000, id: 'pose-error' })
         // Publish detect-only results if available
         if (pendingParallelRef.current.detections !== null) {
           pendingParallelRef.current.keypoints = []

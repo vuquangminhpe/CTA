@@ -7,12 +7,19 @@ import { CLASS_LABELS } from '../utils/classes'
 import { postprocessDetections } from '../utils/postprocess'
 import { preprocessImageData } from '../utils/preprocess'
 
-// Adaptive WebAssembly config based on device capability
+// ─── Safe WASM defaults — start with maximum compatibility ───
+// We'll try to upgrade (SIMD, threads) if the browser supports them
 const _cores = navigator.hardwareConcurrency || 2
-const _isWeakDevice = _cores <= 2
-ort.env.wasm.numThreads = _isWeakDevice ? 1 : Math.min(_cores, 4)
-ort.env.wasm.simd = true
-ort.env.wasm.proxy = !_isWeakDevice // proxy adds overhead on single-core devices
+// Start SAFE: no SIMD, single-thread, no proxy — works on ALL browsers
+ort.env.wasm.numThreads = 1
+ort.env.wasm.simd = false
+ort.env.wasm.proxy = false
+
+// Detect if we can safely enable more features
+const _hasCrossOriginIsolation = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated
+if (_hasCrossOriginIsolation && _cores > 2) {
+  ort.env.wasm.numThreads = Math.min(_cores, 4)
+}
 
 const { MODEL_INPUT_SIZE, DETECT_CONFIDENCE_THRESHOLD } = AI_CONFIG
 
@@ -23,50 +30,88 @@ let outputName = 'output0'
 
 const MODEL_CACHE_NAME = 'ai-proctoring-models-v1'
 
+// Helper: send log to main thread for toast display
+function sendLog(message: string) {
+  self.postMessage({ type: 'log', message })
+}
+
 async function fetchModelWithCache(url: string): Promise<ArrayBuffer> {
   const cache = await caches.open(MODEL_CACHE_NAME)
   let response = await cache.match(url)
 
   if (!response) {
-    if (__AI_DEV__) console.log(`[Detect Worker] Downloading model from ${url}...`)
+    sendLog('📥 Detect: Đang tải model...')
     response = await fetch(url)
     if (!response.ok) throw new Error(`Failed to fetch model: ${response.statusText}`)
     await cache.put(url, response.clone())
+    sendLog('📥 Detect: Tải model xong (cached)')
   } else {
-    if (__AI_DEV__) console.log(`[Detect Worker] Loaded model from cache: ${url}`)
+    sendLog('📥 Detect: Dùng model từ cache')
   }
 
   return await response.arrayBuffer()
 }
 
-async function createSession(modelBuffer: ArrayBuffer, providers: string[]) {
-  for (const ep of providers) {
-    try {
-      const epStart = performance.now()
-      const sess = await ort.InferenceSession.create(modelBuffer, {
-        executionProviders: [ep],
-        graphOptimizationLevel: 'all'
-      })
-      if (__AI_DEV__) {
-        console.log(`[Detect Worker] Session created on ${ep} in ${(performance.now() - epStart).toFixed(0)}ms`)
-      }
-      return { session: sess, provider: ep }
-    } catch (e) {
-      console.warn(`[Detect Worker] EP '${ep}' failed or is not supported:`, e)
-      // Special handling: WebGPU might throw obscure errors, simply try next EP
-    }
+async function tryCreateSession(modelBuffer: ArrayBuffer, ep: string): Promise<{ session: ort.InferenceSession; provider: string } | null> {
+  try {
+    const epStart = performance.now()
+    sendLog(`⏳ Detect: Thử EP "${ep}" (simd=${ort.env.wasm.simd}, threads=${ort.env.wasm.numThreads})...`)
+    const sess = await ort.InferenceSession.create(modelBuffer, {
+      executionProviders: [ep],
+      graphOptimizationLevel: 'all'
+    })
+    const elapsed = (performance.now() - epStart).toFixed(0)
+    sendLog(`✅ Detect: EP "${ep}" OK (${elapsed}ms)`)
+    return { session: sess, provider: ep }
+  } catch (e: any) {
+    const errMsg = e?.message || String(e)
+    sendLog(`❌ Detect: EP "${ep}" thất bại: ${errMsg.slice(0, 120)}`)
+    console.warn(`[Detect Worker] EP '${ep}' failed:`, e)
+    return null
   }
-  throw new Error('All execution providers failed. Browser might not support WebGL/WASM correctly.')
+}
+
+async function createSessionWithFallback(modelBuffer: ArrayBuffer): Promise<{ session: ort.InferenceSession; provider: string }> {
+  // ─── Pass 1: Try all EPs with current settings (SIMD off by default) ───
+  const providers = ['webgpu', 'webgl', 'wasm']
+  for (const ep of providers) {
+    const result = await tryCreateSession(modelBuffer, ep)
+    if (result) return result
+  }
+
+  // ─── Pass 2: WASM with SIMD enabled ───
+  sendLog('🔄 Detect: Thử WASM + SIMD...')
+  ort.env.wasm.simd = true
+  ort.env.wasm.numThreads = 1
+  ort.env.wasm.proxy = false
+  const simdResult = await tryCreateSession(modelBuffer, 'wasm')
+  if (simdResult) return simdResult
+
+  // ─── Pass 3: WASM no SIMD again (reset) ───
+  sendLog('🔄 Detect: Thử WASM tối thiểu (ko SIMD)...')
+  ort.env.wasm.simd = false
+  ort.env.wasm.numThreads = 1
+  ort.env.wasm.proxy = false
+  const minResult = await tryCreateSession(modelBuffer, 'wasm')
+  if (minResult) return minResult
+
+  // ─── Pass 4: CPU EP as last resort ───
+  sendLog('🔄 Detect: Thử CPU EP...')
+  const cpuResult = await tryCreateSession(modelBuffer, 'cpu')
+  if (cpuResult) return cpuResult
+
+  throw new Error(`All EPs failed (webgpu,webgl,wasm,wasm+simd,wasm-min,cpu). simd=${ort.env.wasm.simd}, threads=${ort.env.wasm.numThreads}, COI=${_hasCrossOriginIsolation}`)
 }
 
 async function initModels(detectModelUrl: string) {
   const startTime = performance.now()
+
+  sendLog(`🔧 Detect: cores=${_cores}, COI=${_hasCrossOriginIsolation}, threads=${ort.env.wasm.numThreads}`)
+
   const detectBuffer = await fetchModelWithCache(detectModelUrl)
 
-  const providers = ['webgpu', 'webgl', 'wasm']
-
   console.log('[Detect Worker] Creating detect session...')
-  const result = await createSession(detectBuffer, providers)
+  const result = await createSessionWithFallback(detectBuffer)
   session = result.session
   activeProvider = result.provider
 
@@ -85,7 +130,6 @@ async function runInference(pixels: Uint8ClampedArray, timestamp: number) {
 
   const startTime = performance.now()
 
-  // Convert Uint8Clamped array to Float32Array [1,3,640,640] tensor (Heavy lifting done here)
   const floatData = preprocessImageData(pixels)
   const inputTensor = new ort.Tensor('float32', floatData, [1, 3, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE])
 
@@ -126,7 +170,6 @@ self.onmessage = async (event: MessageEvent<WorkerInitMessage | WorkerDetectMess
     } else if (msg.type === 'detect') {
       const { detections, inferenceTimeMs, timestamp } = await runInference(msg.imageData, msg.timestamp)
 
-      // Zero-copy transfer of input buffer back to main thread pool (optional optimization)
       self.postMessage(
         { type: 'result', detections, keypoints: [], inferenceTimeMs, timestamp },
         { transfer: [msg.imageData.buffer] }
