@@ -113,25 +113,37 @@ const ExamMonitor = () => {
   // Function to get violation type display name
   const getViolationTypeName = (type: string) => {
     const typeMap: Record<string, string> = {
-      tab_switch: 'Tab Switching',
-      screen_capture: 'Screen Capture',
-      keyboard_shortcut: 'Keyboard Shortcut',
-      mobile_screenshot: 'Mobile Screenshot',
-      sudden_disconnect: 'Sudden Disconnect',
-      multiple_ips: 'Multiple IPs',
-      webcam_manipulation: 'Webcam Manipulation',
-      high_risk_device: 'High Risk Device',
-      inactivity: 'Inactivity',
-      unusual_activity: 'Unusual Activity'
+      tab_switch: 'Chuyển tab/ứng dụng',
+      screen_capture: 'Chụp màn hình',
+      keyboard_shortcut: 'Phím tắt đáng ngờ',
+      mobile_screenshot: 'Chụp ảnh màn hình (mobile)',
+      sudden_disconnect: 'Mất kết nối đột ngột',
+      multiple_ips: 'Nhiều địa chỉ IP',
+      webcam_manipulation: 'Can thiệp webcam',
+      high_risk_device: 'Thiết bị rủi ro cao',
+      inactivity: 'Không hoạt động',
+      unusual_activity: 'Hoạt động bất thường',
+      window_blur: 'Thoát khỏi cửa sổ thi',
+      extended_absence: 'Vắng mặt kéo dài',
+      // AI Pose violations (YOLO)
+      ai_head_turned: 'Quay đầu sang bên',
+      ai_head_tilted: 'Nghiêng đầu bất thường',
+      ai_looking_down: 'Cúi đầu xuống',
+      ai_phone_checking_pose: 'Tư thế xem điện thoại',
+      ai_suspicious_posture: 'Tư thế bất thường',
+      ai_phone_detected: 'Phát hiện điện thoại',
+      ai_earphone_detected: 'Phát hiện tai nghe',
+      // AI Gaze violations (FaceLandmarker)
+      ai_eye_looking_sideways: 'Liếc mắt sang bên',
+      ai_eye_looking_down: 'Mắt nhìn xuống',
+      ai_iris_gaze_shift: 'Mắt nhìn sang hướng khác',
+      ai_no_blink_detected: 'Không phát hiện chớp mắt',
+      // Other
+      remote_access: 'Phần mềm điều khiển từ xa',
+      other: 'Lỗi khác'
     }
 
-    return (
-      typeMap[type] ||
-      type
-        .split('_')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-    )
+    return typeMap[type] || type
   }
 
   if (isLoading) {

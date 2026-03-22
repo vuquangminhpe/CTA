@@ -79,12 +79,28 @@ const StudentResultDetail: React.FC<StudentResultDetailProps> = ({ examId, stude
       sudden_disconnect: 'Mất kết nối đột ngột',
       window_blur: 'Thoát khỏi cửa sổ thi',
       keyboard_shortcut: 'Phím tắt đáng ngờ',
+      mobile_screenshot: 'Chụp ảnh màn hình (mobile)',
       multiple_ips: 'Nhiều địa chỉ IP',
       webcam_manipulation: 'Can thiệp webcam',
       high_risk_device: 'Thiết bị rủi ro cao',
       inactivity: 'Không hoạt động',
       unusual_activity: 'Hoạt động bất thường',
       extended_absence: 'Vắng mặt kéo dài',
+      // AI Pose violations (YOLO)
+      ai_head_turned: 'Quay đầu sang bên',
+      ai_head_tilted: 'Nghiêng đầu bất thường',
+      ai_looking_down: 'Cúi đầu xuống',
+      ai_phone_checking_pose: 'Tư thế xem điện thoại',
+      ai_suspicious_posture: 'Tư thế bất thường',
+      ai_phone_detected: 'Phát hiện điện thoại',
+      ai_earphone_detected: 'Phát hiện tai nghe',
+      // AI Gaze violations (FaceLandmarker)
+      ai_eye_looking_sideways: 'Liếc mắt sang bên',
+      ai_eye_looking_down: 'Mắt nhìn xuống',
+      ai_iris_gaze_shift: 'Mắt nhìn sang hướng khác',
+      ai_no_blink_detected: 'Không phát hiện chớp mắt',
+      // Other
+      remote_access: 'Phần mềm điều khiển từ xa',
       other: 'Lỗi khác'
     }
 

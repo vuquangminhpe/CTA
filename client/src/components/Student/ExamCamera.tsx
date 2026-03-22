@@ -5,8 +5,11 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { Camera, Cpu, Shield, WifiOff, Loader2 } from 'lucide-react'
-import { useYoloDetection } from '../../hooks/useYoloDetection'
+// Client-side AI (commented out — kept as fallback)
+// import { useYoloDetection } from '../../hooks/useYoloDetection'
+import { useServerAI } from '../../hooks/useServerAI'
 import { usePoseAnalysis } from '../../hooks/usePoseAnalysis'
+import { useFaceLandmarker } from '../../hooks/useFaceLandmarker'
 import type { AIViolation, AIViolationType } from '../../utils/aiTypes'
 import { AI_CONFIG, classToViolationType, __AI_DEV__ } from '../../utils/aiTypes'
 import { toast } from 'sonner'
@@ -16,9 +19,11 @@ interface ExamCameraProps {
   onViolation: (violation: AIViolation) => void
   onReady?: (ready: boolean) => void
   showDebugOverlay?: boolean
+  socket: any // Socket.IO socket from useSocketExam
+  sessionId: string
 }
 
-const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, showDebugOverlay = false }) => {
+const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, showDebugOverlay = false, socket, sessionId }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [cameraActive, setCameraActive] = useState(false)
@@ -31,7 +36,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
   const violationCooldownRef = useRef<Record<string, number>>({})
   const shouldShowDebugOverlay = showDebugOverlay
 
-  // Detection hook
+  // Server-side AI detection hook (replaces useYoloDetection)
   const {
     isLoading,
     isReady,
@@ -40,14 +45,25 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
     detections,
     keypoints,
     fps,
-    isFaceVisible
-  } = useYoloDetection({ enabled: enabled && cameraActive, videoRef })
+    isFaceVisible,
+    frameW,
+    frameH
+  } = useServerAI({ enabled: enabled && cameraActive, videoRef, socket, sessionId })
 
   // Enhanced pose analysis hook (replaces useHeadPose)
   const { headPose, cheatingScore, phoneCheck, isLookingAway, lookAwayDurationMs } = usePoseAnalysis({
     keypoints,
     detections,
     enabled: enabled && cameraActive
+  })
+
+  // MediaPipe FaceLandmarker — iris + gaze tracking (strong devices only)
+  // Runs independently, sends data to server for logic checking
+  const { isReady: faceLandmarkerReady, isSupported: faceLandmarkerSupported, fps: faceLandmarkerFps } = useFaceLandmarker({
+    enabled: enabled && cameraActive,
+    videoRef,
+    socket,
+    sessionId,
   })
 
   // Notify parent when AI model is ready
@@ -66,11 +82,12 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
     } else if (detectionError) {
       setStatusText(`❌ AI lỗi: ${detectionError}`)
     } else if (isReady) {
-      setStatusText(`✅ AI đang chạy (${executionProvider} | ${fps}fps)`)
+      const faceInfo = faceLandmarkerReady ? ` | iris ${faceLandmarkerFps}fps` : faceLandmarkerSupported ? ' | iris loading...' : ''
+      setStatusText(`✅ AI đang chạy (${executionProvider} | ${fps}fps${faceInfo})`)
     } else {
       setStatusText('⏳ Đang khởi tạo AI...')
     }
-  }, [cameraError, cameraActive, isLoading, detectionError, isReady, executionProvider, fps])
+  }, [cameraError, cameraActive, isLoading, detectionError, isReady, executionProvider, fps, faceLandmarkerReady, faceLandmarkerSupported, faceLandmarkerFps])
 
   // Initialize webcam
   useEffect(() => {
@@ -266,9 +283,10 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // Scale factor from model 640x640 to display size
-    const scaleX = canvas.width / 640
-    const scaleY = canvas.height / 640
+    // Scale factor from original frame coords to display size
+    // Keypoints are now un-letterboxed by server → in original frame space (frameW × frameH)
+    const scaleX = canvas.width / frameW
+    const scaleY = canvas.height / frameH
 
     // ——— Detection bounding boxes ———
     for (const det of detections) {
@@ -495,7 +513,7 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
     ctx.fillStyle = '#AAAAAA'
     ctx.font = '7px monospace'
     ctx.fillText(`KPT:${keypoints.length} DET:${detections.length}`, canvas.width - 56, canvas.height - 4)
-  }, [detections, keypoints, headPose, isLookingAway, cheatingScore, shouldShowDebugOverlay])
+  }, [detections, keypoints, headPose, isLookingAway, cheatingScore, shouldShowDebugOverlay, frameW, frameH])
 
   return (
     <div className='fixed top-20 left-2 z-30 pointer-events-none sm:pointer-events-auto sm:top-auto sm:left-4 sm:bottom-4'>

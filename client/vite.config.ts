@@ -31,6 +31,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@mediapipe/tasks-vision': path.resolve(__dirname, 'node_modules/@mediapipe/tasks-vision/vision_bundle.mjs'),
       '@': path.resolve(__dirname, './src')
     }
   },

@@ -18,9 +18,9 @@ import {
   CheckCircle,
   MessageSquare,
   XCircle,
-  Bell,
-  Shield,
-  Loader2
+  // Bell,
+  // Shield,
+  // Loader2
 } from 'lucide-react'
 import { AuthContext } from '../../Contexts/auth.context'
 import './AntiScreenshot.css'
@@ -32,7 +32,7 @@ import ConfirmDialog from '../../components/helper/ConfirmDialog'
 import ExamCamera from '../../components/Student/ExamCamera'
 import ViolationAlert from '../../components/Student/ViolationAlert'
 import type { AIViolation } from '../../utils/aiTypes'
-import { isWeakDevice } from '../../utils/aiTypes'
+// import { isWeakDevice } from '../../utils/aiTypes'
 
 const ExamPage = () => {
   const { examCode } = useParams()
@@ -58,20 +58,24 @@ const ExamPage = () => {
 
   // Face verification and camera state
   const [faceVerificationStatus, setFaceVerificationStatus] = useState<any>(null)
-  const [hasCamera, setHasCamera] = useState(false)
+  // const [hasCamera, setHasCamera] = useState(false)
   const [deviceInfo, setDeviceInfo] = useState<any>(null)
 
   // Socket connection
-  const { resetViolations, socket, teacherMessages, hasNewMessage, setHasNewMessage } = useSocketExam(session?._id)
+  const { socket, teacherMessages, hasNewMessage, setHasNewMessage } = useSocketExam(session?._id)
   const [notificationSound] = useState(new Audio('/notification.mp3'))
   const [violations, setViolations] = useState(0)
 
   // AI Proctoring state
   const [currentAIViolation, setCurrentAIViolation] = useState<AIViolation | null>(null)
   const [aiEnabled] = useState(true) // AI proctoring enabled by default
-  const [aiModelReady, setAiModelReady] = useState(false)
-  const [setupProgress, setSetupProgress] = useState(0)
-  const [setupStep, setSetupStep] = useState('Đang khởi tạo...')
+  
+  // Server-side AI: no model loading needed, ready when camera is ready
+  // const [aiModelReady, setAiModelReady] = useState(true)
+  
+  // [COMMENTED OUT — Old client-side loading state]
+  // const [setupProgress, setSetupProgress] = useState(0)
+  // const [setupStep, setSetupStep] = useState('Đang khởi tạo...')
 
   // Enable exam protection
   useExamProtection(true, {
@@ -122,63 +126,35 @@ const ExamPage = () => {
   }
 
   // AI model ready callback
-  const handleAIReady = useCallback((ready: boolean) => {
-    if (ready) {
-      setSetupStep('AI giám sát đã sẵn sàng!')
-      setSetupProgress(100)
-      // Small delay so user sees 100% before transitioning
-      setTimeout(() => setAiModelReady(true), 600)
-    }
-  }, [])
+  // Server-side AI: handleAIReady just confirms camera is working
+  // const handleAIReady = useCallback((ready: boolean) => {
+  //   if (ready) {
+  //     setAiModelReady(true)
+  //   }
+  // }, [])
 
-  // Prefetch model files — start downloading before workers init
-  useEffect(() => {
-    const links = ['/models/p_uint8.onnx', '/models/pose_uint8.onnx'].map((url) => {
-      const link = document.createElement('link')
-      link.rel = 'prefetch'
-      link.href = url
-      link.as = 'fetch'
-      link.crossOrigin = 'anonymous'
-      document.head.appendChild(link)
-      return link
-    })
-    return () => links.forEach((l) => l.remove())
-  }, [])
+  // [COMMENTED OUT — Server-side AI: no model prefetch needed]
+  // useEffect(() => {
+  //   const links = ['/models/p_uint8.onnx', '/models/pose_uint8.onnx'].map((url) => {
+  //     const link = document.createElement('link')
+  //     link.rel = 'prefetch'
+  //     link.href = url
+  //     link.as = 'fetch'
+  //     link.crossOrigin = 'anonymous'
+  //     document.head.appendChild(link)
+  //     return link
+  //   })
+  //   return () => links.forEach((l) => l.remove())
+  // }, [])
 
-  // Adaptive setup progress while AI model loads
-  useEffect(() => {
-    if (aiModelReady || !aiEnabled) return
-
-    const weak = isWeakDevice()
-    const steps = weak
-      ? [
-          { at: 0, text: 'Đang khởi tạo camera...', progress: 10 },
-          { at: 3000, text: 'Đang tải AI model phát hiện...', progress: 25 },
-          { at: 8000, text: 'Đang tải AI model tư thế...', progress: 40 },
-          { at: 15000, text: 'Đang khởi động inference engine...', progress: 55 },
-          { at: 25000, text: 'Đang chuẩn bị hệ thống giám sát...', progress: 70 },
-          { at: 40000, text: 'Vẫn đang tải (máy của bạn đang xử lý)...', progress: 80 },
-          { at: 60000, text: 'Sắp hoàn tất, vui lòng đợi...', progress: 85 }
-        ]
-      : [
-          { at: 0, text: 'Đang khởi tạo camera...', progress: 10 },
-          { at: 1500, text: 'Đang tải AI model phát hiện...', progress: 30 },
-          { at: 3000, text: 'Đang tải AI model tư thế...', progress: 50 },
-          { at: 5000, text: 'Đang khởi động inference engine...', progress: 70 },
-          { at: 8000, text: 'Đang chuẩn bị hệ thống giám sát...', progress: 85 }
-        ]
-
-    const timers = steps.map(({ at, text, progress }) =>
-      setTimeout(() => {
-        if (!aiModelReady) {
-          setSetupStep(text)
-          setSetupProgress(progress)
-        }
-      }, at)
-    )
-
-    return () => timers.forEach(clearTimeout)
-  }, [aiModelReady, aiEnabled])
+  // [COMMENTED OUT — Server-side AI: no progress animation needed]
+  // useEffect(() => {
+  //   if (aiModelReady || !aiEnabled) return
+  //   const weak = isWeakDevice()
+  //   const steps = weak ? [...] : [...]
+  //   const timers = steps.map(({ at, text, progress }) => ...)
+  //   return () => timers.forEach(clearTimeout)
+  // }, [aiModelReady, aiEnabled])
 
   // Load exam on mount
   useEffect(() => {
@@ -245,10 +221,10 @@ const ExamPage = () => {
       setIsLoading(true)
 
       // Detect camera and get device info
-      const cameraAvailable = await detectCamera()
+      await detectCamera()
       const deviceInfo = getDeviceInfo()
 
-      setHasCamera(cameraAvailable)
+      // setHasCamera(cameraAvailable)
       setDeviceInfo(deviceInfo)
 
       const response = await examApi.startExam({
@@ -603,72 +579,18 @@ const ExamPage = () => {
       <ExamCamera
         enabled={aiEnabled && !completed}
         onViolation={handleAIViolation}
-        onReady={handleAIReady}
+        // onReady={handleAIReady}
         showDebugOverlay={true}
+        socket={socket}
+        sessionId={session?._id || ''}
       />
 
-      {/* AI Setup Loading Overlay — covers exam content until model is ready */}
-      {aiEnabled && !aiModelReady && (
+      {/* [COMMENTED OUT — Server-side AI: no local model loading overlay needed] */}
+      {/* {aiEnabled && !aiModelReady && (
         <div className='fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex flex-col items-center justify-center'>
-          <div className='max-w-md w-full mx-4'>
-            <div className='flex justify-center mb-6'>
-              <div className='relative'>
-                <div className='w-20 h-20 rounded-2xl bg-blue-500/20 flex items-center justify-center'>
-                  <Shield className='w-10 h-10 text-blue-400' />
-                </div>
-                <div className='absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full animate-ping opacity-75' />
-                <div className='absolute -top-1 -right-1 w-5 h-5 bg-blue-400 rounded-full' />
-              </div>
-            </div>
-            <h2 className='text-2xl font-bold text-white text-center mb-2'>Đang thiết lập hệ thống giám sát</h2>
-            <p className='text-blue-300/70 text-center text-sm mb-8'>
-              Vui lòng đợi trong khi AI proctoring được khởi tạo
-            </p>
-            <div className='bg-white/10 rounded-full h-3 mb-4 overflow-hidden backdrop-blur-sm'>
-              <div
-                className='h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-700 ease-out'
-                style={{ width: `${setupProgress}%` }}
-              />
-            </div>
-            <div className='flex justify-between items-center mb-8'>
-              <span className='text-blue-300/80 text-sm flex items-center gap-2'>
-                <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                {setupStep}
-              </span>
-              <span className='text-blue-300/60 text-sm font-mono'>{setupProgress}%</span>
-            </div>
-            <div className='bg-white/5 rounded-xl p-4 backdrop-blur-sm border border-white/10 space-y-3'>
-              {[
-                { label: 'Truy cập camera', done: setupProgress >= 10 },
-                { label: 'Tải model phát hiện đối tượng', done: setupProgress >= 30 },
-                { label: 'Tải model phân tích tư thế', done: setupProgress >= 50 },
-                { label: 'Khởi động inference engine', done: setupProgress >= 70 },
-                { label: 'Hệ thống giám sát sẵn sàng', done: setupProgress >= 100 }
-              ].map((step, i) => (
-                <div key={i} className='flex items-center gap-3'>
-                  {step.done ? (
-                    <CheckCircle className='w-4 h-4 text-green-400 flex-shrink-0' />
-                  ) : setupProgress >= [0, 10, 30, 50, 70][i] ? (
-                    <Loader2 className='w-4 h-4 text-blue-400 animate-spin flex-shrink-0' />
-                  ) : (
-                    <div className='w-4 h-4 rounded-full border border-white/20 flex-shrink-0' />
-                  )}
-                  <span
-                    className={`text-sm ${step.done ? 'text-green-300' : setupProgress >= [0, 10, 30, 50, 70][i] ? 'text-blue-300' : 'text-white/30'}`}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className='mt-6 text-center'>
-              <p className='text-white/40 text-xs'>
-                {exam?.title} — {exam?.questions?.length} câu hỏi
-              </p>
-            </div>
-          </div>
+          ...
         </div>
-      )}
+      )} */}
 
       {/* AI Violation Alert */}
       <ViolationAlert violation={currentAIViolation} onDismiss={() => setCurrentAIViolation(null)} />

@@ -63,9 +63,39 @@ const useSocketExam = (sessionId: unknown) => {
       }
     }
 
-    const handleViolationRecorded = (data: { session_id: unknown; violations: any }) => {
+    const handleViolationRecorded = (data: { session_id: unknown; violations: any; type?: string; severity?: string }) => {
       if (data.session_id === sessionId) {
-        setViolations(data.violations)
+        if (typeof data.violations === 'number') {
+          setViolations(data.violations)
+        } else {
+          setViolations((prev) => prev + 1)
+        }
+
+        // Show toast for AI violations
+        const violationToastMessages: Record<string, { msg: string; duration: number }> = {
+          // AI Gaze (FaceLandmarker)
+          ai_eye_looking_sideways: { msg: '⚠️ Không được liếc mắt sang vị trí khác! Vui lòng nhìn thẳng vào màn hình.', duration: 6000 },
+          ai_eye_looking_down: { msg: '⚠️ Phát hiện nhìn xuống quá lâu! Vui lòng nhìn vào màn hình.', duration: 6000 },
+          ai_iris_gaze_shift: { msg: '⚠️ Phát hiện mắt nhìn sang hướng khác! Vui lòng tập trung vào bài thi.', duration: 6000 },
+          ai_no_blink_detected: { msg: '⚠️ Không phát hiện chớp mắt — vui lòng xác nhận bạn đang có mặt.', duration: 6000 },
+          // AI Object Detection (YOLO)
+          ai_phone_detected: { msg: '🚫 Phát hiện điện thoại! Đây là vi phạm nghiêm trọng.', duration: 10000 },
+          ai_earphone_detected: { msg: '🚫 Phát hiện tai nghe! Không được phép sử dụng tai nghe khi thi.', duration: 10000 },
+          ai_extra_person: { msg: '🚫 Phát hiện thêm người khác! Đây là vi phạm nghiêm trọng.', duration: 10000 },
+          // AI Pose (YOLO)
+          ai_head_turned: { msg: '⚠️ Quay đầu sang bên quá lâu! Vui lòng nhìn thẳng vào màn hình.', duration: 5000 },
+          ai_head_tilted: { msg: '⚠️ Tư thế đầu bất thường! Vui lòng giữ đầu thẳng.', duration: 5000 },
+          ai_looking_down: { msg: '⚠️ Cúi đầu xuống quá lâu! Vui lòng nhìn vào màn hình.', duration: 5000 },
+          ai_phone_checking_pose: { msg: '🚫 Phát hiện tư thế xem điện thoại! Đây là vi phạm được ghi nhận.', duration: 10000 },
+          ai_suspicious_posture: { msg: '⚠️ Tư thế bất thường! Vui lòng ngồi thẳng và nhìn vào màn hình.', duration: 5000 },
+        }
+        const toastConfig = data.type ? violationToastMessages[data.type] : undefined
+        if (toastConfig) {
+          toast.error(toastConfig.msg, {
+            duration: toastConfig.duration,
+            position: 'top-center'
+          })
+        }
       }
     }
 

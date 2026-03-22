@@ -1,8 +1,8 @@
 const configBase = {
   baseURL:
     import.meta.env.VITE_PROCESS !== 'development'
-      ? 'https://thicuonlinne-production.up.railway.app/'
-      : 'https://thicuonlinne-production.up.railway.app/'
+      ? 'http://localhost:5000'
+      : 'http://localhost:5000/'
 }
 
 export default configBase
