@@ -6,7 +6,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 import { __AI_DEV__ } from '../utils/aiTypes'
-import { toast } from 'sonner'
 
 // ─── Types ───
 export interface FaceLandmarkData {
@@ -152,20 +151,15 @@ export function useFaceLandmarker({
 
   const isSupported = isWebGL2Supported()
 
-  // Production debug: show device info as toast (visible on phone without devtools)
+  // Dev only: log device capability check
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || !__AI_DEV__) return
     const cores = navigator.hardwareConcurrency || 0
     const memory = (navigator as any).deviceMemory || 0
     const gl2 = isWebGL2Supported()
-    if (gl2) {
-      toast.info(`🔍 FaceLandmarker: WebGL2=✅ cores=${cores} mem=${memory}GB → Đang khởi tạo iris tracking...`, {
-        duration: 20000, id: 'fl-device-check'
-      })
-    } else {
-      toast.info(`🔍 FaceLandmarker: WebGL2=❌ cores=${cores} mem=${memory}GB → Chỉ dùng AI server (YOLO)`, {
-        duration: 20000, id: 'fl-device-check'
-      })
+    console.log(`[FaceLandmarker] Device: WebGL2=${gl2}, cores=${cores}, mem=${memory}GB, supported=${gl2}`)
+    if (!gl2) {
+      console.log('[FaceLandmarker] WebGL2 not supported → skipping, using server-only YOLO')
     }
   }, [enabled])
 
@@ -226,11 +220,11 @@ export function useFaceLandmarker({
         landmarkerRef.current = faceLandmarker
         setIsReady(true)
         setError(null)
-        toast.success('✅ Iris tracking OK (WebGL2 GPU)', { duration: 20000, id: 'fl-init' })
+        if (__AI_DEV__) console.log('[FaceLandmarker] ✅ Initialized (WebGL2 GPU)')
       } catch (err: any) {
         if (cancelled) return
         setError(err.message || 'FaceLandmarker init failed')
-        toast.error(`❌ Iris tracking lỗi: ${err?.message || 'unknown'}`, { duration: 20000, id: 'fl-init' })
+        if (__AI_DEV__) console.error('[FaceLandmarker] Init failed:', err?.message || err)
       }
     }
 
