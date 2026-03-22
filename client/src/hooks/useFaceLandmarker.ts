@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 import { __AI_DEV__ } from '../utils/aiTypes'
+import { toast } from 'sonner'
 
 // ─── Types ───
 export interface FaceLandmarkData {
@@ -151,16 +152,20 @@ export function useFaceLandmarker({
 
   const isSupported = isWebGL2Supported()
 
-  // Production log: always log device capability check (runs once)
+  // Production debug: show device info as toast (visible on phone without devtools)
   useEffect(() => {
+    if (!enabled) return
     const cores = navigator.hardwareConcurrency || 0
     const memory = (navigator as any).deviceMemory || 0
     const gl2 = isWebGL2Supported()
-    console.log(
-      `[FaceLandmarker] Device check: WebGL2=${gl2}, cores=${cores}, memory=${memory}GB, enabled=${enabled}, supported=${gl2}`
-    )
-    if (!gl2) {
-      console.log('[FaceLandmarker] ❌ WebGL2 not supported → skipping FaceLandmarker, using server-only YOLO pipeline')
+    if (gl2) {
+      toast.info(`🔍 FaceLandmarker: WebGL2=✅ cores=${cores} mem=${memory}GB → Đang khởi tạo iris tracking...`, {
+        duration: 20000, id: 'fl-device-check'
+      })
+    } else {
+      toast.info(`🔍 FaceLandmarker: WebGL2=❌ cores=${cores} mem=${memory}GB → Chỉ dùng AI server (YOLO)`, {
+        duration: 20000, id: 'fl-device-check'
+      })
     }
   }, [enabled])
 
@@ -221,15 +226,11 @@ export function useFaceLandmarker({
         landmarkerRef.current = faceLandmarker
         setIsReady(true)
         setError(null)
-        console.log('[FaceLandmarker] ✅ Initialized (WebGL2 GPU delegate)')
+        toast.success('✅ Iris tracking OK (WebGL2 GPU)', { duration: 20000, id: 'fl-init' })
       } catch (err: any) {
         if (cancelled) return
-        console.error('[FaceLandmarker] ❌ Init failed:', err?.message || err)
         setError(err.message || 'FaceLandmarker init failed')
-        // Log specific failure reason for production debugging
-        if (err?.message?.includes('WebGL')) {
-          console.warn('[FaceLandmarker] GPU delegate failed — device may not support WebGL2 properly')
-        }
+        toast.error(`❌ Iris tracking lỗi: ${err?.message || 'unknown'}`, { duration: 20000, id: 'fl-init' })
       }
     }
 
