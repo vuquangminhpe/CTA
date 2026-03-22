@@ -151,6 +151,19 @@ export function useFaceLandmarker({
 
   const isSupported = isWebGL2Supported()
 
+  // Production log: always log device capability check (runs once)
+  useEffect(() => {
+    const cores = navigator.hardwareConcurrency || 0
+    const memory = (navigator as any).deviceMemory || 0
+    const gl2 = isWebGL2Supported()
+    console.log(
+      `[FaceLandmarker] Device check: WebGL2=${gl2}, cores=${cores}, memory=${memory}GB, enabled=${enabled}, supported=${gl2}`
+    )
+    if (!gl2) {
+      console.log('[FaceLandmarker] ❌ WebGL2 not supported → skipping FaceLandmarker, using server-only YOLO pipeline')
+    }
+  }, [enabled])
+
   // Listen for server gaze analysis results
   useEffect(() => {
     if (!socket || !sessionId) return
@@ -211,8 +224,12 @@ export function useFaceLandmarker({
         console.log('[FaceLandmarker] ✅ Initialized (WebGL2 GPU delegate)')
       } catch (err: any) {
         if (cancelled) return
-        console.error('[FaceLandmarker] Init failed:', err)
+        console.error('[FaceLandmarker] ❌ Init failed:', err?.message || err)
         setError(err.message || 'FaceLandmarker init failed')
+        // Log specific failure reason for production debugging
+        if (err?.message?.includes('WebGL')) {
+          console.warn('[FaceLandmarker] GPU delegate failed — device may not support WebGL2 properly')
+        }
       }
     }
 
