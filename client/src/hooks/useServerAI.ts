@@ -61,6 +61,11 @@ export function useServerAI({
   const waitingForResultRef = useRef(false)
   const fpsCounterRef = useRef({ count: 0, lastTime: Date.now() })
   const captureCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  // Diagnostics
+  const frameSentAtRef = useRef<number>(0)
+  const diagCounterRef = useRef(0)
+  const diagSumRttRef = useRef(0)
+  const diagSumInferRef = useRef(0)
 
   // Ensure we have a reusable offscreen canvas
   const getCanvas = useCallback(() => {
@@ -79,10 +84,13 @@ export function useServerAI({
     const handleResult = (data: any) => {
       if (data.session_id !== sessionId) return
 
+      const rtt = Date.now() - frameSentAtRef.current
+      const infer = data.inferenceMs || 0
+
       waitingForResultRef.current = false
       setDetections(data.detections || [])
       setKeypoints(data.keypoints || [])
-      setInferenceMs(data.inferenceMs || 0)
+      setInferenceMs(infer)
 
       // Frame dimensions for coordinate mapping
       if (data.frameW) setFrameW(data.frameW)
@@ -102,6 +110,25 @@ export function useServerAI({
         setFps(counter.count)
         counter.count = 0
         counter.lastTime = now
+      }
+
+      // Diagnostics: toast every 10 frames (production-visible)
+      diagCounterRef.current++
+      diagSumRttRef.current += rtt
+      diagSumInferRef.current += infer
+      if (diagCounterRef.current >= 10) {
+        const avgRtt = Math.round(diagSumRttRef.current / 10)
+        const avgInfer = Math.round(diagSumInferRef.current / 10)
+        const network = avgRtt - avgInfer
+        import('sonner').then(({ toast }) => {
+          toast.info(
+            `📊 AI Diagnostics: RTT=${avgRtt}ms | Infer=${avgInfer}ms | Net=${network}ms`,
+            { duration: 15000, id: 'ai-diag' }
+          )
+        })
+        diagCounterRef.current = 0
+        diagSumRttRef.current = 0
+        diagSumInferRef.current = 0
       }
 
       if (!isReady) {
@@ -144,6 +171,7 @@ export function useServerAI({
 
             blob.arrayBuffer().then((buf) => {
               const ts = Date.now()
+              frameSentAtRef.current = ts
               socket.emit('ai_frame', {
                 session_id: sessionId,
                 frame: buf,
