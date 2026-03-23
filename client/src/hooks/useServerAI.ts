@@ -11,9 +11,9 @@ interface UseServerAIOptions {
   videoRef: React.RefObject<HTMLVideoElement | null>
   socket: any // Socket.IO socket from useSocketExam
   sessionId: string
-  captureWidth?: number  // default 320
+  captureWidth?: number // default 320
   captureHeight?: number // default 240
-  intervalMs?: number    // default 300ms (~3 FPS)
+  intervalMs?: number // default 300ms (~3 FPS)
 }
 
 interface ServerAIResult {
@@ -26,8 +26,8 @@ interface ServerAIResult {
   isFaceVisible: boolean
   executionProvider: string
   inferenceMs: number
-  frameW: number  // original frame width (keypoints are in this coordinate space)
-  frameH: number  // original frame height
+  frameW: number // original frame width (keypoints are in this coordinate space)
+  frameH: number // original frame height
   // Pose analysis from server
   headPose: { yaw: number; pitch: number; roll: number } | null
   cheatingScore: { overall: number; level: string; dominantSignal: string; breakdown: Record<string, number> } | null
@@ -117,15 +117,15 @@ export function useServerAI({
       diagSumRttRef.current += rtt
       diagSumInferRef.current += infer
       if (diagCounterRef.current >= 10) {
-        const avgRtt = Math.round(diagSumRttRef.current / 10)
-        const avgInfer = Math.round(diagSumInferRef.current / 10)
-        const network = avgRtt - avgInfer
-        import('sonner').then(({ toast }) => {
-          toast.info(
-            `📊 AI Diagnostics: RTT=${avgRtt}ms | Infer=${avgInfer}ms | Net=${network}ms`,
-            { duration: 15000, id: 'ai-diag' }
-          )
-        })
+        // const avgRtt = Math.round(diagSumRttRef.current / 10)
+        // const avgInfer = Math.round(diagSumInferRef.current / 10)
+        // const network = avgRtt - avgInfer
+        // import('sonner').then(({ toast }) => {
+        //   toast.info(
+        //     `📊 AI Diagnostics: RTT=${avgRtt}ms | Infer=${avgInfer}ms | Net=${network}ms`,
+        //     { duration: 15000, id: 'ai-diag' }
+        //   )
+        // })
         diagCounterRef.current = 0
         diagSumRttRef.current = 0
         diagSumInferRef.current = 0
