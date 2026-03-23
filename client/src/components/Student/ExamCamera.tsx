@@ -18,12 +18,13 @@ interface ExamCameraProps {
   enabled: boolean
   onViolation: (violation: AIViolation) => void
   onReady?: (ready: boolean) => void
+  onFaceLandmarkerStatus?: (status: { ready: boolean; supported: boolean }) => void
   showDebugOverlay?: boolean
   socket: any // Socket.IO socket from useSocketExam
   sessionId: string
 }
 
-const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, showDebugOverlay = false, socket, sessionId }) => {
+const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, onFaceLandmarkerStatus, showDebugOverlay = false, socket, sessionId }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [cameraActive, setCameraActive] = useState(false)
@@ -70,6 +71,11 @@ const ExamCamera: React.FC<ExamCameraProps> = ({ enabled, onViolation, onReady, 
   useEffect(() => {
     onReady?.(isReady)
   }, [isReady, onReady])
+
+  // Notify parent about FaceLandmarker status (for loading gate)
+  useEffect(() => {
+    onFaceLandmarkerStatus?.({ ready: faceLandmarkerReady, supported: faceLandmarkerSupported })
+  }, [faceLandmarkerReady, faceLandmarkerSupported, onFaceLandmarkerStatus])
 
   // Update status text based on state
   useEffect(() => {

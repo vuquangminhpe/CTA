@@ -69,9 +69,12 @@ const ExamPage = () => {
   // AI Proctoring state
   const [currentAIViolation, setCurrentAIViolation] = useState<AIViolation | null>(null)
   const [aiEnabled] = useState(true) // AI proctoring enabled by default
-  
-  // Server-side AI: no model loading needed, ready when camera is ready
-  // const [aiModelReady, setAiModelReady] = useState(true)
+
+  // FaceLandmarker loading gate — show loading screen until iris model is ready (or not supported)
+  const [flStatus, setFlStatus] = useState<{ ready: boolean; supported: boolean }>({ ready: false, supported: false })
+  const [flChecked, setFlChecked] = useState(false) // true once we know if device supports it
+  // Model loading is done when: (1) not supported → skip, or (2) supported and ready
+  const aiModelLoading = flChecked && flStatus.supported && !flStatus.ready
   
   // [COMMENTED OUT — Old client-side loading state]
   // const [setupProgress, setSetupProgress] = useState(0)
@@ -125,13 +128,11 @@ const ExamPage = () => {
     }
   }
 
-  // AI model ready callback
-  // Server-side AI: handleAIReady just confirms camera is working
-  // const handleAIReady = useCallback((ready: boolean) => {
-  //   if (ready) {
-  //     setAiModelReady(true)
-  //   }
-  // }, [])
+  // FaceLandmarker status callback — drives loading gate
+  const handleFaceLandmarkerStatus = useCallback((status: { ready: boolean; supported: boolean }) => {
+    setFlStatus(status)
+    if (!flChecked) setFlChecked(true)
+  }, [flChecked])
 
   // [COMMENTED OUT — Server-side AI: no model prefetch needed]
   // useEffect(() => {
@@ -579,18 +580,20 @@ const ExamPage = () => {
       <ExamCamera
         enabled={aiEnabled && !completed}
         onViolation={handleAIViolation}
-        // onReady={handleAIReady}
+        onFaceLandmarkerStatus={handleFaceLandmarkerStatus}
         showDebugOverlay={true}
         socket={socket}
         sessionId={session?._id || ''}
       />
 
-      {/* [COMMENTED OUT — Server-side AI: no local model loading overlay needed] */}
-      {/* {aiEnabled && !aiModelReady && (
-        <div className='fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex flex-col items-center justify-center'>
-          ...
+      {/* Loading gate: wait for FaceLandmarker model on strong devices */}
+      {aiEnabled && aiModelLoading && (
+        <div className='fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex flex-col items-center justify-center gap-4'>
+          <div className='w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin' />
+          <p className='text-white text-lg font-medium'>Đang tải AI model...</p>
+          <p className='text-gray-400 text-sm'>Iris tracking đang khởi tạo, vui lòng chờ</p>
         </div>
-      )} */}
+      )}
 
       {/* AI Violation Alert */}
       <ViolationAlert violation={currentAIViolation} onDismiss={() => setCurrentAIViolation(null)} />
