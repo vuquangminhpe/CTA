@@ -3,7 +3,7 @@
   
   <!-- Trang chủ - Priority cao nhất -->
   <url>
-    <loc>https://thionl.site/</loc>
+    <loc>https://holaren.shop/</loc>
     <lastmod>2025-06-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
@@ -11,7 +11,7 @@
 
   <!-- Trang đăng nhập - Quan trọng cho SEO -->
   <url>
-    <loc>https://thionl.site/login</loc>
+    <loc>https://holaren.shop/login</loc>
     <lastmod>2025-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -19,7 +19,7 @@
 
   <!-- Trang đăng ký - Quan trọng cho SEO -->
   <url>
-    <loc>https://thionl.site/register</loc>
+    <loc>https://holaren.shop/register</loc>
     <lastmod>2025-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -29,28 +29,28 @@
   <!-- Ví dụ: About Us, Contact, Privacy Policy, Terms of Service -->
   <!--
   <url>
-    <loc>https://thionl.site/about</loc>
+    <loc>https://holaren.shop/about</loc>
     <lastmod>2025-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://thionl.site/contact</loc>
+    <loc>https://holaren.shop/contact</loc>
     <lastmod>2025-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://thionl.site/privacy-policy</loc>
+    <loc>https://holaren.shop/privacy-policy</loc>
     <lastmod>2025-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <url>
-    <loc>https://thionl.site/terms-of-service</loc>
+    <loc>https://holaren.shop/terms-of-service</loc>
     <lastmod>2025-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>

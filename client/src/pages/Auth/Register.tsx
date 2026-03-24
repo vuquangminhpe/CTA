@@ -73,7 +73,7 @@ const Register = () => {
       <SEOComponent
         title='Đăng ký tài khoản - Thionl'
         description='Tạo tài khoản miễn phí để sử dụng hệ thống thi trực tuyến AI của Thionl'
-        canonical='https://thionl.site/register'
+        canonical='https://holaren.shop/register'
         robots='noindex, nofollow'
       />
       <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden'>

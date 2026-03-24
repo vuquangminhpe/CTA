@@ -34,7 +34,7 @@ Allow: /*.svg
 Allow: /*.ico
 
 # Sitemap location
-Sitemap: https://thionl.site/sitemap.xml
+Sitemap: https://holaren.shop/sitemap.xml
 
 # Crawl delay (optional - giảm tải server)
 Crawl-delay: 1

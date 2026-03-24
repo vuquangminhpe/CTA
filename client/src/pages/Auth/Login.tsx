@@ -62,7 +62,7 @@ const Login = () => {
       <SEOComponent
         title='Đăng nhập - Thionl'
         description='Đăng nhập vào hệ thống Thionl để trải nghiệm nền tảng thi trực tuyến thông minh'
-        canonical='https://thionl.site/login'
+        canonical='https://holaren.shop/login'
         robots='noindex, nofollow'
       />
       <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden'>
