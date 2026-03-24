@@ -5,6 +5,7 @@ import { ProtectedRoute, TeacherRoute, AdminRoute, GuestRoute } from './Protecte
 import { UserRole } from '../types/User.type'
 
 // Pages
+import Home from '../pages/Home'
 import Login from '../pages/Auth/Login'
 import Register from '../pages/Auth/Register'
 import TeacherDashboard from '../pages/Teacher/TeacherDashboard'
@@ -55,8 +56,8 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {/* Root path - redirect to student */}
-      <Route path='/' element={<Navigate to='/student' replace />} />
+      {/* Root path - Home landing page */}
+      <Route path='/' element={<Home />} />
 
       {/* Dashboard route - redirect based on role */}
       <Route path='/dashboard' element={redirectBasedOnRole()} />

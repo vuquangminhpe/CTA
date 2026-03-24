@@ -81,7 +81,7 @@ const SEOComponent: React.FC<SEOProps> = ({
       <meta property='og:url' content={canonicalUrl} />
       <meta property='og:title' content={openGraph?.title || finalTitle} />
       <meta property='og:description' content={openGraph?.description || finalDescription} />
-      <meta property='og:image' content={openGraph?.image || `${baseUrl}/og-image.png`} />
+      <meta property='og:image' content={openGraph?.image || `${baseUrl}/images/logo.png`} />
       <meta property='og:site_name' content='Thionl' />
       <meta property='og:locale' content='vi_VN' />
 
@@ -90,7 +90,7 @@ const SEOComponent: React.FC<SEOProps> = ({
       <meta name='twitter:url' content={canonicalUrl} />
       <meta name='twitter:title' content={openGraph?.title || finalTitle} />
       <meta name='twitter:description' content={openGraph?.description || finalDescription} />
-      <meta name='twitter:image' content={openGraph?.image || `${baseUrl}/og-image.png`} />
+      <meta name='twitter:image' content={openGraph?.image || `${baseUrl}/images/logo.png`} />
       <meta name='twitter:site' content='@thionl' />
 
       {/* Additional SEO Meta Tags */}
@@ -98,10 +98,8 @@ const SEOComponent: React.FC<SEOProps> = ({
       <meta name='keywords' content='thi trực tuyến, AI giáo dục, kiểm tra online, hệ thống thi, chống gian lận' />
 
       {/* Favicon */}
-      <link rel='icon' type='image/x-icon' href='/favicon.ico' />
-      <link rel='apple-touch-icon' sizes='180x180' href='/apple-touch-icon.png' />
-      <link rel='icon' type='image/png' sizes='32x32' href='/favicon-32x32.png' />
-      <link rel='icon' type='image/png' sizes='16x16' href='/favicon-16x16.png' />
+      <link rel='icon' type='image/png' href='/images/logo.png' />
+      <link rel='apple-touch-icon' href='/images/logo.png' />
 
       {/* Structured Data */}
       <script type='application/ld+json'>

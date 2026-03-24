@@ -65,18 +65,12 @@ const Navbar = () => {
           <div className='flex justify-between items-center h-20'>
             {/* Logo Section - Đồng bộ với Home */}
             <div className='flex items-center space-x-2 sm:space-x-4'>
-              <Link to='/' className='flex items-center space-x-2 sm:space-x-4 group'>
-                <div className='relative group cursor-pointer'>
-                  <div className='absolute inset-0 bg-gradient-to-r from-cyan-500/50 via-blue-500/50 to-teal-500/50 rounded-xl sm:rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500' />
-                </div>
-                <div className='hidden sm:block'>
-                  <span className='text-xl sm:text-3xl font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-teal-600 bg-clip-text text-transparent drop-shadow-sm'>
-                    Thionl
-                  </span>
-                  <div className='text-xs sm:text-sm text-cyan-600/80 font-semibold drop-shadow-sm'>
-                    Giáo dục thông minh 4.0
-                  </div>
-                </div>
+              <Link to='/' className='flex items-center space-x-3 group'>
+                <img
+                  src='/images/logo.png'
+                  alt='Thionl Logo'
+                  className='h-10 w-auto object-contain'
+                />
               </Link>
             </div>
 
